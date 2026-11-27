@@ -4,7 +4,7 @@
 Object.assign(G, {
   start(S, slot) {
     this.S = S; this.slot = slot; this.P = makePlayer(S); this.scene = 'play';
-    Univ.set('kp:jart'); Univ.checkGifts();
+    Univ.set('kp:jart'); if (Univ.from === 'eh') { Univ.set('kp:erkezes:eh'); setTimeout(() => UI.toast('🕳 A fekete lyuk mögül érkeztél: Kapuváros egy buborék az Eseményhorizontban. A Pilótánál a kapu visszavisz.', '#c48cff', 7), 800); } Univ.checkGifts();
     if (!S.flags.intro) { S.flags.intro = 1; this.enterTown(); UI.intro(); } else this.enterTown();
     Quests.ensureStart();
   },

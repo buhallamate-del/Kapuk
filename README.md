@@ -26,6 +26,7 @@ A Kapuk a szerző többi játékával közös naplót vezet (`univerzum-naplo` a
 - **Ajándékok:** amit a többi játékban elértél (a horizonton túl, a Föld közepén, a 440 dB-nél, a Szív megrepesztésekor…), azért itt egyszeri ajándék jár, és a lakók emlékeznek rá.
 - **Saját események a naplóban:** `kp:jart`, `kp:<boss>`, `kp:os:<ős>`, `kp:vege`, `kp:uzenet`, `kp:hazassag`, `kp:nyelv`.
 - **Más világok:** a Kezelőnél és a Pilótánál kapuk vezetnek a többi játékba.
+- **A fekete lyukból:** Kapuváros titkos bébi-univerzum az Eseményhorizont 4D terében. A buborékba érve a játék beágyazva nyílik meg (`?from=eh`), a Pilóta kapuja pedig visszaküld a fekete lyukba. A megtalálásért (`eh:egg:kapuk`) ajándék jár. Így a lánc körbeér: Raktár 3D → pohármosó fekete lyuka → Eseményhorizont → Kapuk.
 - **Heti Hasadék:** mindenkinek ugyanaz a pálya a héten, a rangsor a közös `multiverzum-bajnoksag-r4w8` csatornán megy (játékkód: `kp`, nyilvános MQTT üzenetközvetítő, HiveMQ). A könyvtár: `vendor/mqtt/` (MIT licenc).
 
 ## Mélység (elmélyítés, 1. kör)
