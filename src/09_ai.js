@@ -40,7 +40,7 @@ Object.assign(G, {
       // hátralökés
       if (e.kbx || e.kby) { moveCircle(m, e, e.kbx * dt, e.kby * dt); e.kbx *= Math.pow(0.002, dt); e.kby *= Math.pow(0.002, dt); if (Math.abs(e.kbx) + Math.abs(e.kby) < 5) e.kbx = e.kby = 0; }
       e.losT -= dt; if (e.losT <= 0) { e.losT = 0.25 + RNG() * 0.1; e.seeP = dP < 900 && los(m, e.x, e.y, P.x, P.y); }
-      if (e.state === 'idle') { if ((dP < 400 && e.seeP) || e.hurtT > 0) this.aggro(e); else continue; }
+      if (e.state === 'idle') { if ((dP < (this.darkBoost > 0 ? 140 : 400) && e.seeP) || e.hurtT > 0) this.aggro(e); else continue; }
       if (e.state === 'wander') { // Ősök: kóborolnak, csak közelről vagy ütésre támadnak
         if (dP < 420 && !e.warned) { e.warned = true; UI.toast(`⚠ Ős a közelben: ${e.nameTxt} (${e.lvl}. szint). Kerüld el – vagy ne.`, '#ff7a7a', 3); }
         if ((dP < 230 && e.seeP) || e.hurtT > 0) { e.state = 'chase'; UI.toast(`⚠ ${e.nameTxt} felfigyelt rád! (${e.lvl}. szint)`, '#ff3355', 4); Audio2.play('bossroar'); }
@@ -101,7 +101,7 @@ Object.assign(G, {
         let sx = 0, sy = 0;
         for (const o of this.near(e.x, e.y, e.r + 14)) { if (o === e) continue; const dd = Math.hypot(e.x - o.x, e.y - o.y) || 1; sx += (e.x - o.x) / dd; sy += (e.y - o.y) / dd; }
         let vx = Math.cos(mv) * spd + sx * 40, vy = Math.sin(mv) * spd + sy * 40;
-        if (this.gust) { vx += this.gust.x * 0.6; vy += this.gust.y * 0.6; }
+        if (this.gust && !this.sheltered(e)) { vx += this.gust.x * 0.6; vy += this.gust.y * 0.6; }
         const t = tileAt(m, Math.floor(e.x / TILE), Math.floor(e.y / TILE)); if (t === T_HAZ) { const fx = REGION[m.region] && REGION[m.region].haz.fx; if (fx === 'slow') { vx *= 0.55; vy *= 0.55; } }
         moveCircle(m, e, vx * dt, vy * dt);
         e.face = mv;
@@ -232,6 +232,7 @@ Object.assign(G, {
       const dt = p.own === 'e' ? (this.wdt != null ? this.wdt : dt0) : dt0;
       p.t += dt; if (p.t > p.life) { p.dead = true; if (p.splash && p.own === 'p') this.explode(p); continue; }
       if (p.homing && p.own === 'p') { const e = p.machine ? Machines.target(p.x, p.y, 380) : this.nearestEnemy(p.x, p.y, 380, false); if (e) { const a = Math.atan2(p.vy, p.vx), ta = Math.atan2(e.y - p.y, e.x - p.x); const na = a + clamp(angDiff(a, ta), -p.homing * dt, p.homing * dt); const s = Math.hypot(p.vx, p.vy); p.vx = Math.cos(na) * s; p.vy = Math.sin(na) * s; } }
+      if (this.gust && p.own === 'e') { p.vx += this.gust.x * 1.4 * dt; p.vy += this.gust.y * 1.4 * dt; } // a szél elsodorja az ellenséges lövedékeket
       if (p.homingP && p.own === 'e') { const a = Math.atan2(p.vy, p.vx), ta = Math.atan2(P.y - p.y, P.x - p.x); const na = a + clamp(angDiff(a, ta), -p.homingP * dt, p.homingP * dt); const s = Math.hypot(p.vx, p.vy); p.vx = Math.cos(na) * s; p.vy = Math.sin(na) * s; }
       const steps = Math.max(1, Math.ceil(Math.hypot(p.vx, p.vy) * dt / 10));
       for (let s = 0; s < steps && !p.dead; s++) {

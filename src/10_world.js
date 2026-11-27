@@ -8,7 +8,7 @@ Object.assign(G, {
     if (!S.flags.intro) { S.flags.intro = 1; this.enterTown(); UI.intro(); } else this.enterTown();
     Quests.ensureStart();
   },
-  clearWorld() { this.enemies = []; this.projs = []; this.allies = []; this.teles = []; this.grounds = []; this.pickups = []; this.parts = []; this.texts = []; this.timers = []; this.lobs = []; this.boss = null; this.gust = null; UI.bossBar(null); this.flashes = []; },
+  clearWorld() { this.gustWarn = null; this.enemies = []; this.projs = []; this.allies = []; this.teles = []; this.grounds = []; this.pickups = []; this.parts = []; this.texts = []; this.timers = []; this.lobs = []; this.boss = null; this.gust = null; UI.bossBar(null); this.flashes = []; },
   setMap(m, pal) {
     this.map = m; this.pal = pal; this.staticLayer = renderStatic(m, pal);
     const P = this.P; P.x = m.start.x; P.y = m.start.y; P.dash = null; P.vx = P.vy = 0; P.kbx = P.kby = 0; P.history = []; P.w = 0; P.bulletTime = 0;
@@ -267,7 +267,7 @@ Object.assign(G, {
       if (d.t <= 0) P.dash = null;
     } else {
       let vx = P.vx + (P.kbx || 0), vy = P.vy + (P.kby || 0);
-      if (this.gust) { vx += this.gust.x; vy += this.gust.y; }
+      if (this.gust && !this.sheltered(P)) { vx += this.gust.x; vy += this.gust.y; }
       if (haz === 'wind') { vx += m.windX || 60; vy += m.windY || 0; }
       if (P.ext) { vx += P.ext.x; vy += P.ext.y; P.ext.x = P.ext.y = 0; }
       moveCircle(m, P, vx * dt, vy * dt);
@@ -297,6 +297,8 @@ Object.assign(G, {
     // W-tengely
     if (m.mech === 'eh' && P.wCd <= 0) { if (Input.hit('z')) { P.w = Math.max(-4, P.w - 1); P.wCd = 0.25; this.wShift(); } if (Input.hit('x')) { P.w = Math.min(4, P.w + 1); P.wCd = 0.25; this.wShift(); } }
   },
+  // szélárnyék: ha a szél felőli oldalon fal vagy akadály van, nem sodor
+  sheltered(ent) { const g = this.gust; if (!g) return false; const l = Math.hypot(g.x, g.y) || 1; for (const d of [20, 40]) if (solidAt(this.map, ent.x - g.x / l * d, ent.y - g.y / l * d)) return true; return false; },
   wShift() { const P = this.P; Audio2.play('portal'); this.fxRing(P.x, P.y, 50, '#c48cff', 0.4, 3); this.text(P.x, P.y - 30, `W = ${P.w > 0 ? '+' : ''}${P.w}`, '#c48cff', 15); },
   townClick() { },
   basicAttack() {
@@ -441,7 +443,9 @@ Object.assign(G, {
     const m = this.map, P = this.P; Proba.tick();
     if (m.mech === 'egtorony') {
       this.envT -= dt;
-      if (!this.gust && this.envT <= 0) { const a = RNG() * 6.28; this.gust = { x: Math.cos(a) * 130, y: Math.sin(a) * 130, t: 2.5 }; UI.toast('Széllökés!', '#dfefff', 1.2); }
+      // a széllökés előre szól: van idő fal vagy oszlop mögé állni (szélárnyék)
+      if (!this.gust && !this.gustWarn && this.envT <= 0) { const a = RNG() * 6.28; this.gustWarn = { a, t: 1.3 }; const dir = ['→', '↘', '↓', '↙', '←', '↖', '↑', '↗'][Math.round(((a % 6.283) + 6.283) % 6.283 / 0.785) % 8]; UI.toast(`Széllökés készül ${dir} – állj szélárnyékba!`, '#dfefff', 1.4); }
+      if (this.gustWarn) { const w = this.gustWarn; w.t -= dt; if (RNG() < 0.5) this.parts.push({ x: P.x + RNG.range(-this.W / 2, this.W / 2), y: P.y + RNG.range(-this.H / 2, this.H / 2), vx: Math.cos(w.a) * 160, vy: Math.sin(w.a) * 160, t: 0, life: 0.5, c: 'rgba(230,240,255,.35)', size: 2, drag: 0, streak: true }); if (w.t <= 0) { this.gust = { x: Math.cos(w.a) * 150, y: Math.sin(w.a) * 150, t: 2.5 }; this.gustWarn = null; } }
       if (this.gust) { this.gust.t -= dt; for (let i = 0; i < 3; i++) this.parts.push({ x: P.x + RNG.range(-this.W / 2, this.W / 2), y: P.y + RNG.range(-this.H / 2, this.H / 2), vx: this.gust.x * 4, vy: this.gust.y * 4, t: 0, life: 0.4, c: 'rgba(230,240,255,.5)', size: 2, drag: 0, streak: true }); if (this.gust.t <= 0) { this.gust = null; this.envT = 8 + RNG() * 6; } }
       if (m.windX == null) { const a = RNG() * 6.28; m.windX = Math.cos(a) * 70; m.windY = Math.sin(a) * 70; }
     }
@@ -450,7 +454,7 @@ Object.assign(G, {
       if (this.envT <= 0 && this.enemies.some(e => !e.dead && e.state === 'chase')) { this.envT = 6 + RNG() * 5; const n = 3; for (let i = 0; i < n; i++) this.tele(P.x + RNG.range(-160, 160), P.y + RNG.range(-160, 160), 70, 1.4, 22 * monDmg(m.lvl), 'tuz', 'env', { fx: 'meteor' }); UI.toast('Rakéta-becsapódás!', '#ff9b5a', 1); }
     }
     if (m.mech === 'raktar') { // áramszünet
-      this.envT -= dt; if (this.envT <= 0) { this.envT = 50 + RNG() * 40; if (RNG() < 0.5) { this.darkBoost = 12; UI.toast('Áramszünet a raktárban!', '#ffe9b0', 2); } }
+      this.envT -= dt; if (this.envT <= 0) { this.envT = 50 + RNG() * 40; if (RNG() < 0.5) { this.darkBoost = 12; UI.toast('Áramszünet! A szörnyek sem látnak – közelről vesznek csak észre. Most lehet osonni.', '#ffe9b0', 3); } }
     }
     if (this.darkBoost > 0) this.darkBoost -= dt;
   },
