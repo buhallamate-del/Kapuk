@@ -113,7 +113,7 @@ const G = {
       // a találat súlya: közelharcban megáll a világ, kritikusnál jobban
       if (o.melee && !o.noStop) { this.hitStop((o.stop || 0.035) + (crit ? 0.03 : 0)); if (crit) Audio2.play('crit'); }
       else if (crit && (o.basic || o.ranged)) { this.hitStop(0.018); Audio2.play('crit'); }
-      if (e.state !== 'chase') this.aggro(e);
+      if (e.state !== 'chase' && !(e.ancient && (e.state === 'wander' || e.state === 'alert'))) this.aggro(e);
       this.text(e.x, e.y - e.r - 6, Math.round(amt), crit ? '#ffe14d' : DT[dt].c, crit ? 17 : 12, { vy: crit ? -55 : -38 });
       { const ls = P.st.ls + (P.st.verszomj && P.hp < P.mhp / 2 ? 2 * P.st.verszomj : 0); if (ls && o.basic) P.hp = Math.min(P.mhp, P.hp + amt * ls / 100); }
       if (o.basic && o.ranged) Focus.onHit(P, e);
