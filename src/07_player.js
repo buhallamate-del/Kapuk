@@ -109,7 +109,7 @@ function rollDmg(P, mult, kind, extraCrit = 0) {
 }
 
 // ---------------- túlélés ----------------
-const SURV_RATE = { kaja: 100 / 1300, ital: 100 / 850, ebren: 100 / 2200 };
+const SURV_RATE = { kaja: 100 / 1400, ital: 100 / 1050, ebren: 100 / 2400 };
 function survivalTick(P, dt, inTown) {
   const sv = P.S.surv; const mul = (inTown ? 0.4 : Exped.hungerMul()) / (1 + P.st.at.allo * 0.006);
   const before = [sv.kaja < 30, sv.ital < 30, sv.ebren < 30, sv.kaja <= 0, sv.ital <= 0, sv.ebren <= 0].join();
@@ -127,9 +127,11 @@ function eatFood(id) {
   S.food[id]--; if (!S.food[id]) delete S.food[id];
   const sv = S.surv; if (F.kaja) sv.kaja = Math.min(100, sv.kaja + F.kaja); if (F.ital) sv.ital = Math.min(100, sv.ital + F.ital); if (F.alvas) sv.ebren = Math.min(100, sv.ebren + F.alvas);
   if (F.hp) G.P.hp = Math.min(G.P.mhp, G.P.hp + G.P.mhp * F.hp);
+  // egyszerre egy falat hatása él; a házi koszt külön, erősebb és hosszabb
+  if (F.fb) G.buff(G.P, 'falat', F.fb.t * (G.S.spouse === 'bence' ? 1.25 : 1), F.fb.mods);
   if (id === 'kola' || id === 'bika') { G.P.gas = Math.min(100, (G.P.gas || 0) + (id === 'kola' ? 14 : 22)); }
   if (id === 'sprite') G.P.gas = Math.max(0, (G.P.gas || 0) - 25);
-  recalc(G.P); Audio2.play('potion'); UI.toast(`${F.ikon} ${F.nev}`, '#e8d7b0'); G.emit('eat', id);
+  recalc(G.P); Audio2.play('potion'); UI.toast(`${F.ikon} ${F.nev}${F.fb ? ' – ' + F.fb.d : ''}`, '#e8d7b0'); G.emit('eat', id);
   return true;
 }
 function autoEat(kind) { // H: étel, G: ital

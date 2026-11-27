@@ -19,7 +19,9 @@ const Exped = {
   // hazaérés: élve jóváírjuk, halálkor elveszik
   home(fromDeath) {
     const X = this.st(); const bank = X.bank, n = X.n, rid = X.rid;
-    if (!fromDeath && bank > 0) { G.gainXp(bank); UI.toast(`📓 Hazahoztad az útinaplót: +${fmt(bank)} TP (${n}. szint mélyről)`, '#ffd34d', 5); }
+    let bonus = 0; if (!fromDeath && bank > 0 && G.S.home && G.S.home.owned && typeof Home !== 'undefined') bonus = Math.round(bank * Math.min(0.25, Home.comfort() / 200));
+    if (bonus) setTimeout(() => UI.toast(`🏡 Az otthon melege: +${fmt(bonus)} TP (kényelem)`, '#9fe07a', 4), 900);
+    if (!fromDeath && bank > 0) { G.gainXp(bank + bonus); UI.toast(`📓 Hazahoztad az útinaplót: +${fmt(bank)} TP (${n}. szint mélyről)`, '#ffd34d', 5); }
     if (!fromDeath && n > 0) { G.emit('hazaert', { n, bank, rid }); X.bestHome = Math.max(X.bestHome || 0, n); }
     X.lost = fromDeath ? bank : 0; X.bank = 0; X.n = 0;
   },

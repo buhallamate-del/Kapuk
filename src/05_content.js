@@ -187,17 +187,17 @@ const ANCIENTS = {
 
 // ---------------- ÉLELEM (éhség, szomjúság, fáradtság) ----------------
 const FOODS = {
-  pogacsa: { nev: 'Nagyi tepertős pogácsája', ikon: '🥐', kaja: 35, ar: 12, desc: 'Ropogós. Nagyi szerint „csak egyet”, de senki sem eszik egyet.' },
-  langos: { nev: 'Lángos', ikon: '🫓', kaja: 55, hp: 0.15, ar: 25, desc: 'Fokhagymás tejföllel. Egy egész napra elég.' },
-  mezescsupor: { nev: 'Akácmézes csupor', ikon: '🍯', kaja: 18, ital: 6, hp: 0.3, ar: 30, desc: 'Mézország májusi akácmézéből.' },
-  konzerv: { nev: 'Lőtéri hadtápkonzerv', ikon: '🥫', kaja: 45, ar: 18, desc: 'Gyártási év: 1957. Még ehető. Talán.' },
-  tubus: { nev: 'Űrhajós-tubus', ikon: '🧴', kaja: 30, ital: 25, ar: 40, desc: 'Gulyás tubusban. Súlytalanságban is.' },
-  gomba: { nev: 'Barlangi gomba', ikon: '🍄', kaja: 22, ar: 6, desc: 'A Mélység melegében nőtt. Világít.' },
+  pogacsa: { nev: 'Nagyi tepertős pogácsája', ikon: '🥐', kaja: 35, fb: { t: 180, mods: { aspd: 5 }, d: '+5% támadási sebesség 3 percig' },  ar: 12, desc: 'Ropogós. Nagyi szerint „csak egyet”, de senki sem eszik egyet.' },
+  langos: { nev: 'Lángos', ikon: '🫓', kaja: 55, hp: 0.15, fb: { t: 300, mods: { hpp: 8 }, d: '+8% életerő 5 percig' },  ar: 25, desc: 'Fokhagymás tejföllel. Egy egész napra elég.' },
+  mezescsupor: { nev: 'Akácmézes csupor', ikon: '🍯', kaja: 18, ital: 6, hp: 0.3, fb: { t: 240, mods: { regenMul: 40 }, d: '+40% életerő-töltődés 4 percig' },  ar: 30, desc: 'Mézország májusi akácmézéből.' },
+  konzerv: { nev: 'Lőtéri hadtápkonzerv', ikon: '🥫', kaja: 45, fb: { t: 300, mods: { armp: 15 }, d: '+15% páncél 5 percig' },  ar: 18, desc: 'Gyártási év: 1957. Még ehető. Talán.' },
+  tubus: { nev: 'Űrhajós-tubus', ikon: '🧴', kaja: 30, ital: 25, fb: { t: 300, mods: { resall: 8 }, d: '+8% minden állóság 5 percig' },  ar: 40, desc: 'Gulyás tubusban. Súlytalanságban is.' },
+  gomba: { nev: 'Barlangi gomba', ikon: '🍄', kaja: 22, fb: { t: 180, mods: { dmgp: 5 }, d: '+5% sebzés 3 percig' },  ar: 6, desc: 'A Mélység melegében nőtt. Világít.' },
   viz: { nev: 'Kulacs víz', ikon: '💧', ital: 45, ar: 8, desc: 'Egyszerű, és mégis ez kell a legjobban.' },
   kola: { nev: 'Kóla', ikon: '🥤', ital: 30, alvas: 12, ar: 10, desc: 'Kurta kedvence. +14% gáz.' },
-  bika: { nev: 'Bika energiaital', ikon: '🐂', ital: 22, alvas: 35, ar: 18, desc: 'Szárnyakat nem ad, de ébren tart. +22% gáz.' },
+  bika: { nev: 'Bika energiaital', ikon: '🐂', ital: 22, alvas: 35, fb: { t: 90, mods: { aspd: 8, msp: 5 }, d: '+8% támadási, +5% mozgási sebesség 90 mp-ig' },  ar: 18, desc: 'Szárnyakat nem ad, de ébren tart. +22% gáz.' },
   sprite: { nev: 'Spréjt', ikon: '🍋', ital: 38, ar: 10, desc: 'Az egyetlen, ami elveszi a gázt.' },
-  kave: { nev: 'Raktári automatás kávé', ikon: '☕', ital: 10, alvas: 45, ar: 9, desc: 'A hajnali műszak üzemanyaga.' },
+  kave: { nev: 'Raktári automatás kávé', ikon: '☕', ital: 10, alvas: 45, fb: { t: 120, mods: { cdr: 8 }, d: '−8% újratöltés 2 percig' },  ar: 9, desc: 'A hajnali műszak üzemanyaga.' },
   satorlap: { nev: 'Sátor', ikon: '⛺', ar: 60, tent: true, desc: 'Egy kitakarított teremben felverve kialszod magad (N gomb).' },
 };
 // melyik világban mi esik
