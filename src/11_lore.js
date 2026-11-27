@@ -8,6 +8,11 @@ const Univ = {
   get() { try { return JSON.parse(localStorage.getItem(UNIV_KEY)) || {}; } catch (_) { return {}; } },
   has(k) { return !!this.get()[k]; },
   set(k) { const n = this.get(); if (n[k]) return false; n[k] = Date.now(); try { localStorage.setItem(UNIV_KEY, JSON.stringify(n)); } catch (_) { } return true; },
+  // ha az Eseményhorizont buborékjában futunk (iframe, közös webcím), a kapu nem tölt be újra, hanem visszaszól
+  embedded() { try { return window.parent !== window && window.parent.location.origin === location.origin; } catch (_) { return false; } },
+  back() { G.autosave(); try { window.parent.postMessage({ type: 'univ-vissza' }, location.origin); } catch (_) { } },
+  // érkezés másik világból (?from=eh): egyszer köszöntjük, és naplózzuk
+  from: (() => { try { const f = new URLSearchParams(location.search).get('from'); if (f === 'eh') { history.replaceState(null, '', location.pathname); return f; } } catch (_) { } return null; })(),
   week(d = new Date()) { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())), n = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - n); const e = t.getUTCFullYear(); return e + '-W' + String(Math.ceil(((t - Date.UTC(e, 0, 1)) / 864e5 + 1) / 7)).padStart(2, '0'); },
   WORLDS: [
     ['eh', 'Eseményhorizont', '../Esemenyhorizont/?from=kapuk', 'Relativisztikus pilótagyakorlat egy fekete lyuk körül'],
@@ -24,6 +29,7 @@ const Univ = {
     'eh:jart': ['Eseményhorizont', '+60 arany a pilótától', S => { S.gold += 60; }],
     'eh:horizont': ['Eseményhorizont', 'Átléptél egyszer a horizonton: +6 kapuszilánk', S => { S.mats.szilank = (S.mats.szilank || 0) + 6; }],
     'eh:novikov': ['Eseményhorizont', 'Bezártad az időhurkot: +1 képességpont', S => { S.skillPts++; }],
+    'eh:egg:kapuk': ['Eseményhorizont', 'Megtaláltad Kapuvárost a fekete lyuk mögött: +8 kapuszilánk, +1 egzotikus anyag', S => { S.mats.szilank = (S.mats.szilank || 0) + 8; S.mats.egzotikus = (S.mats.egzotikus || 0) + 1; }],
     'lo:esc': ['Kísérleti Lőtér', 'A szonda jele: +3 rakéta-üzemanyag, +120 arany', S => { S.mats.uzemanyag = (S.mats.uzemanyag || 0) + 3; S.gold += 120; }],
     'lo:moon': ['Kísérleti Lőtér', 'Holdra szálltál: +5 tulajdonságpont', S => { S.attrPts += 5; }],
     'r3:jart': ['Raktár 3D', 'A raktári automata kávéi: +4 kávé', S => { S.food.kave = (S.food.kave || 0) + 4; }],
