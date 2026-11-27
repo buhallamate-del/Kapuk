@@ -178,7 +178,7 @@ window.BOT = (() => {
     const P = G.P, S = G.S, m = G.map, prof = PROFILE[S.cls];
     Input.keys.clear(); Input.mdown = [false, false, false]; UI.overUI = false;
     if (P.chan) return; // csatornázás közben állunk
-    if (G.S.inv.length >= INV_MAX - 1) town(); // tele a táska: hazaugrik (T), elad, visszajön
+    if (G.S.inv.length >= INV_MAX - 1) { if (typeof Exped !== 'undefined') Exped.home(false); town(); if (typeof Exped !== 'undefined') Exped.st().n = 1; } // tele a táska: kapu haza (T), elad, vissza
     // túlélés
     if (S.surv.kaja < 35) autoEat('kaja'); if (S.surv.ital < 35) autoEat('ital');
     if (P.hp < P.mhp * (0.38 + RNG() * 0.1) && S.potions > 0 && !(P.potCd > 0)) { G.drinkPotion(); B.st.pots++; }
@@ -270,7 +270,7 @@ window.BOT = (() => {
         if (B.pi >= B.plan.length) { B.finished = true; break; }
         const [rid, f] = B.plan[B.pi]; const ns = rec(); ns.area = G.map.lvl; ns.pots0 = B.st.pots;
         if (G.map.rid !== rid || G.map.floor !== f) { enterCur(); }
-        else { B.floorMap = G.map; B.floorT = 0; B.goal = null; B.tgt = null; B.radioSeen = false; if (S.potions <= 2 || S.surv.ebren < 30) { town(); } }
+        else { B.floorMap = G.map; B.floorT = 0; B.goal = null; B.tgt = null; B.radioSeen = false; if (S.potions <= 2 || S.surv.ebren < 30 || P.hp < P.mhp * 0.35) { G.enterTown(); enterCur(); } }
         continue;
       }
       if (G.boss && G.boss.dead && !B.bossDone) { // boss legyőzve
@@ -285,7 +285,7 @@ window.BOT = (() => {
     }
     return { time: B.time, pi: B.pi, of: B.plan.length, lvl: G.S.lvl, finished: B.finished, gaveUp: B.gaveUp, err: B.err };
   }
-  function report() { B.st.perfect = G.S.stats.perfect || 0; B.st.reactions = G.S.stats.reactions || 0; B.st.path = Object.keys(G.S.skills).filter(k => SKILLS[k] && SKILLS[k].ut).map(k => k + G.S.skills[k]).join(','); return { cls: B.cls, res: Object.values(B.res), st: B.st, time: B.time, lvl: G.S.lvl, gaveUp: B.gaveUp, gold: G.S.gold, kills: G.S.stats.kills }; }
+  function report() { B.st.perfect = G.S.stats.perfect || 0; B.st.reactions = G.S.stats.reactions || 0; B.st.path = Object.keys(G.S.skills).filter(k => SKILLS[k] && SKILLS[k].ut).map(k => k + G.S.skills[k]).join(','); return { cls: B.cls, res: Object.values(B.res), st: B.st, time: B.time, lvl: G.S.lvl, gaveUp: B.gaveUp, gold: G.S.gold, kills: G.S.stats.kills, exp: G.S.exp }; }
   function dbg() { const g = B.goal, P = G.P; return { g: g && { x: g.x | 0, y: g.y | 0, type: g.type, kind: g.kind, room: !!g.room, tries: g.botTries }, P: [P.x | 0, P.y | 0], chan: P.chan && P.chan.label, inv: G.S.inv.length, rooms: G.map.rooms.filter(r => !r.botSeen).length, ft: B.floorT | 0, ng: (() => { try { const x = nextGoal(false); return x && [x.type, x.kind, x.x | 0, x.y | 0, !!x.room]; } catch (e) { return String(e); } })(), t: B.tgt && [B.tgt.type, B.tgt.x | 0, B.tgt.y | 0, B.tgt.state, B.tgt.hp | 0] }; }
   function jump(pi) { // hibakereséshez: ugrás a terv adott pontjára, a szintet a területhez igazítva
     B.pi = pi; const [rid, f] = B.plan[pi]; const S = G.S; while (S.lvl < REGION[rid].lvl + f - 1) { S.lvl++; S.attrPts += 5; S.skillPts++; }

@@ -88,7 +88,7 @@ input{font:inherit;background:#15120e;color:var(--tx);border:1px solid var(--bd)
 <body>
 <canvas id="c"></canvas>
 <div id="hud">
-  <div id="topl"><div id="rname" class="h"></div><div id="rsub"></div></div>
+  <div id="topl"><div id="rname" class="h"></div><div id="rsub"></div><div id="exped" style="color:#e6c47a;font-size:12px;margin-top:2px"></div></div>
   <div id="buffs"></div>
   <div id="keys"></div>
   <canvas id="mm" width="190" height="190"></canvas>
@@ -1511,7 +1511,7 @@ function rollDmg(P, mult, kind, extraCrit = 0) {
 // ---------------- túlélés ----------------
 const SURV_RATE = { kaja: 100 / 1300, ital: 100 / 850, ebren: 100 / 2200 };
 function survivalTick(P, dt, inTown) {
-  const sv = P.S.surv; const mul = (inTown ? 0.4 : 1) / (1 + P.st.at.allo * 0.006);
+  const sv = P.S.surv; const mul = (inTown ? 0.4 : Exped.hungerMul()) / (1 + P.st.at.allo * 0.006);
   const before = [sv.kaja < 30, sv.ital < 30, sv.ebren < 30, sv.kaja <= 0, sv.ital <= 0, sv.ebren <= 0].join();
   sv.kaja = Math.max(0, sv.kaja - SURV_RATE.kaja * dt * mul * (P.combatT > 0 ? 1.3 : 1));
   sv.ital = Math.max(0, sv.ital - SURV_RATE.ital * dt * mul * (P.combatT > 0 ? 1.4 : 1) * (G.map && G.map.region === 'melyseg' ? 1.6 : 1));
@@ -1708,7 +1708,7 @@ const G = {
     this.burst(e.x, e.y, e.look.c2 || '#fff', 6, 90, 0.5, 2);
     // tapasztalat
     const diffL = e.lvl - P.lvl; let xm = diffL < -6 ? Math.max(0.15, 1 + (diffL + 6) * 0.12) : diffL > 0 ? 1 + diffL * 0.1 : 1;
-    const xp = Math.round(e.xp * xm); this.gainXp(xp);
+    const xp = Math.round(e.xp * xm); this.gainXp(xp); Exped.onKill(e, xp);
     S.stats.kills++; if (e.elite || e.named) S.stats.elites++;
     if (P.st.killMp) P.mp = Math.min(P.mmp, P.mp + P.st.killMp);
     if (P.st.fagyelme && e.freeze > 0) P.mp = Math.min(P.mmp, P.mp + 4 * P.st.fagyelme);
@@ -1773,14 +1773,14 @@ const G = {
   playerDie(src) {
     const P = this.P, S = this.S; if (P.dead) return; P.dead = true; P.hp = 0;
     S.stats.deaths++; Audio2.play('die'); this.burst(P.x, P.y, '#ff3355', 50, 240, 1.2, 4);
-    const lost = Math.floor(S.gold * 0.08); S.gold -= lost;
+    const lost = Math.floor(S.gold * 0.08); S.gold -= lost; { const X = Exped.st(); X.lost = X.bank; X.bank = 0; }
     this.retPortal = null;
     setTimeout(() => UI.deathScreen(src ? (src.nameTxt || src.def.nev) : 'a kimerülés', lost), 900);
   },
 
   // ---------- zsákmány ----------
   dropLoot(e) {
-    const P = this.P, S = this.S, mf = P.st.mf + this.S.prog.diff * 40;
+    const P = this.P, S = this.S, mf = P.st.mf + this.S.prog.diff * 40 + Exped.mf();
     const ilvl = Math.min(90, e.lvl);
     const drop = (k, v, it) => { const a = RNG() * 6.283, d = RNG() * 30; this.pickups.push({ kind: k, v, it, x: e.x + Math.cos(a) * d, y: e.y + Math.sin(a) * d, t: 0, vy: -120 - RNG() * 80, z: 0 }); };
     let itemN = 0, minRar = 0;
@@ -2170,7 +2170,7 @@ Object.assign(G, {
     UI.minimapDirty = true;
   },
   enterTown(fromDeath) {
-    this.saveDungeon = null;
+    this.saveDungeon = null; if (this.S) Exped.home(fromDeath);
     this.clearWorld(); const m = genTown(); m.lvl = 1;
     Town.populate(m);
     for (const o of m.objs) { const tx = Math.floor(o.x / TILE), ty = Math.floor(o.y / TILE); for (let y = ty - 1; y <= ty + 1; y++) for (let x = tx - 1; x <= tx + 1; x++) if (m.t[y * m.w + x] === T_OBST && !(m.houses.some(h => x >= h[0] && x < h[0] + h[2] && y >= h[1] && y < h[1] + h[3])) && Math.hypot(x - 30, y - 25) > 8) m.t[y * m.w + x] = T_FLOOR; }
@@ -2181,8 +2181,8 @@ Object.assign(G, {
     Audio2.play('portal');
   },
   regionLvl(rid, floor) { const R = REGION[rid]; return R.lvl + (floor - 1) + this.diffLvl(); },
-  enterDungeon(rid, floor) {
-    const R = REGION[rid], S = this.S; this.clearWorld(); this.retPortal = null;
+  enterDungeon(rid, floor, viaExit) {
+    const R = REGION[rid], S = this.S; this.clearWorld(); this.retPortal = null; Exped.enter(rid, viaExit);
     const boss = floor === R.floors;
     const seed = hashStr(rid + ':' + floor + ':' + S.created + ':' + (S.stats.kills >> 4) + ':' + Date.now());
     const m = genDungeon(seed, R, floor, { boss });
@@ -2194,8 +2194,8 @@ Object.assign(G, {
     this.emit('enter', { rid, floor }); this.autosave();
     Audio2.play('portal');
   },
-  enterHasadek(n, weekly) {
-    const S = this.S; this.clearWorld(); this.retPortal = null;
+  enterHasadek(n, weekly, viaExit) {
+    const S = this.S; this.clearWorld(); this.retPortal = null; Exped.enter('hasadek', viaExit);
     const wk = Univ.week();
     const seed = weekly ? hashStr('hasadek:' + wk + ':' + n) : hashStr('h' + n + ':' + Date.now());
     const rng = makeRng(seed);
@@ -2212,11 +2212,12 @@ Object.assign(G, {
 
   // ---------- benépesítés ----------
   populate(m, R, boss, rng, hasadek) {
-    const L = m.lvl, S = this.S;
-    const packs = [];
+    const L0 = m.lvl, S = this.S;
+    const packs = []; m.maxDist = Math.max(1, ...m.rooms.map(r => r.dist > 0 && r.dist < 1e4 ? r.dist : 0));
     m.rooms.forEach(r => {
       if (r.start) return;
       if (r.boss) return;
+      const L = L0 + Exped.roomBonus(m, r);
       const area = r.w * r.h, n = Math.round(area / 30 * (0.8 + rng() * 0.5) * (1 + S.prog.diff * 0.15));
       const champ = rng() < 0.12, elite = !champ && rng() < 0.22;
       const types = R.enemies;
@@ -2227,7 +2228,7 @@ Object.assign(G, {
         const o = {};
         if (champ && i === 0) { o.champion = true; o.mods = [rng.pick(Object.keys(ELITE_MODS)), rng.pick(Object.keys(ELITE_MODS))]; }
         else if (elite && i < 3) { o.elite = true; o.mods = [elite && i === 0 ? rng.pick(Object.keys(ELITE_MODS)) : (packs.lastMod || rng.pick(Object.keys(ELITE_MODS)))]; packs.lastMod = o.mods[0]; }
-        this.spawnEnemy(t, p.x, p.y, L, o);
+        this.spawnEnemy(t, p.x, p.y, L, o).distF = r.distF;
       }
       // ládák, hordók, szentélyek, gyűjtőhelyek
       if (rng() < 0.35) { const p = roomSpot(m, r, rng, 2); m.objs.push(this.makeChest(p.x, p.y, rng() < 0.15)); }
@@ -2244,7 +2245,7 @@ Object.assign(G, {
       const br = m.rooms.find(r => r.boss);
       const bid = hasadek ? R.boss : (R.id === 'eh' && this.S.prog.bosses.onmagad ? 'szingularitas' : R.boss);
       const D = BOSSES[bid];
-      const e = this.spawnEnemy(bid, (br.cx + 0.5) * TILE, (br.cy + 0.5) * TILE, L + 2, { boss: true, bossDef: D, r: D.r });
+      const e = this.spawnEnemy(bid, (br.cx + 0.5) * TILE, (br.cy + 0.5) * TILE, L0 + 2, { boss: true, bossDef: D, r: D.r });
       e.bossId = bid; this.boss = e; e.state = 'idle';
       if (D.chains) this.spawnChains(e, D.chains);
       if (D.antennas) this.spawnAntennas(e, D.antennas);
@@ -2255,10 +2256,10 @@ Object.assign(G, {
     if (!hasadek && A && !boss && m.floor === (A.floor || (m.floor >= 2 ? m.floor : 0))) {
       if (m.floor === 2 || m.floor === 3) {
         const r = m.rooms.filter(r => !r.start && !r.exit).sort((a, b) => b.w * b.h - a.w * a.h)[0];
-        if (r && rng() < 0.75) { const p = roomSpot(m, r, rng, 2); const e = this.spawnEnemy(A.base, p.x, p.y, L + A.lvlPlus, { ancient: A, mods: A.mods }); e.r = A.r; }
+        if (r && rng() < 0.75) { const p = roomSpot(m, r, rng, 2); const e = this.spawnEnemy(A.base, p.x, p.y, L0 + A.lvlPlus, { ancient: A, mods: A.mods }); e.r = A.r; }
       }
     }
-    if (hasadek && m.hasadek % 7 === 0) { const keys = Object.keys(ANCIENTS); const A2 = ANCIENTS[keys[rng.int(0, keys.length - 1)]]; const r = m.rooms.find(r => !r.start); const p = roomSpot(m, r, rng, 2); this.spawnEnemy(A2.base, p.x, p.y, L + 20, { ancient: A2, mods: A2.mods }).r = A2.r; }
+    if (hasadek && m.hasadek % 7 === 0) { const keys = Object.keys(ANCIENTS); const A2 = ANCIENTS[keys[rng.int(0, keys.length - 1)]]; const r = m.rooms.find(r => !r.start); const p = roomSpot(m, r, rng, 2); this.spawnEnemy(A2.base, p.x, p.y, L0 + 20, { ancient: A2, mods: A2.mods }).r = A2.r; }
     // világ-mechanikák
     const mech = R.mech || (REGION[m.region] && REGION[m.region].mech);
     m.mech = mech;
@@ -2293,8 +2294,8 @@ Object.assign(G, {
       const m = this.map;
       if (m.mech === 'eh' && this.P.w !== m.exitW) { UI.toast(`A fázisfal zárva. Rossz W-n vagy (most: ${this.P.w > 0 ? '+' : ''}${this.P.w}). Keresd a jeladót.`, '#c48cff', 4); return; }
       if (o.locked === 'radio') { UI.toast('A lejáratot rádiós zár védi. Fejtsd meg az adót mellette.', '#4dffb0', 4); return; }
-      if (m.hasadek) { this.S.prog.hasadek = Math.max(this.S.prog.hasadek, m.hasadek); if (m.weekly) Univ.weeklyProgress(m.hasadek); this.enterHasadek(m.hasadek + 1, m.weekly); return; }
-      this.enterDungeon(m.rid, m.floor + 1);
+      if (m.hasadek) { this.S.prog.hasadek = Math.max(this.S.prog.hasadek, m.hasadek); if (m.weekly) Univ.weeklyProgress(m.hasadek); this.enterHasadek(m.hasadek + 1, m.weekly, true); return; }
+      this.enterDungeon(m.rid, m.floor + 1, true);
     } };
   },
   makeReturnPortal() { const rp = this.retPortal; return { type: 'portal', x: 30.5 * TILE, y: 29.5 * TILE, r: 20, label: `Vissza: ${rp.label}`, c: '#6fa8ff', inter: () => this.useReturnPortal() }; },
@@ -2309,7 +2310,7 @@ Object.assign(G, {
   // ---------- városi kapu ----------
   townPortal() {
     if (this.inTown()) return; const P = this.P;
-    this.startChannel(2.5, 'Kapunyitás Kapuvárosba…', () => {
+    this.startChannel(Exped.portalTime(), 'Kapunyitás Kapuvárosba…', () => {
       const m = this.map;
       this.retPortal = { label: m.hasadek ? `Hasadék ${m.hasadek}` : `${REGION[m.rid].nev}, ${m.floor}. szint`, state: { map: m, pal: this.pal, layer: this.staticLayer, enemies: this.enemies, pickups: this.pickups, grounds: [], boss: this.boss, x: P.x, y: P.y } };
       this.enterTown();
@@ -2320,7 +2321,7 @@ Object.assign(G, {
     this.clearWorld(); this.map = st.map; this.pal = st.pal; this.staticLayer = st.layer; this.enemies = st.enemies; this.pickups = st.pickups; this.boss = st.boss;
     if (this.boss && !this.boss.dead && this.boss.intro) UI.bossBar(this.boss);
     const P = this.P; P.x = st.x; P.y = st.y; P.dash = null; P.history = []; this.cam.x = P.x; this.cam.y = P.y;
-    this.retPortal = null; UI.minimapDirty = true;
+    this.retPortal = null; UI.minimapDirty = true; Exped.st().n = Math.max(1, Exped.st().n);
     const m = this.map; UI.setRegion(m.hasadek ? `Hasadék – ${m.hasadek}. mélység` : REGION[m.rid].nev, m.hasadek ? '' : `${m.floor}. szint`); Audio2.play('portal');
   },
   startChannel(t, label, fn, c = '#ffd34d') { const P = this.P; if (P.chan) return; P.chan = { t: 0, dur: t, label, fn, c, x: P.x, y: P.y }; },
@@ -2613,6 +2614,34 @@ const MORSE_WORDS = ['HALLO', 'KAPU', 'MAJD', 'TUKOR', 'HUROK', 'NE', 'ADD', 'FE
 const toMorse = w => w.split('').map(c => MORSE[c] || '').join('  ');
 
 // ============================================================
+//  EXPEDÍCIÓ – minél messzebb a Kaputól, annál veszélyesebb és annál többet ér
+//  - szintenként, amit hazatérés nélkül teszel meg, nő a mélység (n)
+//  - a pályán belül a bejárattól távolabbi termek ellenfelei erősebbek
+//  - a többlet-tapasztalat az útinaplóba kerül: csak élve hazaérve íródik jóvá,
+//    halálkor elvész. Ez köti össze a harcot és a hazatérést.
+// ============================================================
+const Exped = {
+  st() { const S = G.S; if (!S.exp) S.exp = { n: 0, bank: 0, rid: null, best: 0 }; return S.exp; },
+  // belépés egy szintre: lejáraton át folytatás, a Kapun át új kezdet
+  enter(rid, viaExit) { const X = this.st(); X.n = viaExit ? X.n + 1 : 1; X.rid = rid; X.best = Math.max(X.best, X.n); if (X.n >= 3 && viaExit) UI.toast(`Mélység a Kaputól: ${X.n}. szint – erősebb ellenfelek, több tapasztalat. Az útinapló csak hazaérve számít.`, '#e6c47a', 4); },
+  // a terem ellenfeleinek szintbónusza: távolság a bejárattól (0..1) és a mélység
+  roomBonus(m, r) { const X = this.st(); const maxD = m.maxDist || 1, d = clamp((r.dist || 0) / maxD, 0, 1); r.distF = d; return Math.min(5, Math.round(d * 2 + (X.n - 1) * 0.75)); },
+  // ölés: a többlet az útinaplóba megy
+  onKill(e, xp) { const X = this.st(); const f = 0.12 * Math.max(0, X.n - 1) + 0.35 * (e.distF || 0); if (f > 0 && xp > 0) X.bank += Math.round(xp * f); },
+  mf() { return 10 * Math.max(0, this.st().n - 1); },
+  hungerMul() { return 1 + 0.08 * Math.max(0, this.st().n - 1); },
+  portalTime() { return Math.min(4.5, 2.5 + 0.4 * Math.max(0, this.st().n - 1)); },
+  // hazaérés: élve jóváírjuk, halálkor elveszik
+  home(fromDeath) {
+    const X = this.st(); const bank = X.bank, n = X.n, rid = X.rid;
+    if (!fromDeath && bank > 0) { G.gainXp(bank); UI.toast(`📓 Hazahoztad az útinaplót: +${fmt(bank)} TP (${n}. szint mélyről)`, '#ffd34d', 5); }
+    if (!fromDeath && n > 0) G.emit('hazaert', { n, bank, rid });
+    X.lost = fromDeath ? bank : 0; X.bank = 0; X.n = 0;
+  },
+  hud() { const X = this.st(); if (!G.map || G.inTown() || !X.n) return ''; return `Mélység a Kaputól: ${X.n}${X.bank ? ` · útinapló: ${fmt(X.bank)} TP` : ''}`; },
+};
+
+// ============================================================
 //  LORE: NPC-k, küldetések, multiverzum-napló, mentés
 // ============================================================
 
@@ -2767,6 +2796,11 @@ const QUESTS = [
   { id: 's_bemondo', giver: 'kezelo', req: 'm4', nev: 'Az 1957-es Bemondó', desc: '„Öt-egy. Egy-egy. Nulla-egy.” A Jeltörő-állomás 2. szintjén kísért.', goal: { t: 'named', id: 'lidérc2', where: { jeltoro: [2] } }, rw: { xp: 9000, gold: 1500, relic: 'fejhallgato' } },
   { id: 's_holdkomp', giver: 'fokonstruktor', req: 'm5', nev: 'Holdkomp-alkatrészek', desc: 'A holdkomp 15 tonna. A Lőtér csarnokaiban négy alkatrész hiányzik hozzá.', goal: { t: 'collect', id: 'alkatresz', n: 4, where: { loter: [1, 2, 3] }, per: 2 }, rw: { xp: 14000, gold: 2500, relic: 'holdsisak' } },
   { id: 's_gep', giver: 'fokonstruktor', req: 'm5', nev: 'A megbolondult gép', desc: 'Az egyik szerelőrobotom azt hiszi, ő a Főkonstruktőr. A 3. csarnokban van.', goal: { t: 'named', id: 'fokonst', where: { loter: [3] } }, rw: { xp: 15000, gold: 2500, relic: 'hegeszto' } },
+  // túlélő szál: messzire menni könnyű, visszajönni a művészet
+  { id: 's_exped', giver: 'leltaros', req: 'm1', nev: 'Leltár a mélyből', desc: '„Ami lent van, az csak akkor van meg, ha fel is hozod. Különben az is hiány.” Menj le három szintet egyhuzamban, hazatérés nélkül – és érj vissza élve. Minden szinttel erősebbek odalent, de az útinaplód is vastagszik.', goal: { t: 'exped', n: 3 }, rw: { xp: 900, gold: 250, food: { satorlap: 1, konzerv: 2 } } },
+  { id: 's_vacsora', giver: 'nagyi', req: 'm2', nev: 'Vacsorára itthon', desc: 'Nagyi szerint az a tapasztalat, amit hazahozol, nem az, amit lent hagysz. Hozz haza egyszerre legalább 2500 TP-t az útinaplódban. „És ne késs, kihűl a gulyás.”', goal: { t: 'bank', n: 2500 }, rw: { xp: 1500, elix: { ero: 2, vasbor: 2 }, food: { langos: 3 } } },
+  { id: 's_kulacs', giver: 'furomester', req: 'm3', nev: 'Az utolsó kulacs', desc: '„Odalent a víz drágább az aranynál, és huszonöt fokkal melegebb kilométerenként.” Juss el a Mélység 4. szintjéig a Kaputól egyhuzamban, és gyere vissza. A boss is számít.', goal: { t: 'exped', n: 4, rid: 'melyseg' }, rw: { xp: 7000, gold: 1200, item: { rar: 3, base: 'csizma' } } },
+  { id: 's_horizontrol', giver: 'pilota', req: 'm6', nev: 'Vissza a horizont alól', desc: 'Az Eseményhorizont mögül még senki sem hozott haza tízezer TP-nyi emléket. Az idő ott lassabban telik – a hazaút annál hosszabb.', goal: { t: 'bank', n: 10000 }, rw: { xp: 20000, skill: 1, food: { tubus: 3 } } },
   { id: 's_buborek', giver: 'pilota', req: 'm6', nev: 'Bébi-univerzumok', desc: 'Smolin, 1992: minden fekete lyuk mögött új világ születik. Találj meg hármat a W-tengely mentén (Z/X: W-eltolás, ±4).', goal: { t: 'buborek', n: 3 }, rw: { xp: 24000, gold: 4000, relic: 'fotongyuru' } },
 ];
 const QUEST = Object.fromEntries(QUESTS.map(q => [q.id, q]));
@@ -2800,6 +2834,8 @@ const Quests = {
       else if (ev === 'hive' && g.t === 'hive') this.progress(q);
       else if (ev === 'gate' && g.t === 'gate' && d === g.id) this.progress(q);
       else if (ev === 'buborek' && g.t === 'buborek') this.progress(q);
+      else if (ev === 'hazaert' && g.t === 'exped' && d.n >= g.n && (!g.rid || d.rid === g.rid)) this.progress(q);
+      else if (ev === 'hazaert' && g.t === 'bank' && d.bank >= g.n) this.progress(q);
       else if (ev === 'kill' && g.t === 'ancient' && d.ancient) this.progress(q);
       else if (ev === 'mat' && g.t === 'mat' && d === g.id && (G.S.mats[g.id] || 0) >= g.n) { s.n = g.n; this.progress(q, 0); }
     }
@@ -3407,6 +3443,7 @@ const UI = {
     const bf = P.buffs.map(b => `<span class="bf">${{ csata: '📯', tombol: '😡', ital: '❤', tokeletes: '✧', shrine: '✨', szokes: '🛰', javit: '🔧', bika: '🐂', vegitelet: '♾', menekul: '↶', tulfesz: '🌩', magma: '🌋' }[b.id] || (b.id.startsWith('elix_') ? '⚗' : '•')} ${Math.ceil(b.t)}</span>`).join('') + (P.bulletTime ? '<span class="bf" style="color:#f2d36b">⏱ Golyóidő</span>' : '') + (S.forbidden.includes('osforma') ? '<span class="bf" style="color:#ff3355">☠ Ősforma</span>' : '');
     if (this._bf !== bf) { $('#buffs').innerHTML = bf; this._bf = bf; }
     // csatorna, W
+    { const ex = Exped.hud(); if (this._ex !== ex) { $('#exped').textContent = ex; this._ex = ex; } }
     $('#chan').textContent = P.chan ? `${P.chan.label} ${Math.round(P.chan.t / P.chan.dur * 100)}%` : '';
     $('#wind').textContent = G.map && G.map.mech === 'eh' ? `W = ${P.w > 0 ? '+' : ''}${P.w}  (Z/X)` : '';
     if (this.bossE) { const e = this.bossE; $('#boss .bar div').style.width = Math.max(0, e.hp / e.mhp * 100) + '%'; if (e.dead) this.bossBar(null); }
@@ -3675,7 +3712,7 @@ const UI = {
   },
   deathScreen(by, lost) {
     const o = $('#over'); o.style.display = 'flex';
-    o.innerHTML = `<div class="h" style="font-size:42px;color:#e04848">Elestél</div><p>Ellenfél: ${esc(by)} · elveszett ${lost} arany</p><p class="small">„Ne add fel. Megéri.”</p><button class="pri" data-a="respawn">Feltámadás Kapuvárosban</button>`;
+    o.innerHTML = `<div class="h" style="font-size:42px;color:#e04848">Elestél</div><p>Ellenfél: ${esc(by)} · elveszett ${lost} arany${G.S.exp && G.S.exp.lost ? ` · az útinapló (${fmt(G.S.exp.lost)} TP) a mélyben maradt` : ''}</p><p class="small">„Ne add fel. Megéri.”</p><button class="pri" data-a="respawn">Feltámadás Kapuvárosban</button>`;
   },
   ending() {
     const S = G.S; S.prog.diffMax = Math.max(S.prog.diffMax, 1); if (S.prog.diff >= 1) S.prog.diffMax = 2;

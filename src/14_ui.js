@@ -65,6 +65,7 @@ const UI = {
     const bf = P.buffs.map(b => `<span class="bf">${{ csata: '📯', tombol: '😡', ital: '❤', tokeletes: '✧', shrine: '✨', szokes: '🛰', javit: '🔧', bika: '🐂', vegitelet: '♾', menekul: '↶', tulfesz: '🌩', magma: '🌋' }[b.id] || (b.id.startsWith('elix_') ? '⚗' : '•')} ${Math.ceil(b.t)}</span>`).join('') + (P.bulletTime ? '<span class="bf" style="color:#f2d36b">⏱ Golyóidő</span>' : '') + (S.forbidden.includes('osforma') ? '<span class="bf" style="color:#ff3355">☠ Ősforma</span>' : '');
     if (this._bf !== bf) { $('#buffs').innerHTML = bf; this._bf = bf; }
     // csatorna, W
+    { const ex = Exped.hud(); if (this._ex !== ex) { $('#exped').textContent = ex; this._ex = ex; } }
     $('#chan').textContent = P.chan ? `${P.chan.label} ${Math.round(P.chan.t / P.chan.dur * 100)}%` : '';
     $('#wind').textContent = G.map && G.map.mech === 'eh' ? `W = ${P.w > 0 ? '+' : ''}${P.w}  (Z/X)` : '';
     if (this.bossE) { const e = this.bossE; $('#boss .bar div').style.width = Math.max(0, e.hp / e.mhp * 100) + '%'; if (e.dead) this.bossBar(null); }
@@ -333,7 +334,7 @@ const UI = {
   },
   deathScreen(by, lost) {
     const o = $('#over'); o.style.display = 'flex';
-    o.innerHTML = `<div class="h" style="font-size:42px;color:#e04848">Elestél</div><p>Ellenfél: ${esc(by)} · elveszett ${lost} arany</p><p class="small">„Ne add fel. Megéri.”</p><button class="pri" data-a="respawn">Feltámadás Kapuvárosban</button>`;
+    o.innerHTML = `<div class="h" style="font-size:42px;color:#e04848">Elestél</div><p>Ellenfél: ${esc(by)} · elveszett ${lost} arany${G.S.exp && G.S.exp.lost ? ` · az útinapló (${fmt(G.S.exp.lost)} TP) a mélyben maradt` : ''}</p><p class="small">„Ne add fel. Megéri.”</p><button class="pri" data-a="respawn">Feltámadás Kapuvárosban</button>`;
   },
   ending() {
     const S = G.S; S.prog.diffMax = Math.max(S.prog.diffMax, 1); if (S.prog.diff >= 1) S.prog.diffMax = 2;

@@ -146,7 +146,7 @@ const G = {
     this.burst(e.x, e.y, e.look.c2 || '#fff', 6, 90, 0.5, 2);
     // tapasztalat
     const diffL = e.lvl - P.lvl; let xm = diffL < -6 ? Math.max(0.15, 1 + (diffL + 6) * 0.12) : diffL > 0 ? 1 + diffL * 0.1 : 1;
-    const xp = Math.round(e.xp * xm); this.gainXp(xp);
+    const xp = Math.round(e.xp * xm); this.gainXp(xp); Exped.onKill(e, xp);
     S.stats.kills++; if (e.elite || e.named) S.stats.elites++;
     if (P.st.killMp) P.mp = Math.min(P.mmp, P.mp + P.st.killMp);
     if (P.st.fagyelme && e.freeze > 0) P.mp = Math.min(P.mmp, P.mp + 4 * P.st.fagyelme);
@@ -211,14 +211,14 @@ const G = {
   playerDie(src) {
     const P = this.P, S = this.S; if (P.dead) return; P.dead = true; P.hp = 0;
     S.stats.deaths++; Audio2.play('die'); this.burst(P.x, P.y, '#ff3355', 50, 240, 1.2, 4);
-    const lost = Math.floor(S.gold * 0.08); S.gold -= lost;
+    const lost = Math.floor(S.gold * 0.08); S.gold -= lost; { const X = Exped.st(); X.lost = X.bank; X.bank = 0; }
     this.retPortal = null;
     setTimeout(() => UI.deathScreen(src ? (src.nameTxt || src.def.nev) : 'a kimerülés', lost), 900);
   },
 
   // ---------- zsákmány ----------
   dropLoot(e) {
-    const P = this.P, S = this.S, mf = P.st.mf + this.S.prog.diff * 40;
+    const P = this.P, S = this.S, mf = P.st.mf + this.S.prog.diff * 40 + Exped.mf();
     const ilvl = Math.min(90, e.lvl);
     const drop = (k, v, it) => { const a = RNG() * 6.283, d = RNG() * 30; this.pickups.push({ kind: k, v, it, x: e.x + Math.cos(a) * d, y: e.y + Math.sin(a) * d, t: 0, vy: -120 - RNG() * 80, z: 0 }); };
     let itemN = 0, minRar = 0;

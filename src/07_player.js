@@ -111,7 +111,7 @@ function rollDmg(P, mult, kind, extraCrit = 0) {
 // ---------------- túlélés ----------------
 const SURV_RATE = { kaja: 100 / 1300, ital: 100 / 850, ebren: 100 / 2200 };
 function survivalTick(P, dt, inTown) {
-  const sv = P.S.surv; const mul = (inTown ? 0.4 : 1) / (1 + P.st.at.allo * 0.006);
+  const sv = P.S.surv; const mul = (inTown ? 0.4 : Exped.hungerMul()) / (1 + P.st.at.allo * 0.006);
   const before = [sv.kaja < 30, sv.ital < 30, sv.ebren < 30, sv.kaja <= 0, sv.ital <= 0, sv.ebren <= 0].join();
   sv.kaja = Math.max(0, sv.kaja - SURV_RATE.kaja * dt * mul * (P.combatT > 0 ? 1.3 : 1));
   sv.ital = Math.max(0, sv.ital - SURV_RATE.ital * dt * mul * (P.combatT > 0 ? 1.4 : 1) * (G.map && G.map.region === 'melyseg' ? 1.6 : 1));

@@ -16,7 +16,7 @@ Object.assign(G, {
     UI.minimapDirty = true;
   },
   enterTown(fromDeath) {
-    this.saveDungeon = null;
+    this.saveDungeon = null; if (this.S) Exped.home(fromDeath);
     this.clearWorld(); const m = genTown(); m.lvl = 1;
     Town.populate(m);
     for (const o of m.objs) { const tx = Math.floor(o.x / TILE), ty = Math.floor(o.y / TILE); for (let y = ty - 1; y <= ty + 1; y++) for (let x = tx - 1; x <= tx + 1; x++) if (m.t[y * m.w + x] === T_OBST && !(m.houses.some(h => x >= h[0] && x < h[0] + h[2] && y >= h[1] && y < h[1] + h[3])) && Math.hypot(x - 30, y - 25) > 8) m.t[y * m.w + x] = T_FLOOR; }
@@ -27,8 +27,8 @@ Object.assign(G, {
     Audio2.play('portal');
   },
   regionLvl(rid, floor) { const R = REGION[rid]; return R.lvl + (floor - 1) + this.diffLvl(); },
-  enterDungeon(rid, floor) {
-    const R = REGION[rid], S = this.S; this.clearWorld(); this.retPortal = null;
+  enterDungeon(rid, floor, viaExit) {
+    const R = REGION[rid], S = this.S; this.clearWorld(); this.retPortal = null; Exped.enter(rid, viaExit);
     const boss = floor === R.floors;
     const seed = hashStr(rid + ':' + floor + ':' + S.created + ':' + (S.stats.kills >> 4) + ':' + Date.now());
     const m = genDungeon(seed, R, floor, { boss });
@@ -40,8 +40,8 @@ Object.assign(G, {
     this.emit('enter', { rid, floor }); this.autosave();
     Audio2.play('portal');
   },
-  enterHasadek(n, weekly) {
-    const S = this.S; this.clearWorld(); this.retPortal = null;
+  enterHasadek(n, weekly, viaExit) {
+    const S = this.S; this.clearWorld(); this.retPortal = null; Exped.enter('hasadek', viaExit);
     const wk = Univ.week();
     const seed = weekly ? hashStr('hasadek:' + wk + ':' + n) : hashStr('h' + n + ':' + Date.now());
     const rng = makeRng(seed);
@@ -58,11 +58,12 @@ Object.assign(G, {
 
   // ---------- benépesítés ----------
   populate(m, R, boss, rng, hasadek) {
-    const L = m.lvl, S = this.S;
-    const packs = [];
+    const L0 = m.lvl, S = this.S;
+    const packs = []; m.maxDist = Math.max(1, ...m.rooms.map(r => r.dist > 0 && r.dist < 1e4 ? r.dist : 0));
     m.rooms.forEach(r => {
       if (r.start) return;
       if (r.boss) return;
+      const L = L0 + Exped.roomBonus(m, r);
       const area = r.w * r.h, n = Math.round(area / 30 * (0.8 + rng() * 0.5) * (1 + S.prog.diff * 0.15));
       const champ = rng() < 0.12, elite = !champ && rng() < 0.22;
       const types = R.enemies;
@@ -73,7 +74,7 @@ Object.assign(G, {
         const o = {};
         if (champ && i === 0) { o.champion = true; o.mods = [rng.pick(Object.keys(ELITE_MODS)), rng.pick(Object.keys(ELITE_MODS))]; }
         else if (elite && i < 3) { o.elite = true; o.mods = [elite && i === 0 ? rng.pick(Object.keys(ELITE_MODS)) : (packs.lastMod || rng.pick(Object.keys(ELITE_MODS)))]; packs.lastMod = o.mods[0]; }
-        this.spawnEnemy(t, p.x, p.y, L, o);
+        this.spawnEnemy(t, p.x, p.y, L, o).distF = r.distF;
       }
       // ládák, hordók, szentélyek, gyűjtőhelyek
       if (rng() < 0.35) { const p = roomSpot(m, r, rng, 2); m.objs.push(this.makeChest(p.x, p.y, rng() < 0.15)); }
@@ -90,7 +91,7 @@ Object.assign(G, {
       const br = m.rooms.find(r => r.boss);
       const bid = hasadek ? R.boss : (R.id === 'eh' && this.S.prog.bosses.onmagad ? 'szingularitas' : R.boss);
       const D = BOSSES[bid];
-      const e = this.spawnEnemy(bid, (br.cx + 0.5) * TILE, (br.cy + 0.5) * TILE, L + 2, { boss: true, bossDef: D, r: D.r });
+      const e = this.spawnEnemy(bid, (br.cx + 0.5) * TILE, (br.cy + 0.5) * TILE, L0 + 2, { boss: true, bossDef: D, r: D.r });
       e.bossId = bid; this.boss = e; e.state = 'idle';
       if (D.chains) this.spawnChains(e, D.chains);
       if (D.antennas) this.spawnAntennas(e, D.antennas);
@@ -101,10 +102,10 @@ Object.assign(G, {
     if (!hasadek && A && !boss && m.floor === (A.floor || (m.floor >= 2 ? m.floor : 0))) {
       if (m.floor === 2 || m.floor === 3) {
         const r = m.rooms.filter(r => !r.start && !r.exit).sort((a, b) => b.w * b.h - a.w * a.h)[0];
-        if (r && rng() < 0.75) { const p = roomSpot(m, r, rng, 2); const e = this.spawnEnemy(A.base, p.x, p.y, L + A.lvlPlus, { ancient: A, mods: A.mods }); e.r = A.r; }
+        if (r && rng() < 0.75) { const p = roomSpot(m, r, rng, 2); const e = this.spawnEnemy(A.base, p.x, p.y, L0 + A.lvlPlus, { ancient: A, mods: A.mods }); e.r = A.r; }
       }
     }
-    if (hasadek && m.hasadek % 7 === 0) { const keys = Object.keys(ANCIENTS); const A2 = ANCIENTS[keys[rng.int(0, keys.length - 1)]]; const r = m.rooms.find(r => !r.start); const p = roomSpot(m, r, rng, 2); this.spawnEnemy(A2.base, p.x, p.y, L + 20, { ancient: A2, mods: A2.mods }).r = A2.r; }
+    if (hasadek && m.hasadek % 7 === 0) { const keys = Object.keys(ANCIENTS); const A2 = ANCIENTS[keys[rng.int(0, keys.length - 1)]]; const r = m.rooms.find(r => !r.start); const p = roomSpot(m, r, rng, 2); this.spawnEnemy(A2.base, p.x, p.y, L0 + 20, { ancient: A2, mods: A2.mods }).r = A2.r; }
     // világ-mechanikák
     const mech = R.mech || (REGION[m.region] && REGION[m.region].mech);
     m.mech = mech;
@@ -139,8 +140,8 @@ Object.assign(G, {
       const m = this.map;
       if (m.mech === 'eh' && this.P.w !== m.exitW) { UI.toast(`A fázisfal zárva. Rossz W-n vagy (most: ${this.P.w > 0 ? '+' : ''}${this.P.w}). Keresd a jeladót.`, '#c48cff', 4); return; }
       if (o.locked === 'radio') { UI.toast('A lejáratot rádiós zár védi. Fejtsd meg az adót mellette.', '#4dffb0', 4); return; }
-      if (m.hasadek) { this.S.prog.hasadek = Math.max(this.S.prog.hasadek, m.hasadek); if (m.weekly) Univ.weeklyProgress(m.hasadek); this.enterHasadek(m.hasadek + 1, m.weekly); return; }
-      this.enterDungeon(m.rid, m.floor + 1);
+      if (m.hasadek) { this.S.prog.hasadek = Math.max(this.S.prog.hasadek, m.hasadek); if (m.weekly) Univ.weeklyProgress(m.hasadek); this.enterHasadek(m.hasadek + 1, m.weekly, true); return; }
+      this.enterDungeon(m.rid, m.floor + 1, true);
     } };
   },
   makeReturnPortal() { const rp = this.retPortal; return { type: 'portal', x: 30.5 * TILE, y: 29.5 * TILE, r: 20, label: `Vissza: ${rp.label}`, c: '#6fa8ff', inter: () => this.useReturnPortal() }; },
@@ -155,7 +156,7 @@ Object.assign(G, {
   // ---------- városi kapu ----------
   townPortal() {
     if (this.inTown()) return; const P = this.P;
-    this.startChannel(2.5, 'Kapunyitás Kapuvárosba…', () => {
+    this.startChannel(Exped.portalTime(), 'Kapunyitás Kapuvárosba…', () => {
       const m = this.map;
       this.retPortal = { label: m.hasadek ? `Hasadék ${m.hasadek}` : `${REGION[m.rid].nev}, ${m.floor}. szint`, state: { map: m, pal: this.pal, layer: this.staticLayer, enemies: this.enemies, pickups: this.pickups, grounds: [], boss: this.boss, x: P.x, y: P.y } };
       this.enterTown();
@@ -166,7 +167,7 @@ Object.assign(G, {
     this.clearWorld(); this.map = st.map; this.pal = st.pal; this.staticLayer = st.layer; this.enemies = st.enemies; this.pickups = st.pickups; this.boss = st.boss;
     if (this.boss && !this.boss.dead && this.boss.intro) UI.bossBar(this.boss);
     const P = this.P; P.x = st.x; P.y = st.y; P.dash = null; P.history = []; this.cam.x = P.x; this.cam.y = P.y;
-    this.retPortal = null; UI.minimapDirty = true;
+    this.retPortal = null; UI.minimapDirty = true; Exped.st().n = Math.max(1, Exped.st().n);
     const m = this.map; UI.setRegion(m.hasadek ? `Hasadék – ${m.hasadek}. mélység` : REGION[m.rid].nev, m.hasadek ? '' : `${m.floor}. szint`); Audio2.play('portal');
   },
   startChannel(t, label, fn, c = '#ffd34d') { const P = this.P; if (P.chan) return; P.chan = { t: 0, dur: t, label, fn, c, x: P.x, y: P.y }; },
