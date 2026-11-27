@@ -52,9 +52,9 @@ const CLASSES = {
 // ---------------- fegyver- és tárgyalapok ----------------
 // kind: melee/ranged/spell – ez határozza meg az alap támadást (bal gomb)
 const BASES = {
-  kard: { nev: 'Kard', slot: 'fegyver', kind: 'melee', min: 6, max: 10, spd: 1.6, range: 62, arc: 1.7, dtype: 'fiz', ikon: '🗡' },
-  poroly: { nev: 'Pöröly', slot: 'fegyver', kind: 'melee', min: 11, max: 17, spd: 0.95, range: 70, arc: 2.3, dtype: 'fiz', knock: 140, ikon: '🔨' },
-  lancfuresz: { nev: 'Láncfűrész-penge', slot: 'fegyver', kind: 'melee', min: 3, max: 5, spd: 4.2, range: 54, arc: 1.2, dtype: 'fiz', ikon: '⚙', reqLvl: 8 },
+  kard: { nev: 'Kard', slot: 'fegyver', kind: 'melee', min: 6, max: 10, spd: 1.6, range: 62, arc: 1.7, dtype: 'fiz', knock: 70, stop: 0.04, ikon: '🗡' },
+  poroly: { nev: 'Pöröly', slot: 'fegyver', kind: 'melee', min: 11, max: 17, spd: 0.95, range: 70, arc: 2.3, dtype: 'fiz', knock: 210, stop: 0.075, ikon: '🔨' },
+  lancfuresz: { nev: 'Láncfűrész-penge', slot: 'fegyver', kind: 'melee', min: 3, max: 5, spd: 4.2, range: 54, arc: 1.2, dtype: 'fiz', knock: 12, stop: 0.012, ikon: '⚙', reqLvl: 8 },
   palca: { nev: 'Pálca', slot: 'fegyver', kind: 'spell', min: 5, max: 8, spd: 2.0, pspd: 520, prad: 6, dtype: 'ter', mp: 1.5, ikon: '🪄' },
   bot: { nev: 'Varázsbot', slot: 'fegyver', kind: 'spell', min: 10, max: 15, spd: 1.05, pspd: 380, prad: 10, dtype: 'tuz', splash: 46, mp: 3, ikon: '🔮' },
   pisztoly: { nev: 'Pisztoly', slot: 'fegyver', kind: 'ranged', min: 4, max: 7, spd: 3.2, pspd: 760, prad: 3, dtype: 'fiz', spread: 0.06, ikon: '🔫' },

@@ -37,7 +37,7 @@ const UI = {
     const hp = $('#ohp'); hp.querySelector('.f').style.height = (P.hp / P.mhp * 100) + '%'; hp.querySelector('.t').innerHTML = `${Math.ceil(P.hp)}<small>/ ${P.mhp}${P.shieldV > 1 ? ` +${Math.round(P.shieldV)}` : ''}</small>`;
     const mp = $('#omp'); mp.querySelector('.f').style.height = (P.mp / P.mmp * 100) + '%'; mp.querySelector('.f').style.background = `linear-gradient(${RS.c},#111)`; mp.querySelector('.t').innerHTML = `${Math.floor(P.mp)}<small>${RS.nev}</small>`;
     $('#xp div').style.width = (S.lvl >= MAX_LVL ? 100 : S.xp / xpNeed(S.lvl) * 100) + '%';
-    $('#stab div').style.width = (P.sta / P.msta * 100) + '%';
+    { const sb = $('#stab div'), seg = DODGE_COST / P.msta * 100; sb.style.width = (P.sta / P.msta * 100) + '%'; const px = 420 * seg / 100, col = P.sta < DODGE_COST ? '#c8743a' : P.staDelay > 0 ? '#7fb060' : '#9fe07a'; sb.style.background = `repeating-linear-gradient(90deg, ${col} 0 ${px - 2}px, rgba(0,0,0,.85) ${px - 2}px ${px}px)`; }
     $('#gold').textContent = `${fmt(S.gold)} arany · ${S.lvl}. szint`;
     // képességsor
     const keys = ['JG', '1', '2', '3', '4'];
@@ -62,7 +62,7 @@ const UI = {
     const s2 = bar('🍖', 'Jóllakottság (H: evés)', sv.kaja, '#e0a050') + bar('💧', 'Szomjúság (G: ivás)', sv.ital, '#4f8dff') + bar('🌙', 'Éberség (N: sátor, kocsma: alvás)', sv.ebren, '#b08ae0');
     if (this._sv !== s2) { $('#surv').innerHTML = s2; this._sv = s2; }
     // buffok
-    const bf = P.buffs.map(b => `<span class="bf">${{ csata: '📯', tombol: '😡', ital: '❤', shrine: '✨', szokes: '🛰', javit: '🔧', bika: '🐂', vegitelet: '♾', menekul: '↶', tulfesz: '🌩', magma: '🌋' }[b.id] || (b.id.startsWith('elix_') ? '⚗' : '•')} ${Math.ceil(b.t)}</span>`).join('') + (P.bulletTime ? '<span class="bf" style="color:#f2d36b">⏱ Golyóidő</span>' : '') + (S.forbidden.includes('osforma') ? '<span class="bf" style="color:#ff3355">☠ Ősforma</span>' : '');
+    const bf = P.buffs.map(b => `<span class="bf">${{ csata: '📯', tombol: '😡', ital: '❤', tokeletes: '✧', shrine: '✨', szokes: '🛰', javit: '🔧', bika: '🐂', vegitelet: '♾', menekul: '↶', tulfesz: '🌩', magma: '🌋' }[b.id] || (b.id.startsWith('elix_') ? '⚗' : '•')} ${Math.ceil(b.t)}</span>`).join('') + (P.bulletTime ? '<span class="bf" style="color:#f2d36b">⏱ Golyóidő</span>' : '') + (S.forbidden.includes('osforma') ? '<span class="bf" style="color:#ff3355">☠ Ősforma</span>' : '');
     if (this._bf !== bf) { $('#buffs').innerHTML = bf; this._bf = bf; }
     // csatorna, W
     $('#chan').textContent = P.chan ? `${P.chan.label} ${Math.round(P.chan.t / P.chan.dur * 100)}%` : '';

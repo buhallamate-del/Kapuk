@@ -58,8 +58,9 @@ Object.assign(G, {
       if (e.fear > 0) { e.fear -= dt; mv = toP + Math.PI; }
       else if (ai === 'melee' || ai === 'tank' || ai === 'phase') {
         const reach = e.r + P.r + (ai === 'tank' ? 22 : 14);
-        if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { if (dP < reach + 16) this.hurtPlayer(e.dmg * (ai === 'tank' ? 1.5 : 1), e.def.dt || 'fiz', e); this.fxArc(e.x, e.y, toP, 1.4, reach, 'claw'); if (ai === 'tank') { this.shake(3); if (dP < reach + 16) { P.kbx = Math.cos(toP) * 300; P.kby = Math.sin(toP) * 300; } } e.cd = ai === 'tank' ? 1.8 : 1.2; } }
-        else if (dP < reach && e.cd <= 0) { e.wind = ai === 'tank' ? 0.6 : 0.35; }
+        // a lendítés iránya a felhúzáskor rögzül: oldalra lépve vagy kitérve el lehet kerülni
+        if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { const arcW = ai === 'tank' ? 1.25 : 0.95, inArc = Math.abs(angDiff(e.windA, toP)) < arcW + 0.15; if (dP < reach + 16 && inArc) this.hurtPlayer(e.dmg * (ai === 'tank' ? 1.5 : 1), e.def.dt || 'fiz', e, { fx: 'claw' }); this.fxArc(e.x, e.y, e.windA, arcW * 2, reach + 16, 'claw'); if (ai === 'tank') { this.shake(3); if (dP < reach + 16 && inArc) { P.kbx = Math.cos(toP) * 300; P.kby = Math.sin(toP) * 300; } } e.cd = ai === 'tank' ? 1.8 : 1.2; } }
+        else if (dP < reach && e.cd <= 0) { e.wind = e.windMax = (ai === 'tank' ? 0.7 : 0.45) * (e.mods.includes('gyors') ? 0.8 : 1); e.windA = toP; e.windR = reach + 16; e.windW = ai === 'tank' ? 1.25 : 0.95; }
         else mv = chaseDir();
         if (ai === 'phase' && e.cd <= -2 && dP < 300 && e.seeP) { e.cd = 1; const a = toP + Math.PI + RNG.range(-0.8, 0.8); const nx = P.x + Math.cos(a) * 50, ny = P.y + Math.sin(a) * 50; if (!solidAt(m, nx, ny)) { this.burst(e.x, e.y, e.look.c2, 8, 100); e.x = nx; e.y = ny; } }
       } else if (ai === 'swarm') {
@@ -73,22 +74,24 @@ Object.assign(G, {
         else if (dP < pref - 70) mv = toP + Math.PI;
         else { mv = toP + e.strafe * Math.PI / 2; if (RNG() < dt * 0.6) e.strafe *= -1; spd *= 0.6; }
         if (e.seeP && e.cd <= 0 && dP < 620) {
-          if (ai === 'ranged') this.enemyShoot(e, toP);
+          if (ai === 'ranged') { if (!(e.aimT > 0)) e.aimT = 0.32; }
           else if (ai === 'caster') { const C = e.def.cast; for (let i = 0; i < (C.n || 1); i++) { const ox = i ? RNG.range(-90, 90) : 0, oy = i ? RNG.range(-90, 90) : 0; this.tele(P.x + ox + P.vx * 0.4, P.y + oy + P.vy * 0.4, C.r, C.delay, e.dmg * 1.4, e.def.dt || 'fiz', 'e', { src: e, fx: e.def.dt === 'fagy' ? 'nova' : 'bolt', freezeP: e.def.dt === 'fagy' }); } e.cd = C.cd; }
           else if (ai === 'summoner') { const Sm = e.def.summon; if (e.summoned < 8) for (let i = 0; i < Sm.n; i++) { const c = this.spawnEnemy(Sm.type, e.x + RNG.range(-30, 30), e.y + RNG.range(-30, 30), e.lvl, {}); c.state = 'chase'; c.xp *= 0.3; e.summoned++; c.parent = e; } e.cd = Sm.cd; this.fxRing(e.x, e.y, 40, e.look.c, 0.4); }
         }
+        if (e.aimT > 0) { e.aimT -= dt; spd *= 0.35; if (e.aimT <= 0) { if (!e.dead && e.seeP) this.enemyShoot(e, toP); else e.cd = 0.5; } }
       } else if (ai === 'charger') {
         if (e.charging > 0) { e.charging -= dt; const hit = moveCircle(m, e, e.cvx * dt, e.cvy * dt); if (!e.chHit && dist(e, P) < e.r + P.r + 4) { e.chHit = true; this.hurtPlayer(e.dmg * 1.6, e.def.dt || 'fiz', e); P.kbx = e.cvx * 0.6; P.kby = e.cvy * 0.6; } if (hit) { e.charging = 0; e.stun = 0.9; this.shake(3); this.burst(e.x, e.y, '#ccc', 8, 100); } if (RNG() < 0.5) this.burst(e.x, e.y, '#aaa', 1, 30, 0.3); continue; }
-        if (e.wind > 0) { e.wind -= dt; e.windA = toP; if (e.wind <= 0) { const s = 520 + e.spd * 2; e.cvx = Math.cos(e.windA) * s; e.cvy = Math.sin(e.windA) * s; e.charging = 0.55; e.chHit = false; e.cd = 3; } continue; }
-        if (e.seeP && dP < 330 && dP > 70 && e.cd <= 0) { e.wind = 0.6; continue; }
+        if (e.wind > 0) { e.wind -= dt; if (e.wind > 0.22) e.windA = toP; if (e.wind <= 0) { const s = 520 + e.spd * 2; e.cvx = Math.cos(e.windA) * s; e.cvy = Math.sin(e.windA) * s; e.charging = 0.55; e.chHit = false; e.cd = 3; } continue; }
+        if (e.seeP && dP < 330 && dP > 70 && e.cd <= 0) { e.wind = 0.65; e.windA = toP; this.teles.push({ line: true, follow: e, x: e.x, y: e.y, a: toP, len: (520 + e.spd * 2) * 0.55, w: e.r * 2, t: 0, delay: 0.65, own: 'none' }); continue; }
         if (dP < e.r + P.r + 10 && e.cd <= 0) { this.hurtPlayer(e.dmg, e.def.dt || 'fiz', e); e.cd = 1.2; }
         mv = chaseDir();
       } else if (ai === 'exploder') {
         if (e.fuse > 0) { e.fuse -= dt; if (e.fuse <= 0) { this.hitArea(e.x, e.y, 80, e.dmg, e.def.dt || 'tuz', 'e', { fx: 'boom', src: e }); Audio2.play('boom'); e.xp *= 0.5; this.killEnemy(e); } continue; }
         mv = chaseDir(); spd *= 1.1;
-        if (dP < e.r + P.r + 20) { e.fuse = 0.45; }
+        if (dP < e.r + P.r + 20) { e.fuse = e.fuseMax = 0.6; }
       } else if (ai === 'turret') {
-        if (!e.def.noShot && e.seeP && dP < 600 && e.cd <= 0) this.enemyShoot(e, toP);
+        if (!e.def.noShot && e.seeP && dP < 600 && e.cd <= 0 && !(e.aimT > 0)) e.aimT = 0.4;
+        if (e.aimT > 0) { e.aimT -= dt; if (e.aimT <= 0) this.enemyShoot(e, toP); }
       }
       if (mv != null && !isNaN(mv)) {
         // szétválás a szomszédoktól
@@ -201,7 +204,7 @@ Object.assign(G, {
       } else if (a.kind === 'orbit') {
         a.ang += dt * 3.2; a.x = a.owner.x + Math.cos(a.ang) * a.rad; a.y = a.owner.y + Math.sin(a.ang) * a.rad;
         a.hitT = a.hitT || new Map();
-        for (const e of this.near(a.x, a.y, 16)) { const lt = a.hitT.get(e) || 0; if (this.t - lt > 0.4) { a.hitT.set(e, this.t); this.hurtEnemy(e, P.roll(a.dmgMul, a.dk), P.wdt(), { melee: true }); } }
+        for (const e of this.near(a.x, a.y, 16)) { const lt = a.hitT.get(e) || 0; if (this.t - lt > 0.4) { a.hitT.set(e, this.t); this.hurtEnemy(e, P.roll(a.dmgMul, a.dk), P.wdt(), { melee: true, noStop: true }); } }
       } else if (a.kind === 'mine') {
         const e = this.near(a.x, a.y, a.trig * 0.6)[0];
         if (e || a.life < 0.1) { this.hitArea(a.x, a.y, a.trig, a.dmg, a.dt, 'p', { fx: 'boom', isSplash: true }); Audio2.play('boom'); a.life = 0; }
@@ -258,7 +261,7 @@ Object.assign(G, {
   },
   updateTeles(dt) {
     for (const t of this.teles) {
-      t.t += dt;
+      t.t += dt; if (t.follow) { if (t.follow.dead || t.follow.stun > 0) { t.dead = true; continue; } t.x = t.follow.x; t.y = t.follow.y; t.a = t.follow.windA; }
       if (t.t >= t.delay) {
         t.dead = true; if (t.line || t.own === 'none') continue;
         this.hitArea(t.x, t.y, t.r, t.dmg, t.dt, t.own, { ...t.o, fx: t.o.fx || 'boom', src: t.o.src, isSplash: t.own === 'p' });
@@ -288,6 +291,6 @@ Object.assign(G, {
     else if (fx === 'radio') { this.fxRing(x, y, r * 0.6, c, 0.6, 3); this.fxRing(x, y, r * 0.3, c, 0.8, 2); }
     else this.burst(x, y, c, 12, r * 2, 0.35, 2);
   },
-  fxArc(x, y, a, arc, range, fx) { this.parts.push({ arc: true, x, y, a, arc, range, t: 0, life: fx === 'burp' ? 0.5 : 0.18, c: fx === 'burp' ? '#ff9be0' : fx === 'quake' ? '#d9a441' : fx === 'claw' ? 'rgba(255,90,90,.8)' : '#fff3d0' }); },
+  fxArc(x, y, a, arc, range, fx) { this.parts.push({ arc: true, x, y, a, arc, range, t: 0, life: fx === 'burp' ? 0.5 : fx === 'swing3' ? 0.26 : 0.18, heavy: fx === 'swing3', c: fx === 'burp' ? '#ff9be0' : fx === 'quake' ? '#d9a441' : fx === 'claw' ? 'rgba(255,90,90,.8)' : fx === 'swing3' ? '#ffe2a0' : '#fff3d0' }); },
   lightFlash(x, y, r) { this.flashes = this.flashes || []; this.flashes.push({ x, y, r, t: 0, life: 0.25 }); },
 });

@@ -58,7 +58,7 @@ window.BOT = (() => {
     if (a == null) return; const c = Math.cos(a), s = Math.sin(a);
     if (c > 0.38) Input.keys.add('d'); if (c < -0.38) Input.keys.add('a'); if (s > 0.38) Input.keys.add('s'); if (s < -0.38) Input.keys.add('w');
   }
-  function dodge(a) { const P = G.P; if (P.dashCd > 0 || P.dash || (P.sta < 25 && !P.st.staInf)) return false; Input.keys.clear(); move(a); Input.pressed.add(' '); B.st.dodges++; return true; }
+  function dodge(a) { const P = G.P; if (P.dashCd > 0 || P.dash || (P.sta < DODGE_COST && !P.st.staInf)) return false; Input.keys.clear(); move(a); Input.pressed.add(' '); B.st.dodges++; return true; }
 
   // ---------- város (azonnali ügyintézés) ----------
   function itemScore(it) {

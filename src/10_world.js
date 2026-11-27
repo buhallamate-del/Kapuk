@@ -215,7 +215,7 @@ Object.assign(G, {
     const P = this.P, S = this.S, m = this.map, st = P.st, C = CLASSES[S.cls];
     if (P.dead) return;
     // időzítők, buffok
-    P.invul -= dt; P.potCd -= dt; P.dashCd -= dt; P.hurtT -= dt; P.wCd -= dt; P.combatT -= dt; P.magT -= dt; P.artiCd -= dt;
+    P.invul -= dt; P.potCd -= dt; P.dashCd -= dt; P.perfectT -= dt; P.staDelay -= dt; P.comboT -= dt; P.hurtT -= dt; P.wCd -= dt; P.combatT -= dt; P.magT -= dt; P.artiCd -= dt;
     for (const k in P.cds) P.cds[k] -= dt;
     let changed = false;
     for (const b of P.buffs) { b.t -= dt; if (b.mods && b.mods.hot) P.hp = Math.min(P.mhp, P.hp + b.mods.hot * dt); if (b.t <= 0) changed = true; }
@@ -224,7 +224,8 @@ Object.assign(G, {
     if (P.combatT <= 0 || st.regen > 0) P.hp = Math.min(P.mhp, P.hp + st.regen * dt * (P.combatT > 0 ? 0.5 : 2));
     if (C.rage) { if (P.combatT <= 0) P.mp = Math.max(0, P.mp - 6 * dt); if (st.arti) P.mp = Math.min(P.mmp, P.mp + 1.2 * st.arti * dt); }
     else P.mp = Math.min(P.mmp, P.mp + st.mregen * dt);
-    if (!(P.sprinting) && !(P.dash)) P.sta = Math.min(P.msta, P.sta + st.staRegen * dt * (S.surv.ebren < 30 ? 0.5 : 1));
+    // az állóképesség kitérés/sprint után rövid ideig nem töltődik: a kitérés költségvetés, nem pánikgomb
+    if (!(P.sprinting) && !(P.dash) && !(P.staDelay > 0)) P.sta = Math.min(P.msta, P.sta + st.staRegen * dt * (S.surv.ebren < 30 ? 0.5 : 1));
     if (st.shieldPct) { P.shieldT += dt; if (P.shieldT > 8) P.shieldV = Math.min(P.mhp * st.shieldPct / 100, P.shieldV + P.mhp * st.shieldPct / 100 * dt * 0.5); }
     // Golyóidő
     if (P.bulletTime) { P.mp -= (22 - P.bulletTime * 2) * dt; if (P.mp <= 0) { P.mp = 0; P.bulletTime = 0; UI.toast('Elfogyott a belső időd.', '#f2d36b'); } }
@@ -246,7 +247,7 @@ Object.assign(G, {
     if (Input.keys.has('a') || Input.keys.has('ArrowLeft')) mx -= 1; if (Input.keys.has('d') || Input.keys.has('ArrowRight')) mx += 1;
     const ml = Math.hypot(mx, my); if (ml) { mx /= ml; my /= ml; }
     P.sprinting = Input.keys.has('Shift') && ml && P.sta > 1 && !this.inTown();
-    if (P.sprinting && !st.staInf) P.sta = Math.max(0, P.sta - 28 * dt);
+    if (P.sprinting && !st.staInf) { P.sta = Math.max(0, P.sta - 28 * dt); P.staDelay = 0.5; }
     let spd = 185 * st.msp * (P.sprinting || (this.inTown() && Input.keys.has('Shift')) ? 1.5 : 1);
     if (P.chill > 0) { spd *= 0.6; P.chill -= dt; }
     const ti = tileAt(m, Math.floor(P.x / TILE), Math.floor(P.y / TILE));
@@ -276,10 +277,11 @@ Object.assign(G, {
     if (this.inTown()) { if (typeof Home !== 'undefined') Home.update(); return; }
     // kitérés
     if ((Input.hit(' ')) && P.dashCd <= 0 && !P.dash) {
-      const cost = 25; if (P.sta >= cost || st.staInf) {
-        if (!st.staInf) P.sta -= cost;
-        const a = ml ? Math.atan2(my, mx) : P.aim; G.dash(P, a, P.fx.hold ? 260 : 140, 0.16, { invul: true }); P.dashCd = P.fx.felho ? 0.45 : 0.9; if (P.fx.felho) P.invul = 1.1; Audio2.play('dash');
-      } else UI.toast('Kifulladtál (állóképesség).', '#9fe07a', 1.2);
+      const cost = DODGE_COST; if (P.sta >= cost || st.staInf) {
+        if (!st.staInf) { P.sta -= cost; P.staDelay = 0.7; }
+        // az első 0,14 mp a „tökéletes” ablak: ha ekkor érne a csapás, jutalom jár
+        const a = ml ? Math.atan2(my, mx) : P.aim; G.dash(P, a, P.fx.hold ? 260 : 140, 0.16, { invul: true }); P.perfectT = 0.14; P.perfectUsed = false; P.dashCd = P.fx.felho ? 0.3 : 0.55; if (P.fx.felho) P.invul = 1.1; Audio2.play('dash');
+      } else { if (!P.staWarn || this.t - P.staWarn > 1.5) { UI.toast('Kifulladtál (állóképesség).', '#9fe07a', 1.2); P.staWarn = this.t; } Audio2.play('stamina'); }
     }
     // alaptámadás
     P.atkT -= dt;
@@ -300,10 +302,13 @@ Object.assign(G, {
     const add = st.add, dt = B.dtype;
     P.combatT = Math.max(P.combatT, 2);
     if (B.kind === 'melee') {
-      const dmg = P.roll(1, 'melee');
-      this.arc(P.x, P.y, P.aim, B.arc, B.range + P.r, dmg, dt, { basic: true, melee: true, knock: B.knock || 40, fx: 'swing' });
+      // háromütéses kombó: a harmadik csapás nehéz – nagyobb ív, erősebb lökés, hosszabb megállás
+      P.combo = P.comboT > 0 ? (P.combo % 3) + 1 : 1; P.comboT = 1.1 / st.aspd + 0.4;
+      const heavy = P.combo === 3 && B.spd < 4;
+      const dmg = P.roll(heavy ? 1.6 : 1, 'melee');
+      this.arc(P.x, P.y, P.aim, B.arc * (heavy ? 1.2 : 1), B.range + P.r + (heavy ? 10 : 0), dmg, dt, { basic: true, melee: true, knock: (B.knock || 40) * (heavy ? 2.2 : 1), stop: (B.stop || 0.035) * (heavy ? 2 : 1), fx: heavy ? 'swing3' : 'swing' });
       for (const k in add) if (add[k]) this.arc(P.x, P.y, P.aim, B.arc, B.range + P.r, { a: add[k], c: false }, k, { noReflect: true });
-      Audio2.play('swing'); P.swing = 0.18; P.swingCount++;
+      Audio2.play(heavy ? 'heavy' : 'swing'); P.swing = 0.18; P.swingCount++; if (heavy) { P.atkT *= 1.35; this.shake(3); }
       this.onBasicHit('melee');
       if (P.fx.sziv && P.swingCount % 4 === 0) this.proj({ x: P.x, y: P.y, a: P.aim, spd: 500, r: 16, dmg: P.roll(1.2, 'melee'), dt: 'villam', own: 'p', kind: 'wave', col: '#dfefff', pierce: 99, life: 0.6 });
     } else if (B.kind === 'spell') {
@@ -322,6 +327,10 @@ Object.assign(G, {
         this.proj({ x: P.x + Math.cos(P.aim) * 16, y: P.y + Math.sin(P.aim) * 16, a: P.aim + RNG.range(-sp, sp) + (st.triple && !B.pellets ? (i - 1) * 0.12 : 0), spd: B.pspd, r: B.prad, dmg: P.roll(B.pellets ? 1 : 1, 'ranged'), dt: morse ? 'villam' : dt, own: 'p', kind: B.splash ? 'rocket' : 'bullet', col: morse ? '#f4f06a' : '#ffe9b0', splash: B.splash, pierce: st.pierceAll ? 99 : (B.pierce || 0), basic: true, ranged: true, add, stun: morse ? 1.2 : 0, homing: B.splash && P.fx.szonda ? 4 : 0, foton: P.fx.foton, life: 1.3, trail: B.splash ? '#ffb070' : null });
       }
       Audio2.play(B.splash ? 'boom' : B.pspd > 1000 ? 'rifle' : 'shoot'); P.recoil = 0.1;
+      // torkolattűz és hüvely
+      const mx2 = P.x + Math.cos(P.aim) * 24, my2 = P.y + Math.sin(P.aim) * 24 - 4; this.parts.push({ x: mx2, y: my2, vx: 0, vy: 0, t: 0, life: 0.06, c: '#fff2b0', size: B.splash ? 12 : 7, drag: 0, glow: true });
+      if (!B.splash) this.parts.push({ x: P.x, y: P.y - 4, vx: Math.cos(P.aim + 1.8) * 90, vy: Math.sin(P.aim + 1.8) * 90 - 40, t: 0, life: 0.5, c: '#d9a441', size: 2, drag: 3, grav: 400 });
+      if (B.pspd > 1000 || B.splash || B.pellets) this.shake(B.splash ? 3 : 1.5);
       this.onBasicHit('ranged');
     }
   },
@@ -364,6 +373,10 @@ Object.assign(G, {
   update(dt) {
     if (this.scene !== 'play' || !this.map) return;
     const P = this.P, m = this.map;
+    // hitstop: a valós idő telik, a játékidő szinte áll
+    if (this.hitstop > 0) { this.hitstop -= dt; dt *= 0.08; }
+    if (this.slowmo > 0) this.slowmo -= dt;
+    if (this.hurtFlash > 0) this.hurtFlash -= dt;
     this.t += dt; this.S.playtime += dt;
     // időzítők
     for (const t of this.timers) { t.t -= dt; if (t.t <= 0) { t.done = true; try { t.fn(); } catch (e) { console.error(e); } } }
@@ -371,7 +384,7 @@ Object.assign(G, {
     Input.wx = this.cam.x + Input.mx / this.zoom - this.W / 2; Input.wy = this.cam.y + Input.my / this.zoom - this.H / 2;
     this.updatePlayer(dt);
     // a világ ideje (Golyóidő lassítja)
-    const wdt = P.bulletTime ? dt * (1 - (0.6 + P.bulletTime * 0.04)) : dt;
+    const wdt = (P.bulletTime ? dt * (1 - (0.6 + P.bulletTime * 0.04)) : dt) * (this.slowmo > 0 ? 0.35 : 1);
     this.fieldT -= dt;
     if (this.fieldT <= 0) { this.fieldT = 0.35; flowField(m, Math.floor(P.x / TILE), Math.floor(P.y / TILE), 45); }
     this.rebuildGrid();
