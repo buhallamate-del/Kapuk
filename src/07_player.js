@@ -40,10 +40,11 @@ function recalc(P) {
   for (const sl in S.eq) {
     const it = S.eq[sl]; if (!it) continue; if (it.req > S.lvl) continue;
     if (it.arm) arm += itemArm(it);
-    it.aff.forEach(a => add(a.id, affVal(it, a)));
+    it.aff.forEach(a => { const A = AFFIX.find(x => x.id === a.id); if (A && A.trade) A.trade(affVal(it, a), add); else add(a.id, affVal(it, a)); });
     if (it.relic) P.fx[RELICS.find(r => r.id === it.relic).fx] = true;
   }
   add('skill', 0);
+  if (P.fx.leltar) add('hpp', -15);
   for (const id in S.skills) { const sk = SKILLS[id]; if (sk && sk.tipus === 'passziv') { const r = S.skills[id] + (m.skill || 0); const mm = sk.mods(r); for (const k in mm) add(k, mm[k]); } }
   if (typeof Home !== 'undefined') Home.mods(S, add);
   if (S.forbidden.includes('osforma')) for (const k in OSFORMA.mods) add(k, OSFORMA.mods[k]);

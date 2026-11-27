@@ -141,6 +141,13 @@ const AFFIX = [
   { id: 'sta', nev: v => `+${v} állóképesség`, v: (l, r) => r.int(8, 18), slots: ['lab', 'test', 'artefakt'], pre: 'Kitartó' },
   { id: 'allo', nev: v => `+${v} Állóképesség`, v: (l, r) => r.int(2, 5) + Math.floor(l / 6), slots: null, pre: 'Edzett' },
   { id: 'potion', nev: v => `+${v}% italhatás`, v: (l, r) => r.int(10, 25), slots: ['test', 'nyak'], pre: 'Szomjas' },
+  // áldozat-affixek: nagy bónusz, valódi hátránnyal – csak ritka vagy jobb tárgyon
+  { id: 't_uveg', nev: v => `Üvegágyú: +${v}% sebzés, −${Math.round(v * 0.7)}% életerő`, v: (l, r) => r.int(18, 28), slots: ['fegyver', 'gyuru', 'nyak'], pre: 'Üvegágyús', trade: (v, add) => { add('dmgp', v); add('hpp', -v * 0.7); } },
+  { id: 't_nehez', nev: v => `Nehéz vért: +${v}% páncél, −${Math.round(v / 6)}% mozgási sebesség`, v: (l, r) => r.int(40, 70), slots: ['test', 'fej', 'lab'], pre: 'Ólomnehéz', trade: (v, add) => { add('armp', v); add('msp', -v / 6); } },
+  { id: 't_ver', nev: v => `Vérpakt: ${v}% életlopás, nincs életerő-töltődés`, v: (l, r) => r.int(3, 6), slots: ['fegyver', 'gyuru'], pre: 'Vérpaktos', trade: (v, add) => { add('ls', v); add('regenMul', -100); } },
+  { id: 't_lazas', nev: v => `Lázas sietség: +${v}% támadási sebesség, −${v}% kritikus sebzés`, v: (l, r) => r.int(15, 25), slots: ['fegyver', 'kez'], pre: 'Lázas', trade: (v, add) => { add('aspd', v); add('critd', -v); } },
+  { id: 't_moho', nev: v => `Mohóság: +${v}% jobb zsákmány és arany, −${Math.round(v / 4)}% minden állóság`, v: (l, r) => r.int(40, 70), slots: ['gyuru', 'nyak', 'fej'], pre: 'Mohó', trade: (v, add) => { add('mf', v); add('gf', v); add('resall', -v / 4); } },
+  { id: 't_ido', nev: v => `Kölcsönidő: −${v}% újratöltés, −${v * 2} max. erőforrás`, v: (l, r) => r.int(12, 20), slots: ['fej', 'nyak', 'artefakt'], pre: 'Kölcsönzött', trade: (v, add) => { add('cdr', v); add('resmax', -v * 2); } },
 ];
 
 // ---------------- Ereklyék (egyedi tárgyak a multiverzumból) ----------------
@@ -149,7 +156,7 @@ const RELICS = [
   { id: 'papucs', nev: 'Nagyi papucsa', base: 'csizma', minL: 3, fx: 'papucs', txt: 'Találatkor 15% eséllyel papucs repül a támadóra: kábít 1 mp-ig. „Nem öl, csak nevel.”', aff: [['ms', 12], ['hp', 1.3]] },
   { id: 'croptop', nev: 'Kurta rózsaszín crop topja', base: 'vert', minL: 6, fx: 'croptop', txt: 'Minden 10. találatod böfi-lökéshullámot ereszt (fizikai, hátralök). A hangerő a szinteddel nő.', aff: [['hp', 1.5], ['kit', 1], ['thorns', 1]] },
   { id: 'bika', nev: 'Bika-doboz amulett', base: 'amulett', minL: 4, fx: 'bika', txt: 'Ölés után 2 mp-re +25% támadási sebesség (halmozódik 3-ig).', aff: [['aspd', 1], ['mregen', 1]] },
-  { id: 'leltarkonyv', nev: 'A Leltárkönyv', base: 'amulett', minL: 5, fx: 'leltar', txt: '+40% arany és +25% jobb zsákmány. Minden hiányzó tétel egyszer előkerül.', aff: [['gf', 1.6], ['mf', 1.4]] },
+  { id: 'leltarkonyv', nev: 'A Leltárkönyv', base: 'amulett', minL: 5, fx: 'leltar', txt: '+40% arany és +25% jobb zsákmány. Minden hiányzó tétel egyszer előkerül. Ára: −15% életerő – a könyv nehéz, és a lapjai élesek.', aff: [['gf', 1.6], ['mf', 1.4]] },
   { id: 'mezkorona', nev: 'Méhkirálynő koronája', base: 'sisak', minL: 9, fx: 'mehraj', txt: 'Ölésnél 30% eséllyel méh születik, aki 10 mp-ig veled harcol.', aff: [['regen', 1.4], ['akarat', 1]] },
   { id: 'virgonc', nev: 'Virágporos kesztyű', base: 'kesztyu', minL: 8, fx: 'viragpor', txt: 'A találataid 20% eséllyel lassítják az ellenfelet (méz). +20% sebzés lassított célpontra.', aff: [['dmgp', 1], ['aspd', 1]] },
   { id: 'szivkard', nev: 'Az Égtorony Szíve', base: 'kard', minL: 14, fx: 'sziv', txt: 'Közelharci találatnál a sebzés 4%-át visszakapod életerőként. Szélroham: minden 4. csapás hullámot vet.', aff: [['dmgp', 1.5], ['ls', 1], ['critd', 1]] },

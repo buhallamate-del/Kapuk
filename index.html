@@ -379,6 +379,13 @@ const AFFIX = [
   { id: 'sta', nev: v => `+${v} állóképesség`, v: (l, r) => r.int(8, 18), slots: ['lab', 'test', 'artefakt'], pre: 'Kitartó' },
   { id: 'allo', nev: v => `+${v} Állóképesség`, v: (l, r) => r.int(2, 5) + Math.floor(l / 6), slots: null, pre: 'Edzett' },
   { id: 'potion', nev: v => `+${v}% italhatás`, v: (l, r) => r.int(10, 25), slots: ['test', 'nyak'], pre: 'Szomjas' },
+  // áldozat-affixek: nagy bónusz, valódi hátránnyal – csak ritka vagy jobb tárgyon
+  { id: 't_uveg', nev: v => `Üvegágyú: +${v}% sebzés, −${Math.round(v * 0.7)}% életerő`, v: (l, r) => r.int(18, 28), slots: ['fegyver', 'gyuru', 'nyak'], pre: 'Üvegágyús', trade: (v, add) => { add('dmgp', v); add('hpp', -v * 0.7); } },
+  { id: 't_nehez', nev: v => `Nehéz vért: +${v}% páncél, −${Math.round(v / 6)}% mozgási sebesség`, v: (l, r) => r.int(40, 70), slots: ['test', 'fej', 'lab'], pre: 'Ólomnehéz', trade: (v, add) => { add('armp', v); add('msp', -v / 6); } },
+  { id: 't_ver', nev: v => `Vérpakt: ${v}% életlopás, nincs életerő-töltődés`, v: (l, r) => r.int(3, 6), slots: ['fegyver', 'gyuru'], pre: 'Vérpaktos', trade: (v, add) => { add('ls', v); add('regenMul', -100); } },
+  { id: 't_lazas', nev: v => `Lázas sietség: +${v}% támadási sebesség, −${v}% kritikus sebzés`, v: (l, r) => r.int(15, 25), slots: ['fegyver', 'kez'], pre: 'Lázas', trade: (v, add) => { add('aspd', v); add('critd', -v); } },
+  { id: 't_moho', nev: v => `Mohóság: +${v}% jobb zsákmány és arany, −${Math.round(v / 4)}% minden állóság`, v: (l, r) => r.int(40, 70), slots: ['gyuru', 'nyak', 'fej'], pre: 'Mohó', trade: (v, add) => { add('mf', v); add('gf', v); add('resall', -v / 4); } },
+  { id: 't_ido', nev: v => `Kölcsönidő: −${v}% újratöltés, −${v * 2} max. erőforrás`, v: (l, r) => r.int(12, 20), slots: ['fej', 'nyak', 'artefakt'], pre: 'Kölcsönzött', trade: (v, add) => { add('cdr', v); add('resmax', -v * 2); } },
 ];
 
 // ---------------- Ereklyék (egyedi tárgyak a multiverzumból) ----------------
@@ -387,7 +394,7 @@ const RELICS = [
   { id: 'papucs', nev: 'Nagyi papucsa', base: 'csizma', minL: 3, fx: 'papucs', txt: 'Találatkor 15% eséllyel papucs repül a támadóra: kábít 1 mp-ig. „Nem öl, csak nevel.”', aff: [['ms', 12], ['hp', 1.3]] },
   { id: 'croptop', nev: 'Kurta rózsaszín crop topja', base: 'vert', minL: 6, fx: 'croptop', txt: 'Minden 10. találatod böfi-lökéshullámot ereszt (fizikai, hátralök). A hangerő a szinteddel nő.', aff: [['hp', 1.5], ['kit', 1], ['thorns', 1]] },
   { id: 'bika', nev: 'Bika-doboz amulett', base: 'amulett', minL: 4, fx: 'bika', txt: 'Ölés után 2 mp-re +25% támadási sebesség (halmozódik 3-ig).', aff: [['aspd', 1], ['mregen', 1]] },
-  { id: 'leltarkonyv', nev: 'A Leltárkönyv', base: 'amulett', minL: 5, fx: 'leltar', txt: '+40% arany és +25% jobb zsákmány. Minden hiányzó tétel egyszer előkerül.', aff: [['gf', 1.6], ['mf', 1.4]] },
+  { id: 'leltarkonyv', nev: 'A Leltárkönyv', base: 'amulett', minL: 5, fx: 'leltar', txt: '+40% arany és +25% jobb zsákmány. Minden hiányzó tétel egyszer előkerül. Ára: −15% életerő – a könyv nehéz, és a lapjai élesek.', aff: [['gf', 1.6], ['mf', 1.4]] },
   { id: 'mezkorona', nev: 'Méhkirálynő koronája', base: 'sisak', minL: 9, fx: 'mehraj', txt: 'Ölésnél 30% eséllyel méh születik, aki 10 mp-ig veled harcol.', aff: [['regen', 1.4], ['akarat', 1]] },
   { id: 'virgonc', nev: 'Virágporos kesztyű', base: 'kesztyu', minL: 8, fx: 'viragpor', txt: 'A találataid 20% eséllyel lassítják az ellenfelet (méz). +20% sebzés lassított célpontra.', aff: [['dmgp', 1], ['aspd', 1]] },
   { id: 'szivkard', nev: 'Az Égtorony Szíve', base: 'kard', minL: 14, fx: 'sziv', txt: 'Közelharci találatnál a sebzés 4%-át visszakapod életerőként. Szélroham: minden 4. csapás hullámot vet.', aff: [['dmgp', 1.5], ['ls', 1], ['critd', 1]] },
@@ -1320,7 +1327,10 @@ function genItem(ilvl, rng = RNG, o = {}) {
     it.nev = relic.nev;
   } else {
     const [a0, a1] = RARITY[rar].aff; const n = a0 + Math.floor(rng() * (a1 - a0 + 1));
-    const pool = AFFIX.filter(a => (!a.slots || a.slots.includes(B.slot)) && (a.minL || 0) <= ilvl);
+    const pool = AFFIX.filter(a => (!a.slots || a.slots.includes(B.slot)) && (a.minL || 0) <= ilvl && !a.trade);
+    // ritka és legendás tárgyon 35% eséllyel egy áldozat-affix: döntés, nem csak nagyobb szám
+    const tp = AFFIX.filter(a => a.trade && a.slots.includes(B.slot));
+    if (rar >= 2 && tp.length && rng() < 0.35) { const A = rng.pick(tp); it.aff.push({ id: A.id, v: A.v(ilvl, rng) }); }
     const used = new Set();
     for (let i = 0; i < n && pool.length; i++) {
       let A; let tries = 0;
@@ -1351,6 +1361,17 @@ function itemArm(it) { return Math.round((it.arm || 0) * upgMul(it)); }
 function affVal(it, a) { return a.id === 'skill' ? a.v : Math.round(a.v * (1 + 0.05 * (it.upg || 0)) * 10) / 10; }
 function itemValue(it) { return Math.round((8 + it.ilvl * 4) * [1, 2.2, 5, 12, 20][it.rar] * (1 + 0.15 * (it.upg || 0))); }
 function salvageYield(it) { return Math.max(1, Math.round([1, 2, 5, 12, 20][it.rar] * (1 + it.ilvl / 15))); }
+// átkovácsolás: a leggyengébb affix újrasorsolása; készített tárgyon korlátlanul, dobotton egyszer
+function reforgeCost(it) { return { szilank: Math.round((4 + it.ilvl / 4) * (1 + 0.5 * (it.reforged || 0))), arany: Math.round(30 + it.ilvl * 8) }; }
+function canReforge(it) { return it.aff.length && !it.relic && (it.crafted || !it.reforged); }
+function reforge(it) {
+  const B = BASES[it.base], pool = AFFIX.filter(a => (!a.slots || a.slots.includes(B.slot)) && (a.minL || 0) <= it.ilvl && !a.trade && !it.aff.some(x => x.id === a.id));
+  if (!pool.length) return null;
+  // a leggyengébb: a saját dobási tartományához képest legkisebb érték
+  let wi = 0, wv = 1e9; it.aff.forEach((a, i) => { const A = AFFIX.find(x => x.id === a.id); if (A.trade) return; const ref = A.v(it.ilvl, makeRng(1)) || 1; const q = a.v / ref; if (q < wv) { wv = q; wi = i; } });
+  const A = RNG.pick(pool); let v = A.v(it.ilvl, RNG); if (it.rar === 3) v = Math.round(v * 1.35 * 10) / 10;
+  const old = it.aff[wi]; it.aff[wi] = { id: A.id, v }; it.reforged = (it.reforged || 0) + 1; return [old, it.aff[wi]];
+}
 function upgradeCost(it) { const u = it.upg || 0; return { arany: Math.round((20 + it.ilvl * 6) * Math.pow(1.6, u)), szilank: Math.round((2 + it.ilvl / 6) * (u + 1)), esely: Math.max(0.35, 1 - u * 0.07) }; }
 
 function itemTooltip(it, cmp) {
@@ -1362,7 +1383,15 @@ function itemTooltip(it, cmp) {
     if (cmp && cmp.min) { const d = ((a + b) / 2 * B.spd) - ((itemDmg(cmp)[0] + itemDmg(cmp)[1]) / 2 * BASES[cmp.base].spd); h += `<div class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(1)} sebzés/mp a viselthez képest</div>`; }
   }
   if (it.arm) { h += `<div class="tt-b">${itemArm(it)} páncél</div>`; if (cmp && cmp.arm != null) { const d = itemArm(it) - itemArm(cmp); if (d) h += `<div class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d)} páncél</div>`; } }
-  it.aff.forEach(a => { const A = AFFIX.find(x => x.id === a.id); h += `<div class="tt-a">${A.nev(affVal(it, a))}</div>`; });
+  it.aff.forEach(a => { const A = AFFIX.find(x => x.id === a.id); h += `<div class="tt-a" ${A.trade ? 'style="color:#ffb070"' : ''}>${A.trade ? '⚖ ' : ''}${A.nev(affVal(it, a))}${it.mesterjegy === a.id ? ' ✦' : ''}</div>`; });
+  if (cmp && cmp !== it) {
+    const sum = x => { const o = {}; x.aff.forEach(a => { const A = AFFIX.find(y => y.id === a.id); if (A.trade) A.trade(affVal(x, a), (k, v) => o[k] = (o[k] || 0) + v); else o[a.id] = (o[a.id] || 0) + affVal(x, a); }); return o; };
+    const A1 = sum(it), A0 = sum(cmp), keys = [...new Set([...Object.keys(A1), ...Object.keys(A0)])].filter(k => k !== 'skill');
+    const NM = { dmgp: '% sebzés', hpp: '% életerő', armp: '% páncél', msp: '% mozgás', regenMul: '% töltődés', resall: '% állóság', resmax: ' erőforrás', gf: '% arany' };
+    const lines = keys.map(k => { const d = Math.round(((A1[k] || 0) - (A0[k] || 0)) * 10) / 10; if (!d) return ''; const A = AFFIX.find(y => y.id === k); const t = A ? A.nev(Math.abs(d)).replace(/^[+−-]?\s?/, '') : Math.abs(d) + (NM[k] || ' ' + k); return `<span class="${d > 0 ? 'up' : 'down'}">${d > 0 ? '+' : '−'}${t.replace(/^\d+(\.\d)?/, Math.abs(d))}</span>`; }).filter(Boolean);
+    if (lines.length) h += `<div class="tt-g" style="margin-top:4px">A viselthez képest:<br>${lines.join('<br>')}</div>`;
+  }
+  if (it.crafted) h += `<div class="tt-g">Készített tárgy: korlátlanul átkovácsolható.</div>`; else if (it.reforged) h += `<div class="tt-g">Már átkovácsolták.</div>`;
   if (it.relic) { const RL = RELICS.find(r => r.id === it.relic); h += `<div class="tt-r">✦ ${esc(RL.txt)}</div>`; }
   const P = G.P;
   h += `<div class="tt-req ${P && P.lvl < it.req ? 'down' : ''}">Szükséges szint: ${it.req}</div>`;
@@ -1394,7 +1423,8 @@ function canCraft(base, tier, extra) {
   if (extra && (S.mats.szilank || 0) < 6) return false;
   return true;
 }
-function craftItem(base, tier, extra) {
+const CRAFT_FOCUS = ['dmgp', 'crit', 'critd', 'aspd', 'hp', 'arm', 'resgen', 'cdr', 'res_tuz', 'res_fagy', 'res_villam', 'ms'];
+function craftItem(base, tier, extra, focus) {
   const S = G.S; if (!canCraft(base, tier, extra)) return null;
   const c = craftCost(base, tier);
   S.gold -= c.gold; for (const k in c.mats) S.mats[k] -= c.mats[k]; if (extra) S.mats.szilank -= 6;
@@ -1402,6 +1432,9 @@ function craftItem(base, tier, extra) {
   let rar = 1; const r = RNG(); if (extra) rar = r < 0.12 ? 3 : 2; else rar = r < 0.04 ? 3 : r < 0.3 ? 2 : 1;
   const it = genItem(Math.min(ilvl, S.lvl + 6), RNG, { base, rar });
   it.crafted = true; if (rar === 3) it.nev = it.nev.replace(' – ', ' – mesterremek, ');
+  // mesterjegy: a választott tulajdonság garantáltan rákerül, erős dobással – ezt a zsákmány nem tudja
+  const F = focus && AFFIX.find(a => a.id === focus);
+  if (F && (!F.slots || F.slots.includes(BASES[base].slot))) { const v = Math.round(F.v(it.ilvl, RNG) * 1.25 * 10) / 10; const i = it.aff.findIndex(a => a.id === focus); if (i >= 0) it.aff[i].v = Math.max(it.aff[i].v, v); else if (it.aff.length) it.aff[it.aff.length - 1] = { id: focus, v }; else it.aff.push({ id: focus, v }); it.mesterjegy = focus; }
   G.emit('craft', it); return it;
 }
 
@@ -1447,10 +1480,11 @@ function recalc(P) {
   for (const sl in S.eq) {
     const it = S.eq[sl]; if (!it) continue; if (it.req > S.lvl) continue;
     if (it.arm) arm += itemArm(it);
-    it.aff.forEach(a => add(a.id, affVal(it, a)));
+    it.aff.forEach(a => { const A = AFFIX.find(x => x.id === a.id); if (A && A.trade) A.trade(affVal(it, a), add); else add(a.id, affVal(it, a)); });
     if (it.relic) P.fx[RELICS.find(r => r.id === it.relic).fx] = true;
   }
   add('skill', 0);
+  if (P.fx.leltar) add('hpp', -15);
   for (const id in S.skills) { const sk = SKILLS[id]; if (sk && sk.tipus === 'passziv') { const r = S.skills[id] + (m.skill || 0); const mm = sk.mods(r); for (const k in mm) add(k, mm[k]); } }
   if (typeof Home !== 'undefined') Home.mods(S, add);
   if (S.forbidden.includes('osforma')) for (const k in OSFORMA.mods) add(k, OSFORMA.mods[k]);
@@ -3891,7 +3925,7 @@ const UI = {
     if (k === 'bolt') { h += '<div class="small">Bal klikk: vásárlás. A táskádban jobb klikk: eladás.</div><div class="grid" style="margin-top:6px">' + this.shopItems.map((it, i) => this.cell(it, 'shop', i)).join('') + '</div>'; h += `<div style="margin-top:8px"><button data-a="restock">Új áru (${50 + S.lvl * 10} arany)</button> <button data-a="sellJunk">Minden közönséges eladása</button></div>`; }
     else if (k === 'kovacs') {
       h += '<div class="small">A táskádban jobb klikk: szétszedés kapuszilánkká. Erősítés: válassz egy viselt tárgyat.</div>';
-      for (const sl in S.eq) { const it = S.eq[sl]; if (!it) continue; const c = upgradeCost(it); h += `<div class="row"><span style="color:${RARITY[it.rar].c}" data-tt="item" data-src="eq" data-i="${sl}">${esc(it.nev)} ${it.upg ? '+' + it.upg : ''}</span><span>${it.upg >= 10 ? 'max.' : `<button class="sm" data-a="upg" data-s="${sl}" ${S.gold >= c.arany && (S.mats.szilank || 0) >= c.szilank ? '' : 'disabled'}>+1 (${c.arany} a, ${c.szilank} sz, ${Math.round(c.esely * 100)}%)</button>`}</span></div>`; }
+      for (const sl in S.eq) { const it = S.eq[sl]; if (!it) continue; const c = upgradeCost(it); h += `<div class="row"><span style="color:${RARITY[it.rar].c}" data-tt="item" data-src="eq" data-i="${sl}">${esc(it.nev)} ${it.upg ? '+' + it.upg : ''}</span><span>${it.upg >= 10 ? 'max.' : `<button class="sm" data-a="upg" data-s="${sl}" ${S.gold >= c.arany && (S.mats.szilank || 0) >= c.szilank ? '' : 'disabled'}>+1 (${c.arany} a, ${c.szilank} sz, ${Math.round(c.esely * 100)}%)</button>`} ${canReforge(it) ? (rc => `<button class="sm" data-a="reforge" data-s="${sl}" ${S.gold >= rc.arany && (S.mats.szilank || 0) >= rc.szilank ? '' : 'disabled'} data-tt="txt" data-t="Átkovácsolás: a leggyengébb tulajdonság helyett új. Készített tárgyon korlátlanul, dobotton egyszer.">⟳ (${rc.arany} a, ${rc.szilank} sz)</button>`)(reforgeCost(it)) : ''}</span></div>`; }
       h += `<div class="small" style="margin-top:6px">Kapuszilánk: ${S.mats.szilank || 0}</div><div style="margin-top:6px"><button data-a="salvageJunk">Minden közönséges és kiváló szétszedése</button></div>`;
     }
     else if (k === 'craft') {
@@ -3900,6 +3934,7 @@ const UI = {
       h += '<div class="tabs">' + tiers.map((R, i) => `<button class="sm ${ti === i ? 'on' : ''}" data-a="craftTier" data-t="${i}" data-tt="txt" data-t2="">${R.nev} (${R.lvl + 4}. szint)</button>`).join('') + '</div>';
       const bases = Object.keys(RECIPE).filter(b => { const sl = BASES[b].slot; return cat === 'fegyver' ? sl === 'fegyver' : cat === 'pancel' ? ['fej', 'test', 'kez', 'lab'].includes(sl) : cat === 'ekszer' ? ['nyak', 'gyuru'].includes(sl) : sl === 'artefakt'; });
       const tierIdx = REGIONS.indexOf(tiers[ti]);
+      h += `<div class="small" style="margin:4px 0">Mesterjegy (garantált, erős tulajdonság – a zsákmány ezt nem tudja): ` + ['', ...CRAFT_FOCUS].map(f => `<button class="sm ${(this.craftFocus || '') === f ? 'pri' : ''}" data-a="craftFocus" data-f="${f}">${f ? AFFIX.find(a => a.id === f).nev('X').replace(/[+−]?X%?\s?/, '') : 'nincs'}</button>`).join(' ') + '</div>';
       for (const b of bases) { const c = craftCost(b, tierIdx); const ok = canCraft(b, tierIdx), ok2 = canCraft(b, tierIdx, true); h += `<div class="row"><span>${BASES[b].ikon} ${BASES[b].nev}<br><span class="small">${Object.keys(c.mats).map(m => `<span style="color:${(S.mats[m] || 0) >= c.mats[m] ? '#9fe07a' : '#ff7a7a'}">${MATS[m].nev} ${S.mats[m] || 0}/${c.mats[m]}</span>`).join(', ')} · ${c.gold} arany</span></span><span><button class="sm" data-a="craft" data-b="${b}" data-t="${tierIdx}" ${ok ? '' : 'disabled'}>Készít</button> <button class="sm pri" data-a="craftX" data-b="${b}" data-t="${tierIdx}" ${ok2 ? '' : 'disabled'} data-tt="txt" data-t2="+6 kapuszilánk: garantáltan ritka, 12% esély legendásra">+6 sz.</button></span></div>`; }
       h += `<div class="small" style="margin-top:6px">A készített tárgy legalább kiváló. Az alapanyag a kazamatákban: ércér, fakupac, gyógyfű, kristálytelér, vászonbála (E), bőr az állatszerű lényekből.</div>`;
     }
@@ -4015,8 +4050,10 @@ Object.assign(UI.acts, {
   upg(d) { const S = G.S, it = S.eq[d.s]; const c = upgradeCost(it); if (S.gold < c.arany || (S.mats.szilank || 0) < c.szilank) return; S.gold -= c.arany; S.mats.szilank -= c.szilank; if (RNG() < c.esely) { it.upg = (it.upg || 0) + 1; Audio2.play('legend'); this.toast(`Sikerült! ${it.nev} +${it.upg}`, '#ffd34d'); } else { Audio2.play('hurt'); this.toast('A kovácsolás nem sikerült. Az anyag elveszett.', '#ff7a7a'); } recalc(G.P); this.renderShop(); },
   craftCat(d) { this.craftCat = d.c; this.renderShop(); },
   craftTier(d) { this.craftTier = +d.t; this.renderShop(); },
-  craft(d) { const it = craftItem(d.b, +d.t, false); if (it) { G.S.inv.length < INV_MAX ? G.S.inv.push(it) : G.S.stash.push(it); Audio2.play(it.rar >= 3 ? 'legend' : 'level'); this.toast(`Elkészült: ${it.nev}`, RARITY[it.rar].c, 3); } this.renderShop(); this.renderInv(); },
-  craftX(d) { const it = craftItem(d.b, +d.t, true); if (it) { G.S.inv.length < INV_MAX ? G.S.inv.push(it) : G.S.stash.push(it); Audio2.play('legend'); this.toast(`Elkészült: ${it.nev}`, RARITY[it.rar].c, 3); } this.renderShop(); this.renderInv(); },
+  craftFocus(d) { this.craftFocus = d.f; this.renderShop(); },
+  reforge(d) { const S = G.S, it = S.eq[d.s]; if (!it || !canReforge(it)) return; const c = reforgeCost(it); if (S.gold < c.arany || (S.mats.szilank || 0) < c.szilank) return; S.gold -= c.arany; S.mats.szilank -= c.szilank; const r = reforge(it); if (r) { const A0 = AFFIX.find(a => a.id === r[0].id), A1 = AFFIX.find(a => a.id === r[1].id); this.toast(`⟳ ${A0.nev(r[0].v)} → ${A1.nev(r[1].v)}`, '#b28cff', 4); Audio2.play('legend'); } recalc(G.P); this.renderShop(); },
+  craft(d) { const it = craftItem(d.b, +d.t, false, this.craftFocus); if (it) { G.S.inv.length < INV_MAX ? G.S.inv.push(it) : G.S.stash.push(it); Audio2.play(it.rar >= 3 ? 'legend' : 'level'); this.toast(`Elkészült: ${it.nev}`, RARITY[it.rar].c, 3); } this.renderShop(); this.renderInv(); },
+  craftX(d) { const it = craftItem(d.b, +d.t, true, this.craftFocus); if (it) { G.S.inv.length < INV_MAX ? G.S.inv.push(it) : G.S.stash.push(it); Audio2.play('legend'); this.toast(`Elkészült: ${it.nev}`, RARITY[it.rar].c, 3); } this.renderShop(); this.renderInv(); },
   refill() { const S = G.S, c = this.refillCost(); if (S.gold < c) { this.toast('Nincs elég aranyad.', '#ff7a7a'); return; } S.gold -= c; S.potions = G.potMax(); Audio2.play('potion'); this.renderShop(); },
   brew(d) { const S = G.S, E = ELIX[d.id]; for (const m in E.recept) S.mats[m] -= E.recept[m]; S.gold -= E.ar; S.elix[d.id] = (S.elix[d.id] || 0) + 1; Audio2.play('potion'); this.toast(`Elkészült: ${E.nev}`, E.c); this.renderShop(); },
   buyFood(d) { const S = G.S, F = FOODS[d.id]; if (S.gold < F.ar) { this.toast('Nincs elég aranyad.', '#ff7a7a'); return; } S.gold -= F.ar; S.food[d.id] = (S.food[d.id] || 0) + 1; Audio2.play('gold'); this.renderShop(); },

@@ -38,7 +38,10 @@ function genItem(ilvl, rng = RNG, o = {}) {
     it.nev = relic.nev;
   } else {
     const [a0, a1] = RARITY[rar].aff; const n = a0 + Math.floor(rng() * (a1 - a0 + 1));
-    const pool = AFFIX.filter(a => (!a.slots || a.slots.includes(B.slot)) && (a.minL || 0) <= ilvl);
+    const pool = AFFIX.filter(a => (!a.slots || a.slots.includes(B.slot)) && (a.minL || 0) <= ilvl && !a.trade);
+    // ritka és legendás tárgyon 35% eséllyel egy áldozat-affix: döntés, nem csak nagyobb szám
+    const tp = AFFIX.filter(a => a.trade && a.slots.includes(B.slot));
+    if (rar >= 2 && tp.length && rng() < 0.35) { const A = rng.pick(tp); it.aff.push({ id: A.id, v: A.v(ilvl, rng) }); }
     const used = new Set();
     for (let i = 0; i < n && pool.length; i++) {
       let A; let tries = 0;
@@ -69,6 +72,17 @@ function itemArm(it) { return Math.round((it.arm || 0) * upgMul(it)); }
 function affVal(it, a) { return a.id === 'skill' ? a.v : Math.round(a.v * (1 + 0.05 * (it.upg || 0)) * 10) / 10; }
 function itemValue(it) { return Math.round((8 + it.ilvl * 4) * [1, 2.2, 5, 12, 20][it.rar] * (1 + 0.15 * (it.upg || 0))); }
 function salvageYield(it) { return Math.max(1, Math.round([1, 2, 5, 12, 20][it.rar] * (1 + it.ilvl / 15))); }
+// átkovácsolás: a leggyengébb affix újrasorsolása; készített tárgyon korlátlanul, dobotton egyszer
+function reforgeCost(it) { return { szilank: Math.round((4 + it.ilvl / 4) * (1 + 0.5 * (it.reforged || 0))), arany: Math.round(30 + it.ilvl * 8) }; }
+function canReforge(it) { return it.aff.length && !it.relic && (it.crafted || !it.reforged); }
+function reforge(it) {
+  const B = BASES[it.base], pool = AFFIX.filter(a => (!a.slots || a.slots.includes(B.slot)) && (a.minL || 0) <= it.ilvl && !a.trade && !it.aff.some(x => x.id === a.id));
+  if (!pool.length) return null;
+  // a leggyengébb: a saját dobási tartományához képest legkisebb érték
+  let wi = 0, wv = 1e9; it.aff.forEach((a, i) => { const A = AFFIX.find(x => x.id === a.id); if (A.trade) return; const ref = A.v(it.ilvl, makeRng(1)) || 1; const q = a.v / ref; if (q < wv) { wv = q; wi = i; } });
+  const A = RNG.pick(pool); let v = A.v(it.ilvl, RNG); if (it.rar === 3) v = Math.round(v * 1.35 * 10) / 10;
+  const old = it.aff[wi]; it.aff[wi] = { id: A.id, v }; it.reforged = (it.reforged || 0) + 1; return [old, it.aff[wi]];
+}
 function upgradeCost(it) { const u = it.upg || 0; return { arany: Math.round((20 + it.ilvl * 6) * Math.pow(1.6, u)), szilank: Math.round((2 + it.ilvl / 6) * (u + 1)), esely: Math.max(0.35, 1 - u * 0.07) }; }
 
 function itemTooltip(it, cmp) {
@@ -80,7 +94,15 @@ function itemTooltip(it, cmp) {
     if (cmp && cmp.min) { const d = ((a + b) / 2 * B.spd) - ((itemDmg(cmp)[0] + itemDmg(cmp)[1]) / 2 * BASES[cmp.base].spd); h += `<div class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(1)} sebzés/mp a viselthez képest</div>`; }
   }
   if (it.arm) { h += `<div class="tt-b">${itemArm(it)} páncél</div>`; if (cmp && cmp.arm != null) { const d = itemArm(it) - itemArm(cmp); if (d) h += `<div class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d)} páncél</div>`; } }
-  it.aff.forEach(a => { const A = AFFIX.find(x => x.id === a.id); h += `<div class="tt-a">${A.nev(affVal(it, a))}</div>`; });
+  it.aff.forEach(a => { const A = AFFIX.find(x => x.id === a.id); h += `<div class="tt-a" ${A.trade ? 'style="color:#ffb070"' : ''}>${A.trade ? '⚖ ' : ''}${A.nev(affVal(it, a))}${it.mesterjegy === a.id ? ' ✦' : ''}</div>`; });
+  if (cmp && cmp !== it) {
+    const sum = x => { const o = {}; x.aff.forEach(a => { const A = AFFIX.find(y => y.id === a.id); if (A.trade) A.trade(affVal(x, a), (k, v) => o[k] = (o[k] || 0) + v); else o[a.id] = (o[a.id] || 0) + affVal(x, a); }); return o; };
+    const A1 = sum(it), A0 = sum(cmp), keys = [...new Set([...Object.keys(A1), ...Object.keys(A0)])].filter(k => k !== 'skill');
+    const NM = { dmgp: '% sebzés', hpp: '% életerő', armp: '% páncél', msp: '% mozgás', regenMul: '% töltődés', resall: '% állóság', resmax: ' erőforrás', gf: '% arany' };
+    const lines = keys.map(k => { const d = Math.round(((A1[k] || 0) - (A0[k] || 0)) * 10) / 10; if (!d) return ''; const A = AFFIX.find(y => y.id === k); const t = A ? A.nev(Math.abs(d)).replace(/^[+−-]?\s?/, '') : Math.abs(d) + (NM[k] || ' ' + k); return `<span class="${d > 0 ? 'up' : 'down'}">${d > 0 ? '+' : '−'}${t.replace(/^\d+(\.\d)?/, Math.abs(d))}</span>`; }).filter(Boolean);
+    if (lines.length) h += `<div class="tt-g" style="margin-top:4px">A viselthez képest:<br>${lines.join('<br>')}</div>`;
+  }
+  if (it.crafted) h += `<div class="tt-g">Készített tárgy: korlátlanul átkovácsolható.</div>`; else if (it.reforged) h += `<div class="tt-g">Már átkovácsolták.</div>`;
   if (it.relic) { const RL = RELICS.find(r => r.id === it.relic); h += `<div class="tt-r">✦ ${esc(RL.txt)}</div>`; }
   const P = G.P;
   h += `<div class="tt-req ${P && P.lvl < it.req ? 'down' : ''}">Szükséges szint: ${it.req}</div>`;
@@ -112,7 +134,8 @@ function canCraft(base, tier, extra) {
   if (extra && (S.mats.szilank || 0) < 6) return false;
   return true;
 }
-function craftItem(base, tier, extra) {
+const CRAFT_FOCUS = ['dmgp', 'crit', 'critd', 'aspd', 'hp', 'arm', 'resgen', 'cdr', 'res_tuz', 'res_fagy', 'res_villam', 'ms'];
+function craftItem(base, tier, extra, focus) {
   const S = G.S; if (!canCraft(base, tier, extra)) return null;
   const c = craftCost(base, tier);
   S.gold -= c.gold; for (const k in c.mats) S.mats[k] -= c.mats[k]; if (extra) S.mats.szilank -= 6;
@@ -120,5 +143,8 @@ function craftItem(base, tier, extra) {
   let rar = 1; const r = RNG(); if (extra) rar = r < 0.12 ? 3 : 2; else rar = r < 0.04 ? 3 : r < 0.3 ? 2 : 1;
   const it = genItem(Math.min(ilvl, S.lvl + 6), RNG, { base, rar });
   it.crafted = true; if (rar === 3) it.nev = it.nev.replace(' – ', ' – mesterremek, ');
+  // mesterjegy: a választott tulajdonság garantáltan rákerül, erős dobással – ezt a zsákmány nem tudja
+  const F = focus && AFFIX.find(a => a.id === focus);
+  if (F && (!F.slots || F.slots.includes(BASES[base].slot))) { const v = Math.round(F.v(it.ilvl, RNG) * 1.25 * 10) / 10; const i = it.aff.findIndex(a => a.id === focus); if (i >= 0) it.aff[i].v = Math.max(it.aff[i].v, v); else if (it.aff.length) it.aff[it.aff.length - 1] = { id: focus, v }; else it.aff.push({ id: focus, v }); it.mesterjegy = focus; }
   G.emit('craft', it); return it;
 }
