@@ -35,7 +35,7 @@ const UI = {
   hud() {
     const P = G.P, S = G.S; if (!P) return; const C = CLASSES[S.cls], RS = RESOURCES[S.cls];
     const hp = $('#ohp'); hp.querySelector('.f').style.height = (P.hp / P.mhp * 100) + '%'; hp.querySelector('.t').innerHTML = `${Math.ceil(P.hp)}<small>/ ${P.mhp}${P.shieldV > 1 ? ` +${Math.round(P.shieldV)}` : ''}</small>`;
-    const mp = $('#omp'); mp.querySelector('.f').style.height = (P.mp / P.mmp * 100) + '%'; mp.querySelector('.f').style.background = `linear-gradient(${RS.c},#111)`; mp.querySelector('.t').innerHTML = `${Math.floor(P.mp)}<small>${RS.nev}</small>`;
+    const mp = $('#omp'); mp.querySelector('.f').style.height = (P.mp / P.mmp * 100) + '%'; mp.querySelector('.f').style.background = `linear-gradient(${RS.c},#111)`; mp.querySelector('.t').innerHTML = `${Math.floor(P.mp)}${P.over > 1 ? `<span style="color:#cfe4ff">+${Math.floor(P.over)}</span>` : ''}<small>${RS.nev}${P.rageTier === 2 ? ' · TOMBOLÓ' : P.rageTier === 1 ? ' · felbőszült' : P.focus ? ` · Fókusz ${P.focus}` : ''}</small>`; mp.style.boxShadow = P.over > 1 ? '0 0 16px #9fc8ff' : P.rageTier === 2 ? '0 0 18px #ff4433' : P.rageTier === 1 ? '0 0 10px #a03020' : '';
     $('#xp div').style.width = (S.lvl >= MAX_LVL ? 100 : S.xp / xpNeed(S.lvl) * 100) + '%';
     { const sb = $('#stab div'), seg = DODGE_COST / P.msta * 100; sb.style.width = (P.sta / P.msta * 100) + '%'; const px = 420 * seg / 100, col = P.sta < DODGE_COST ? '#c8743a' : P.staDelay > 0 ? '#7fb060' : '#9fe07a'; sb.style.background = `repeating-linear-gradient(90deg, ${col} 0 ${px - 2}px, rgba(0,0,0,.85) ${px - 2}px ${px}px)`; }
     $('#gold').textContent = `${fmt(S.gold)} arany · ${S.lvl}. szint`;
@@ -134,11 +134,13 @@ const UI = {
     h += `<div class="small" style="margin-bottom:8px">Helyek: ${['Jobb gomb', '1', '2', '3', '4'].map((k, i) => `<b>${k}</b>: ${S.slots[i] ? G.skillById(S.slots[i]).nev : '–'}`).join(' · ')}</div>`;
     if (tab === 'kaszt') {
       h += '<div class="sktree">';
-      const list = Object.keys(SKILLS).filter(k => SKILLS[k].cls === S.cls).sort((a, b) => SKILLS[a].req - SKILLS[b].req);
-      for (const id of list) {
-        const sk = SKILLS[id], r = S.skills[id] || 0, lk = S.lvl < sk.req;
-        h += `<div class="skc ${lk ? 'lk' : ''}"><div class="t"><span class="ic">${sk.ikon}</span><div><div class="nm">${sk.nev}${sk.ult ? ' <span style="color:#ffd34d">★</span>' : ''}</div><div class="small">${sk.tipus === 'passziv' ? 'passzív' : 'aktív'} · ${r}/${sk.max}${P.st.skill && r ? ` (+${P.st.skill})` : ''} · ${sk.req}. szinttől</div></div></div><div class="d">${sk.desc(Math.max(1, r + (r ? P.st.skill : 0)))}</div>`;
-        h += `${!lk && r < sk.max && S.skillPts ? `<button class="sm pri" data-a="learn" data-id="${id}">${r ? 'Fejlesztés' : 'Megtanulás'}</button> ` : ''}`;
+      const list = Object.keys(SKILLS).filter(k => SKILLS[k].cls === S.cls && !SKILLS[k].ut).sort((a, b) => SKILLS[a].req - SKILLS[b].req);
+      const utak = Object.keys(SKILLS).filter(k => SKILLS[k].cls === S.cls && SKILLS[k].ut);
+      h += `<div class="small" style="grid-column:1/-1;color:#e6c47a">Kasztút (6. szinttől) – a kettő közül csak az egyik tanulható. Bodor felejtetése után válthatsz.</div>`;
+      for (const id of [...utak, ...list]) {
+        const sk = SKILLS[id], r = S.skills[id] || 0, blocked = !Skills2.canLearn(S, id), lk = S.lvl < sk.req || blocked;
+        h += `<div class="skc ${lk ? 'lk' : ''} ${sk.ut ? 'ut' : ''}" ${sk.ut && utak.indexOf(id) === 0 ? 'style="grid-column:1"' : ''}>${blocked ? '<div class="small" style="color:#ff9a7a">a másik utat választottad</div>' : ''}<div class="t"><span class="ic">${sk.ikon}</span><div><div class="nm">${sk.nev}${sk.ult ? ' <span style="color:#ffd34d">★</span>' : ''}</div><div class="small">${sk.tipus === 'passziv' ? 'passzív' : 'aktív'} · ${r}/${sk.max}${P.st.skill && r ? ` (+${P.st.skill})` : ''} · ${sk.req}. szinttől</div></div></div><div class="d">${sk.desc(Math.max(1, r + (r ? P.st.skill : 0)))}</div>`;
+        h += `${!lk && r < sk.max && S.skillPts && !blocked ? `<button class="sm pri" data-a="learn" data-id="${id}">${r ? 'Fejlesztés' : 'Megtanulás'}</button> ` : ''}`;
         if (r && sk.tipus === 'aktiv') h += ['J', '1', '2', '3', '4'].map((k, i) => `<button class="sm mbtn ${S.slots[i] === id ? 'pri' : ''}" data-a="slot" data-id="${id}" data-i="${i}">${k}</button>`).join(' ');
         h += '</div>';
       }
@@ -186,7 +188,7 @@ const UI = {
       case 'attr': if (S.attrPts > 0) { S.attrPts--; S.attrs[d.k]++; recalc(P); this.renderChar(); } break;
       case 'attr5': { const n = Math.min(5, S.attrPts); S.attrPts -= n; S.attrs[d.k] += n; recalc(P); this.renderChar(); break; }
       case 'skTab': this.skTab = d.t; this.renderSkills(); break;
-      case 'learn': { const sk = SKILLS[d.id]; const r = S.skills[d.id] || 0; if (S.skillPts > 0 && r < sk.max && S.lvl >= sk.req) { S.skillPts--; S.skills[d.id] = r + 1; if (!r && sk.tipus === 'aktiv') { const free = S.slots.indexOf(null); if (free >= 0) S.slots[free] = d.id; } recalc(P); Audio2.play('level'); } this.renderSkills(); break; }
+      case 'learn': { const sk = SKILLS[d.id]; const r = S.skills[d.id] || 0; if (S.skillPts > 0 && r < sk.max && S.lvl >= sk.req && Skills2.canLearn(S, d.id)) { S.skillPts--; S.skills[d.id] = r + 1; if (!r && sk.tipus === 'aktiv') { const free = S.slots.indexOf(null); if (free >= 0) S.slots[free] = d.id; } recalc(P); Audio2.play('level'); } this.renderSkills(); break; }
       case 'slot': { const i = +d.i; const j = S.slots.indexOf(d.id); if (j >= 0) S.slots[j] = S.slots[i]; S.slots[i] = d.id; this.renderSkills(); break; }
       case 'gate': S.gate = d.id; this.renderSkills(); break;
       default: if (this.acts[a]) this.acts[a].call(this, d, e);

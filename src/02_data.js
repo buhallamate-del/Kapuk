@@ -6,10 +6,10 @@ const ATTR = { ero: 'Erő', ugy: 'Ügyesség', akarat: 'Akarat', kit: 'Kitartás
 const ATTR_DESC = { ero: '+1,1% közelharci sebzés', ugy: '+1,1% távolsági sebzés, +0,08% kritikus esély', akarat: '+1,3% varázssebzés, +2 erőforrás', kit: '+7 életerő, +1,5 páncél', allo: '+2 állóképesség, +1,5% gyorsabb töltődés, lassabb éhezés' };
 // Kasztonkénti erőforrás
 const RESOURCES = {
-  penge: { nev: 'Düh', c: '#e0473a', ikon: '🔥', desc: 'Ütéssel és sebződéssel gyűlik, harcon kívül elpárolog.' },
-  elem: { nev: 'Mana', c: '#4f8dff', ikon: '💧', desc: 'Folyamatosan töltődik. Az Akarat növeli.' },
-  loves: { nev: 'Belső idő', c: '#f2d36b', ikon: '⏳', desc: 'Lassan töltődik; a Golyóidő ebből lassítja a világot.' },
-  mernok: { nev: 'Áram', c: '#5fe0d0', ikon: '⚡', desc: 'Az akkumulátor töltődik; a gépek és a Túlfeszültség ebből élnek.' },
+  penge: { nev: 'Düh', c: '#e0473a', ikon: '🔥', desc: 'Csak valódi találatból és kapott ütésből gyűlik, harcon kívül elpárolog. 50 fölött Felbőszült (+12% támadási sebesség), teli dühnél Tomboló: a következő képesség ingyenes és +30%-ot sebez.' },
+  elem: { nev: 'Mana', c: '#4f8dff', ikon: '💧', desc: 'Folyamatosan töltődik, az Akarat növeli. Teli manánál a töltődés túltöltő tartályba folyik (max. 30%): a következő varázslat abból fizet, és +25%-ot sebez. Elemi reakciók: tűz a fagyottra, villám az égőre, fagy a sokkoltra.' },
+  loves: { nev: 'Belső idő', c: '#f2d36b', ikon: '⏳', desc: 'Lassan töltődik; a Golyóidő ebből lassítja a világot. Ugyanarra a célpontra leadott lövések Fókuszt gyűjtenek (+5% kritikus töltetenként), az Átütő lövés elhasználja.' },
+  mernok: { nev: 'Áram', c: '#5fe0d0', ikon: '⚡', desc: 'Az akkumulátor töltődik; a gépek és a Túlfeszültség ebből élnek. Az egymás közelében álló gépek hálózatot alkotnak (+8% kapcsolatonként), a lejárt gép árának negyede visszajár.' },
 };
 const MAX_LVL = 70;
 const xpNeed = l => Math.round(120 * Math.pow(l, 1.8) + 80 * l);

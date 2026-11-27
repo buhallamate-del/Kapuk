@@ -13,7 +13,7 @@ async function one(cls, seed) {
   await pg.evaluate(([c, s]) => __eval(`BOT.init('${c}', { seed: ${s} })`), [cls, seed]);
   let st; for (;;) { st = await pg.evaluate(() => __eval('BOT.run(300)')); if (st.finished || st.time > 5 * 3600) break; }
   const rep = await pg.evaluate(() => __eval('BOT.report()')); rep.seed = seed; rep.errs = [...new Set(errs)].slice(0, 10); rep.botErr = st.err;
-  await b.close(); process.stdout.write(`${cls}/${seed}: ${Math.round(rep.time / 60)} perc, ${rep.lvl}. szint${rep.gaveUp ? ' – ELAKADT ' + rep.gaveUp : ''}\n`); return rep;
+  await b.close(); process.stdout.write(`${cls}/${seed}: ${Math.round(rep.time / 60)} perc, ${rep.lvl}. szint, halál ${rep.res.reduce((a, x) => a + x.deaths, 0)}, út ${rep.st.path || '–'}, tökéletes kitérés ${rep.st.perfect}, reakció ${rep.st.reactions}${rep.gaveUp ? ' – ELAKADT ' + rep.gaveUp : ''}\n`); return rep;
 }
 (async () => {
   const jobs = []; for (const c of classes) for (const s of seeds) jobs.push([c, s]);

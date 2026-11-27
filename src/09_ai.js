@@ -31,7 +31,7 @@ Object.assign(G, {
       if (e.dead) continue;
       const dx = P.x - e.x, dy = P.y - e.y, dP = Math.hypot(dx, dy);
       if (dP > 1500 && !e.boss) continue; // alszik
-      e.t += dt; e.flash -= dt; e.hurtT -= dt; e.mark -= dt; e.shock -= dt;
+      e.t += dt; e.flash -= dt; e.hurtT -= dt; e.mark -= dt; e.shock -= dt; if (e.tmark > 0) e.tmark -= dt; if (e.brittle > 0) e.brittle -= dt;
       if (e.burn) { e.burn.t -= dt; e.tick -= dt; if (e.tick <= 0) { e.tick = 0.5; this.hurtEnemy(e, { a: e.burn.dps * 0.5, c: false }, 'tuz', { noReflect: true }); if (RNG() < 0.5) this.burst(e.x, e.y - 6, '#ff7a2e', 2, 40, 0.4); } if (e.burn && e.burn.t <= 0) e.burn = null; if (e.dead) continue; }
       if (e.freeze > 0) { e.freeze -= dt; continue; }
       if (e.stun > 0) { e.stun -= dt; e.wind = 0; e.charging = 0; continue; }
@@ -189,13 +189,14 @@ Object.assign(G, {
     for (const a of this.allies) {
       a.t += dt; a.life -= dt; if (a.life <= 0) continue;
       a.cd -= dt * (1 + P.st.sumaspd / 100);
+      if (Machines.isM(a)) { a.linkT = (a.linkT || 0) - dt; if (a.linkT <= 0) { a.linkT = 0.5; a.links = Machines.links(a); } }
       if (a.kind === 'dron') {
         const i = this.allies.filter(x => x.kind === 'dron').indexOf(a); const ang = this.t * 1.4 + i * 1.3;
         const tx = a.owner.x + Math.cos(ang) * (46 + (i % 3) * 14), ty = a.owner.y + Math.sin(ang) * (46 + (i % 3) * 14) - 8;
         a.x = lerp(a.x, tx, Math.min(1, dt * 6)); a.y = lerp(a.y, ty, Math.min(1, dt * 6));
-        if (a.cd <= 0) { const e = this.nearestEnemy(a.x, a.y, a.range); if (e) { a.cd = a.rate; this.proj({ x: a.x, y: a.y, a: Math.atan2(e.y - a.y, e.x - a.x), spd: 700, r: 3, dmg: P.roll(a.dmgMul, 'summon'), dt: a.grey ? 'ter' : 'villam', own: 'p', kind: 'laser', col: a.grey ? '#c0c0c0' : '#7fd8ff', life: 1 }); Audio2.play('shoot'); } }
+        if (a.cd <= 0) { const e = Machines.target(a.x, a.y, a.range); if (e) { a.cd = a.rate; this.proj({ x: a.x, y: a.y, a: Math.atan2(e.y - a.y, e.x - a.x), spd: 700, r: 3, dmg: P.roll(a.dmgMul * Machines.mul(a), 'summon'), dt: a.grey ? 'ter' : 'villam', own: 'p', kind: 'laser', col: a.grey ? '#c0c0c0' : '#7fd8ff', life: 1, machine: true }); Audio2.play('shoot'); } }
       } else if (a.kind === 'torony') {
-        if (a.cd <= 0) { const e = this.nearestEnemy(a.x, a.y, a.range); if (e) { a.cd = a.rate; a.aim = Math.atan2(e.y - a.y, e.x - a.x); this.proj({ x: a.x, y: a.y, a: a.aim + RNG.range(-0.05, 0.05), spd: 800, r: 3, dmg: P.roll(a.dmgMul, 'summon'), dt: 'fiz', own: 'p', kind: 'bullet', col: '#ffd27a', life: 1 }); Audio2.play('shoot'); } }
+        if (a.cd <= 0) { const e = this.nearestEnemy(a.x, a.y, a.range); if (e) { a.cd = a.rate; a.aim = Math.atan2(e.y - a.y, e.x - a.x); this.proj({ x: a.x, y: a.y, a: a.aim + RNG.range(-0.05, 0.05), spd: 800, r: 3, dmg: P.roll(a.dmgMul * Machines.mul(a), 'summon'), dt: 'fiz', own: 'p', kind: 'bullet', col: '#ffd27a', life: 1, machine: true, tmark: true }); Audio2.play('shoot'); } }
       } else if (a.kind === 'meh') {
         const e = this.nearestEnemy(a.x, a.y, a.range, false);
         const tx = e ? e.x : P.x + Math.cos(a.t * 3) * 40, ty = e ? e.y : P.y + Math.sin(a.t * 3) * 40;
@@ -214,7 +215,7 @@ Object.assign(G, {
         if (RNG() < 0.6) { const an = RNG() * 6.28, d = a.rad * 0.6; this.parts.push({ x: a.x + Math.cos(an) * d, y: a.y + Math.sin(an) * d, vx: -Math.cos(an) * 200, vy: -Math.sin(an) * 200, t: 0, life: 0.6, c: '#c48cff', size: 2, drag: 0 }); }
       }
     }
-    if (this.allies.some(a => a.life <= 0)) this.allies = this.allies.filter(a => a.life > 0);
+    if (this.allies.some(a => a.life <= 0)) { for (const a of this.allies) if (a.life <= 0 && a.t > 1) Machines.expire(a); this.allies = this.allies.filter(a => a.life > 0); }
   },
 
   // ---------- lövedékek ----------
@@ -223,7 +224,7 @@ Object.assign(G, {
     for (const p of this.projs) {
       const dt = p.own === 'e' ? (this.wdt != null ? this.wdt : dt0) : dt0;
       p.t += dt; if (p.t > p.life) { p.dead = true; if (p.splash && p.own === 'p') this.explode(p); continue; }
-      if (p.homing && p.own === 'p') { const e = this.nearestEnemy(p.x, p.y, 380, false); if (e) { const a = Math.atan2(p.vy, p.vx), ta = Math.atan2(e.y - p.y, e.x - p.x); const na = a + clamp(angDiff(a, ta), -p.homing * dt, p.homing * dt); const s = Math.hypot(p.vx, p.vy); p.vx = Math.cos(na) * s; p.vy = Math.sin(na) * s; } }
+      if (p.homing && p.own === 'p') { const e = p.machine ? Machines.target(p.x, p.y, 380) : this.nearestEnemy(p.x, p.y, 380, false); if (e) { const a = Math.atan2(p.vy, p.vx), ta = Math.atan2(e.y - p.y, e.x - p.x); const na = a + clamp(angDiff(a, ta), -p.homing * dt, p.homing * dt); const s = Math.hypot(p.vx, p.vy); p.vx = Math.cos(na) * s; p.vy = Math.sin(na) * s; } }
       if (p.homingP && p.own === 'e') { const a = Math.atan2(p.vy, p.vx), ta = Math.atan2(P.y - p.y, P.x - p.x); const na = a + clamp(angDiff(a, ta), -p.homingP * dt, p.homingP * dt); const s = Math.hypot(p.vx, p.vy); p.vx = Math.cos(na) * s; p.vy = Math.sin(na) * s; }
       const steps = Math.max(1, Math.ceil(Math.hypot(p.vx, p.vy) * dt / 10));
       for (let s = 0; s < steps && !p.dead; s++) {
@@ -238,7 +239,7 @@ Object.assign(G, {
             if (p.hit.has(e) || (e.wphase && this.mapIs('eh') && e.w !== P.w)) continue;
             p.hit.add(e);
             if (p.splash) { this.explode(p); p.dead = true; break; }
-            this.hurtEnemy(e, p.dmg, p.dt, { burn: p.burn, slow: p.slow, stun: p.stun, knock: p.knock || (p.kind === 'bullet' ? 15 : 30), kx: p.x - p.vx, ky: p.y - p.vy, basic: p.basic, ranged: p.ranged, far: true, k: p.k });
+            this.hurtEnemy(e, p.dmg, p.dt, { burn: p.burn, slow: p.slow, stun: p.stun, knock: p.knock || (p.kind === 'bullet' ? 15 : 30), kx: p.x - p.vx, ky: p.y - p.vy, basic: p.basic, ranged: p.ranged, far: true, k: p.k, machine: p.machine, tmark: p.tmark });
             if (p.add) for (const k in p.add) if (p.add[k]) this.hurtEnemy(e, { a: p.add[k], c: false }, k, {});
             this.burst(p.x, p.y, p.col || DT[p.dt].c, 4, 80, 0.3, 2);
             if (p.pierce-- <= 0) { p.dead = true; break; }
@@ -255,7 +256,7 @@ Object.assign(G, {
   },
   explode(p) {
     const r = p.splash * (1 + this.P.st.splashr / 100);
-    this.hitArea(p.x, p.y, r, { a: p.dmg.a * (1 + this.P.st.splashp / 100), c: p.dmg.c }, p.dt, 'p', { fx: 'boom', burn: p.burn, isSplash: true });
+    this.hitArea(p.x, p.y, r, { a: p.dmg.a * (1 + this.P.st.splashp / 100), c: p.dmg.c }, p.dt, 'p', { fx: 'boom', burn: p.burn || (this.P.st.tuzer ? 2 : 0), isSplash: true, machine: p.machine });
     if (p.kind === 'rocket' || p.kind === 'fireball' || p.kind === 'orb') Audio2.play('boom');
     if (this.P.fx.szonda && p.kind === 'rocket' && !p.child) this.later(0.25, () => this.proj({ x: p.x, y: p.y, a: RNG() * 6.28, spd: 300, r: 4, dmg: { a: p.dmg.a * 0.5, c: false }, dt: 'tuz', own: 'p', kind: 'rocket', homing: 6, splash: 40, life: 1.5, child: true, trail: '#ffb070' }));
   },

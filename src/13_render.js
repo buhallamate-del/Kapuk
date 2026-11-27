@@ -214,11 +214,18 @@ const R = {
     g.restore();
     P.swing = Math.max(0, (P.swing || 0) - 1 / 60); P.recoil = Math.max(0, (P.recoil || 0) - 1 / 60);
     g.globalAlpha = 1;
+    // erőforrás-állapotok a karakteren
+    if (P.rageTier >= 1) { g.strokeStyle = P.rageTier === 2 ? `rgba(255,60,40,${0.5 + 0.3 * Math.sin(t * 10)})` : 'rgba(200,50,30,.35)'; g.lineWidth = P.rageTier === 2 ? 3 : 2; g.beginPath(); g.arc(x, y - 2, 16, 0, 7); g.stroke(); }
+    if (P.over > 1) { g.fillStyle = 'rgba(160,200,255,.5)'; for (let i = 0; i < 3; i++) { const a2 = t * 3 + i * 2.1; g.beginPath(); g.arc(x + Math.cos(a2) * 15, y - 6 + Math.sin(a2) * 6, 2, 0, 7); g.fill(); } }
+    if (P.focus > 0) { const mx = Focus.max(P); for (let i = 0; i < mx; i++) { g.fillStyle = i < P.focus ? '#f2d36b' : 'rgba(242,211,107,.18)'; g.fillRect(x - mx * 3.5 + i * 7, y + 16, 5, 3); } }
+    if (P.empowerT > 0) { g.strokeStyle = 'rgba(255,220,140,.6)'; g.lineWidth = 2; g.beginPath(); g.arc(x, y - 4, 20, 0, 7); g.stroke(); }
     // csatornázás
     if (P.chan) { const f = P.chan.t / P.chan.dur; g.strokeStyle = P.chan.c; g.lineWidth = 3; g.beginPath(); g.arc(x, y - 4, 22, -Math.PI / 2, -Math.PI / 2 + f * 6.283); g.stroke(); }
   },
   ally(g, a) {
     const t = G.t;
+    // gép-hálózat: halvány fényvonal a kapcsolódó gépek között
+    if (a.links > 0 && (a.kind === 'dron' || a.kind === 'torony')) { g.strokeStyle = 'rgba(95,224,208,.22)'; g.lineWidth = 1; for (const b of G.allies) if (b !== a && b.life > 0 && (b.kind === 'dron' || b.kind === 'torony') && b.x > a.x && dist2(a.x, a.y, b.x, b.y) < 260 * 260) { g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); } }
     if (a.kind === 'dron') { g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(a.x, a.y + 14, 6, 2, 0, 0, 7); g.fill(); g.fillStyle = a.grey ? '#9a9a9a' : '#5fa0c0'; g.beginPath(); g.arc(a.x, a.y, 6, 0, 7); g.fill(); g.strokeStyle = '#ccc'; g.lineWidth = 1; g.beginPath(); g.moveTo(a.x - 9, a.y - 2 + Math.sin(t * 40)); g.lineTo(a.x + 9, a.y - 2 - Math.sin(t * 40)); g.stroke(); g.fillStyle = '#7fd8ff'; g.fillRect(a.x - 1, a.y - 1, 2, 2); }
     else if (a.kind === 'torony') { this.shadow(g, a.x, a.y, 10); g.fillStyle = '#556070'; g.fillRect(a.x - 9, a.y - 6, 18, 14); g.save(); g.translate(a.x, a.y - 4); g.rotate(a.aim || 0); g.fillStyle = '#2a2f38'; g.fillRect(0, -2, 16, 4); g.restore(); g.fillStyle = '#ffcc33'; g.beginPath(); g.arc(a.x, a.y - 4, 4, 0, 7); g.fill(); }
     else if (a.kind === 'meh') { g.fillStyle = '#ffcc00'; g.beginPath(); g.ellipse(a.x, a.y, 4, 3, 0, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.ellipse(a.x, a.y - 3, 3, 2, 0, 0, 7); g.fill(); }
@@ -273,6 +280,8 @@ const R = {
     // állapot-ikonok
     if (e.burn) { g.fillStyle = '#ff7a2e'; g.fillRect(x - 2, y - r - 14, 4, 4); }
     if (e.stun > 0) { for (let i = 0; i < 3; i++) { const a = G.t * 5 + i * 2.1; g.fillStyle = '#ffe14d'; g.fillRect(x + Math.cos(a) * 10, y - r - 8 + Math.sin(a) * 3, 3, 3); } }
+    if (e.tmark > 0) { g.strokeStyle = 'rgba(95,224,208,.8)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - r - 5, y); g.lineTo(x + r + 5, y); g.moveTo(x, y - r - 5); g.lineTo(x, y + r + 5); g.stroke(); }
+    if (e.freeze > 0 && !e.boss) { g.fillStyle = 'rgba(160,230,255,.25)'; g.beginPath(); g.arc(x, y, r + 3, 0, 7); g.fill(); }
     if (e.mark > 0) { g.strokeStyle = '#ff4444'; g.lineWidth = 1; g.beginPath(); g.arc(x, y, r + 4, 0, 7); g.stroke(); }
     if (e.immune) { g.strokeStyle = 'rgba(255,220,120,.7)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, r + 10, 0, 7); g.stroke(); }
     if (e.shieldMul && e.shieldMul < 1) { g.strokeStyle = 'rgba(77,255,176,.6)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, r + 10, 0, 7); g.stroke(); }

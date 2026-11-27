@@ -99,7 +99,10 @@ function rollDmg(P, mult, kind, extraCrit = 0) {
   const w = P.S.eq.fegyver, C = CLASSES[P.S.cls];
   if (w && ((C.kedvenc === 'melee' && BASES[w.base].kind === 'melee') || (C.kedvenc === 'spell' && BASES[w.base].kind === 'spell') || (C.kedvenc === 'ranged' && BASES[w.base].kind === 'ranged'))) bonus += 15;
   if (kind === 'spell' && w && BASES[w.base].kind !== 'spell') base *= 0.85; // varázslat nem varázsfegyverrel
+  if (st.verszomj && CLASSES[P.S.cls].rage) bonus += Math.floor(P.mp / 10) * st.verszomj;
   let amt = base * mult * (1 + bonus / 100);
+  if (P.empowerT > 0) amt *= P.empowerMul || 1;
+  if (kind === 'ranged' && P.focus) extraCrit += P.focus * 5;
   let crit = Math.random() * 100 < st.crit + extraCrit + (kind === 'spell' ? st.spellcrit : 0) || st.critForce > 0;
   if (crit) amt *= 1 + st.critd / 100;
   return { a: amt, c: crit, k: kind };

@@ -90,6 +90,9 @@ window.BOT = (() => {
     while (S.attrPts > 0) { S.attrs[cyc[B.attrI++ % cyc.length]]++; S.attrPts--; }
     // képességpontok: előbb aktívok (max 5), aztán passzívok, egyenletesen
     const mine = Object.keys(SKILLS).filter(k => SKILLS[k].cls === S.cls).sort((a, b) => SKILLS[a].req - SKILLS[b].req);
+    // kasztút: a mag párossága dönti el, melyiket választja (így mindkettő mérve van)
+    const ut = mine.filter(k => SKILLS[k].ut === (B.seed % 2 ? 'A' : 'B'))[0];
+    if (ut && S.lvl >= SKILLS[ut].req && !S.skills[ut] && S.skillPts > 0 && Skills2.canLearn(S, ut)) { S.skills[ut] = 1; S.skillPts--; }
     let guard = 0;
     while (S.skillPts > 0 && guard++ < 200) {
       const can = mine.filter(k => S.lvl >= SKILLS[k].req && (S.skills[k] || 0) < SKILLS[k].max && Skills2.canLearn(S, k));
@@ -248,7 +251,7 @@ window.BOT = (() => {
     // determinisztikus futás: a pályamag és a Math.random is a botórához kötve
     const mr = makeRng((opt.seed || 12345) ^ 0x51ed); Math.random = mr; Date.now = () => 1.7e12 + Math.floor((B ? B.time : 0) * 1000);
     const S = newSave(cls, 'Bot'); Save.write(0, S); G.start(S, 0); UI.acts.closeOver();
-    B = { cls, plan: plan(), pi: 0, res: {}, attrI: 0, nodeN: 0, tgtT: 0, strafe: 0.5, seen: new WeakSet(), time: 0, floorT: 0, st: { dodges: 0, pots: 0, equips: 0, townVisits: 0 }, finished: false, gaveUp: null };
+    B = { cls, plan: plan(), pi: 0, res: {}, attrI: 0, nodeN: 0, tgtT: 0, strafe: 0.5, seen: new WeakSet(), time: 0, floorT: 0, st: { dodges: 0, pots: 0, equips: 0, townVisits: 0 }, finished: false, gaveUp: null, seed: opt.seed || 12345 };
     B.stuckCheck = () => { const P = G.P; B.sc = B.sc || { x: P.x, y: P.y, t: 0 }; B.sc.t += DT; if (B.sc.t > 3) { if (Math.hypot(P.x - B.sc.x, P.y - B.sc.y) < 24) { if (B.goal) B.goal.botSkipT = G.t + 40; B.goal = null; if (B.tgt) B.tgt.botSkip = G.t + 20; B.tgt = null; Input.keys.clear(); move(RNG() * 6.28); Input.pressed.add(' '); } B.sc = { x: P.x, y: P.y, t: 0 }; } };
     enterCur();
   }
@@ -282,7 +285,7 @@ window.BOT = (() => {
     }
     return { time: B.time, pi: B.pi, of: B.plan.length, lvl: G.S.lvl, finished: B.finished, gaveUp: B.gaveUp, err: B.err };
   }
-  function report() { return { cls: B.cls, res: Object.values(B.res), st: B.st, time: B.time, lvl: G.S.lvl, gaveUp: B.gaveUp, gold: G.S.gold, kills: G.S.stats.kills }; }
+  function report() { B.st.perfect = G.S.stats.perfect || 0; B.st.reactions = G.S.stats.reactions || 0; B.st.path = Object.keys(G.S.skills).filter(k => SKILLS[k] && SKILLS[k].ut).map(k => k + G.S.skills[k]).join(','); return { cls: B.cls, res: Object.values(B.res), st: B.st, time: B.time, lvl: G.S.lvl, gaveUp: B.gaveUp, gold: G.S.gold, kills: G.S.stats.kills }; }
   function dbg() { const g = B.goal, P = G.P; return { g: g && { x: g.x | 0, y: g.y | 0, type: g.type, kind: g.kind, room: !!g.room, tries: g.botTries }, P: [P.x | 0, P.y | 0], chan: P.chan && P.chan.label, inv: G.S.inv.length, rooms: G.map.rooms.filter(r => !r.botSeen).length, ft: B.floorT | 0, ng: (() => { try { const x = nextGoal(false); return x && [x.type, x.kind, x.x | 0, x.y | 0, !!x.room]; } catch (e) { return String(e); } })(), t: B.tgt && [B.tgt.type, B.tgt.x | 0, B.tgt.y | 0, B.tgt.state, B.tgt.hp | 0] }; }
   function jump(pi) { // hibakereséshez: ugrás a terv adott pontjára, a szintet a területhez igazítva
     B.pi = pi; const [rid, f] = B.plan[pi]; const S = G.S; while (S.lvl < REGION[rid].lvl + f - 1) { S.lvl++; S.attrPts += 5; S.skillPts++; }
