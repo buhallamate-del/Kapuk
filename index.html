@@ -1394,7 +1394,7 @@ function craftItem(base, tier, extra) {
   const S = G.S; if (!canCraft(base, tier, extra)) return null;
   const c = craftCost(base, tier);
   S.gold -= c.gold; for (const k in c.mats) S.mats[k] -= c.mats[k]; if (extra) S.mats.szilank -= 6;
-  const R = REGIONS[tier]; const ilvl = R.lvl + 4 + [0, 30, 55][S.prog.diffMax ? Math.min(S.prog.diff, S.prog.diffMax) : 0];
+  const R = REGIONS[tier]; const ilvl = R.lvl + 4 + diffLevel(S.prog.diffMax ? Math.min(S.prog.diff, S.prog.diffMax) : 0);
   let rar = 1; const r = RNG(); if (extra) rar = r < 0.12 ? 3 : 2; else rar = r < 0.04 ? 3 : r < 0.3 ? 2 : 1;
   const it = genItem(Math.min(ilvl, S.lvl + 6), RNG, { base, rar });
   it.crafted = true; if (rar === 3) it.nev = it.nev.replace(' – ', ' – mesterremek, ');
@@ -1466,7 +1466,7 @@ function recalc(P) {
   st.staInf = m.staInf || 0;
   st.resgen = (m.resgen || 0) + at.allo * 1.5;
   st.arm = Math.round((arm + at.kit * 1.5) * (1 + (m.armp || 0) / 100));
-  st.res = {}; for (const k of ['tuz', 'fagy', 'villam', 'ter']) st.res[k] = Math.min(75, (m['res_' + k] || 0) + (m.resall || 0) + (k === 'tuz' && P.fx.mag ? 30 : 0) - S.prog.diff * 15);
+  st.res = {}; for (const k of ['tuz', 'fagy', 'villam', 'ter']) st.res[k] = Math.min(75, (m['res_' + k] || 0) + (m.resall || 0) + (k === 'tuz' && P.fx.mag ? 30 : 0) - Math.min(45, S.prog.diff * 15));
   st.crit = Math.min(75, 5 + at.ugy * 0.08 + (m.crit || 0)); st.critd = 50 + (m.critd || 0);
   st.aspd = Math.max(0.3, 1 + (m.aspd || 0) / 100);
   st.msp = Math.max(0.4, 1 + ((m.ms || 0) + (m.msp || 0)) / 100) * (P.fx.hold ? 1.15 : 1);
@@ -1583,7 +1583,7 @@ const G = {
   emit(ev, d) { if (typeof Quests !== 'undefined') Quests.on(ev, d); },
   mapIs(id) { return this.map && this.map.region === id; },
   inTown() { return this.map && (this.map.region === 'varos' || this.map.region === 'otthon'); },
-  diffLvl() { return [0, 30, 55][this.S.prog.diff] || 0; },
+  diffLvl() { return diffLevel(this.S.prog.diff); },
 
   // ---------- térbeli rács az ellenfelekhez ----------
   rebuildGrid() {
@@ -1746,7 +1746,7 @@ const G = {
       if (P.st.block && RNG() * 100 < P.st.block) { this.text(P.x, P.y - 24, 'Kivédve', '#9fd8ff', 13); const rp = P.st.riposte || (P.st.bastya ? 0.8 : 0); if (src && rp && !src.dead) this.hurtEnemy(src, P.roll(rp, 'melee'), P.wdt(), { melee: true }); if (CLASSES[this.S.cls].rage) P.mp = Math.min(P.mmp, P.mp + 4); return; }
       const sl = src ? src.lvl : this.S.lvl;
       if (dt === 'fiz') amt *= 1 - P.st.arm / (P.st.arm + 60 + 14 * sl); else amt *= 1 - (P.st.res[dt] || 0) / 100;
-      if (this.S.prog.diff === 2) amt *= 1.2;
+      if (this.S.prog.diff >= 2) amt *= 1.2 + 0.05 * (this.S.prog.diff - 2);
       if (P.st.bastya && P.mp >= 50) amt *= 1 - 0.05 * P.st.bastya;
       // a Pengelovag a kapott ütésből is dühöt merít (a Bástya úton jóval többet)
       if (CLASSES[this.S.cls].rage && src) P.mp = Math.min(P.mmp, P.mp + Math.min(15, amt / P.mhp * 60) * (1 + 0.5 * (P.st.bastya || 0)));
@@ -2199,7 +2199,7 @@ Object.assign(G, {
     m.lvl = this.regionLvl(rid, floor); m.rid = rid;
     this.setMap(m, R.pal); this.populate(m, R, boss, makeRng(seed ^ 0xabc));
     S.prog.wp[rid] = Math.max(S.prog.wp[rid] || 1, floor);
-    UI.setRegion(R.nev, `${floor}. szint${boss ? ' – a mélység ura' : ''} · ${m.lvl}. szintű ellenfelek${S.prog.diff ? ' · ' + DIFFS[S.prog.diff] : ''}`);
+    UI.setRegion(R.nev, `${floor}. szint${boss ? ' – a mélység ura' : ''} · ${m.lvl}. szintű ellenfelek${S.prog.diff ? ' · ' + diffName(S.prog.diff) : ''}`);
     if (floor === 1 && !S.flags['intro_' + rid]) { S.flags['intro_' + rid] = 1; UI.toast(R.intro, '#e8dcc0', 6); }
     this.emit('enter', { rid, floor }); this.autosave();
     Audio2.play('portal');
@@ -2245,6 +2245,7 @@ Object.assign(G, {
       const nb = rng.int(0, 3); for (let i = 0; i < nb; i++) { const p = roomSpot(m, r, rng, 1); m.objs.push({ type: 'barrel', x: p.x, y: p.y, r: 11, hp: 20 * monHp(L) * 0.3, boom: m.style === 'machine' || rng() < 0.12 }); }
       if (rng() < 0.08) { const p = roomSpot(m, r, rng, 2); m.objs.push(this.makeShrine(p.x, p.y, rng)); }
       if (rng() < 0.55) { const pool = REGION_NODES[hasadek ? 'hasadek' : m.region] || REGION_NODES.hasadek; const k = rng.pick(pool); const p = roomSpot(m, r, rng, 1); m.objs.push(this.makeNode(p.x, p.y, k)); }
+      if (!r.exit && !boss && !m.probaDone && rng() < 0.12) { m.probaDone = true; const p = roomSpot(m, r, rng, 3); m.objs.push(Proba.make(p.x, p.y, rng)); }
       if (m.style === 'comb' && rng() < 0.3) { const p = roomSpot(m, r, rng, 2); m.objs.push({ type: 'hive', x: p.x, y: p.y, r: 16, hp: 60 * monHp(L) * 0.4, spawnT: 4 }); }
     });
     // kijárat
@@ -2600,7 +2601,7 @@ Object.assign(G, {
     }
   },
   regionMech(dt) {
-    const m = this.map, P = this.P;
+    const m = this.map, P = this.P; Proba.tick();
     if (m.mech === 'egtorony') {
       this.envT -= dt;
       if (!this.gust && this.envT <= 0) { const a = RNG() * 6.28; this.gust = { x: Math.cos(a) * 130, y: Math.sin(a) * 130, t: 2.5 }; UI.toast('Széllökés!', '#dfefff', 1.2); }
@@ -2645,10 +2646,95 @@ const Exped = {
   home(fromDeath) {
     const X = this.st(); const bank = X.bank, n = X.n, rid = X.rid;
     if (!fromDeath && bank > 0) { G.gainXp(bank); UI.toast(`📓 Hazahoztad az útinaplót: +${fmt(bank)} TP (${n}. szint mélyről)`, '#ffd34d', 5); }
-    if (!fromDeath && n > 0) G.emit('hazaert', { n, bank, rid });
+    if (!fromDeath && n > 0) { G.emit('hazaert', { n, bank, rid }); X.bestHome = Math.max(X.bestHome || 0, n); }
     X.lost = fromDeath ? bank : 0; X.bank = 0; X.n = 0;
   },
   hud() { const X = this.st(); if (!G.map || G.inTown() || !X.n) return ''; return `Mélység a Kaputól: ${X.n}${X.bank ? ` · útinapló: ${fmt(X.bank)} TP` : ''}`; },
+};
+
+// ============================================================
+//  KALAND: Próbakövek, Kihívás-létra és vég nélküli nehézség
+//  „Ne add fel. Megéri.” – mindig van egy következő lépcső.
+// ============================================================
+
+// ---------------- nehézség: Normál, Rémálom, Pokol, majd Ciklusok a végtelenig ----------------
+const diffLevel = i => i <= 2 ? [0, 30, 55][i] : 55 + 18 * (i - 2);
+const diffName = i => i <= 2 ? DIFFS[i] : `${i - 2}. Ciklus`;
+
+// ---------------- Próbakő: önként vállalt, nehezebb harc jobb jutalomért ----------------
+const Proba = {
+  make(x, y, rng) {
+    return { type: 'proba', x, y, r: 16, label: 'Próbakő – érintsd meg, ha mered', inter: (o) => this.start(o) };
+  },
+  start(o) {
+    if (o.active || o.done) return;
+    o.active = true; o.wave = 0; o.inter = null; o.label = 'Próba folyamatban…';
+    UI.toast('⚔ Próba! Három hullám jön, mindegyik erősebb. A végén díszes láda és útinapló vár.', '#ffb347', 4); Audio2.play('bossroar');
+    this.next(o);
+  },
+  next(o) {
+    const m = G.map, R = REGION[m.region] || REGION.raktar, L = m.lvl + 1 + o.wave; o.wave++; o.mobs = [];
+    const n = 3 + o.wave * 2, mods = Object.keys(ELITE_MODS);
+    for (let i = 0; i < n; i++) {
+      const a = i / n * 6.283, x = o.x + Math.cos(a) * 150, y = o.y + Math.sin(a) * 150; if (solidAt(m, x, y)) continue;
+      const opt = o.wave === 3 && i === 0 ? { champion: true, mods: [RNG.pick(mods), RNG.pick(mods)] } : o.wave >= 2 && i < 2 ? { elite: true, mods: [RNG.pick(mods)] } : {};
+      const e = G.spawnEnemy(RNG.pick(R.enemies), x, y, L, opt); e.state = 'chase'; e.proba = o; o.mobs.push(e);
+      G.burst(x, y, '#ffb347', 10, 120);
+    }
+    G.fxRing(o.x, o.y, 170, '#ffb347', 0.6, 5); G.text(o.x, o.y - 30, `${o.wave}. hullám`, '#ffb347', 16, { life: 1.4 });
+  },
+  tick() {
+    const m = G.map; if (!m) return;
+    for (const o of m.objs) {
+      if (o.type !== 'proba' || !o.active) continue;
+      if (G.P.dead) continue;
+      if (o.mobs.every(e => e.dead)) {
+        if (o.wave < 3) this.next(o);
+        else this.finish(o);
+      }
+    }
+  },
+  finish(o) {
+    const S = G.S; o.active = false; o.done = true; o.label = 'Teljesített próba';
+    S.stats.probak = (S.stats.probak || 0) + 1;
+    const c = G.makeChest(o.x, o.y + 40, true); c.label = 'A próba ládája'; c.proba = true; G.map.objs.push(c);
+    const bonus = Math.round(xpNeed(S.lvl) * 0.06); Exped.st().bank += bonus;
+    if (RNG() < 0.15) { const pool = RELICS.filter(r => r.minL <= G.map.lvl + 2); if (pool.length) G.spawnPickup(o.x, o.y, 'item', 0, genItem(G.map.lvl, RNG, { relic: RNG.pick(pool).id })); }
+    UI.toast(`✔ Próba teljesítve! Díszes láda, +${fmt(bonus)} TP az útinaplóba.`, '#ffd34d', 4); Audio2.play('legend'); G.emit('proba');
+  },
+};
+
+// ---------------- Kihívás-létra: minden lépcső után jön a következő ----------------
+const LADDER = {
+  mely: { nev: n => `Juss le ${n} szintet egyhuzamban a Kaputól (és érj haza)`, goal: t => 3 + t, have: S => (S.exp && S.exp.bestHome) || 0 },
+  proba: { nev: n => `Teljesíts összesen ${n} próbát`, goal: t => [1, 3, 6, 10, 15][t] || 15 + (t - 4) * 6, have: S => S.stats.probak || 0 },
+  elit: { nev: n => `Győzz le összesen ${n} elit, bajnok vagy névvel bíró ellenfelet`, goal: t => Math.round(25 * Math.pow(1.8, t)), have: S => S.stats.elites || 0 },
+  os: { nev: n => `Dönts le ${n} különböző Őst`, goal: t => t + 1, have: S => Object.keys(S.prog.ancients || {}).length, max: 7 },
+  hasadek: { nev: n => `Érd el a Végtelen Hasadék ${n}. mélységét`, goal: t => 5 * (t + 1), have: S => S.prog.hasadek || 0, req: S => S.prog.bosses.szingularitas },
+  ciklus: { nev: n => `Győzd le a Szingularitást ${diffName(n)} nehézségen`, goal: t => t + 1, have: S => S.prog.diffMax - 1, req: S => S.prog.bosses.szingularitas },
+};
+const Ladder = {
+  st() { const S = G.S; S.ladder = S.ladder || {}; return S.ladder; },
+  rows() {
+    const S = G.S, L = this.st(), out = [];
+    for (const k in LADDER) {
+      const D = LADDER[k]; if (D.req && !D.req(S)) continue; const t = L[k] || 0; if (D.max && t >= D.max) continue;
+      const goal = D.goal(t), have = D.have(S);
+      out.push({ k, t, goal, have, nev: D.nev(goal), ok: have >= goal, rw: this.reward(t) });
+    }
+    return out;
+  },
+  reward(t) { const S = G.S; return { gold: Math.round((60 + S.lvl * 25) * (1 + t * 0.5)), szilank: 4 + t * 3, xp: Math.round(xpNeed(S.lvl) * 0.12), relic: t % 3 === 2 }; },
+  claim(k) {
+    const S = G.S, r = this.rows().find(x => x.k === k); if (!r || !r.ok) return;
+    this.st()[k] = r.t + 1; const w = r.rw; S.gold += w.gold; S.mats.szilank = (S.mats.szilank || 0) + w.szilank; G.gainXp(w.xp);
+    if (w.relic) { const pool = RELICS.filter(x => x.minL <= S.lvl + 3); const it = genItem(Math.max(S.lvl, 1), RNG, { relic: RNG.pick(pool).id }); (S.inv.length < INV_MAX ? S.inv : S.stash).push(it); UI.toast(`Ereklye a létráról: ${it.nev}`, RARITY[4].c, 4); }
+    Audio2.play('legend'); UI.toast(`🪜 Lépcső teljesítve: +${fmt(w.gold)} arany, +${w.szilank} szilánk, +${fmt(w.xp)} TP. Jön a következő…`, '#ffd34d', 4);
+  },
+  html() {
+    const rows = this.rows();
+    return `<div class="h" style="margin-top:10px">Kihívás-létra <span class="small">– mindig van következő lépcső</span></div>` + rows.map(r => `<div class="row"><span class="small">${r.ok ? '✔' : '·'} ${r.t + 1}. lépcső: ${r.nev} <span style="color:var(--dim)">(${Math.min(r.have, r.goal)}/${r.goal})</span><br><span style="color:var(--dim)">Jutalom: ${fmt(r.rw.gold)} arany, ${r.rw.szilank} szilánk, ${fmt(r.rw.xp)} TP${r.rw.relic ? ', ereklye' : ''}</span></span>${r.ok ? `<button class="sm pri" data-a="ladder" data-k="${r.k}">Átveszem</button>` : ''}</div>`).join('');
+  },
 };
 
 // ============================================================
@@ -3136,6 +3222,7 @@ const R = {
       case 'shrine': g.fillStyle = '#555'; g.fillRect(o.x - 10, o.y - 4, 20, 14); g.fillStyle = o.used ? '#444' : o.c; g.beginPath(); g.moveTo(o.x, o.y - 26); g.lineTo(o.x + 8, o.y - 4); g.lineTo(o.x - 8, o.y - 4); g.closePath(); g.fill(); if (!o.used) { g.fillStyle = o.c + '44'; g.beginPath(); g.arc(o.x, o.y - 10, 24 + Math.sin(t * 3) * 3, 0, 7); g.fill(); } break;
       case 'node': { const N = NODES[o.kind]; this.shadow(g, o.x, o.y, 11); g.font = '20px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(N.ikon, o.x, o.y); g.textBaseline = 'alphabetic'; g.strokeStyle = N.c; g.globalAlpha = 0.4 + 0.3 * Math.sin(t * 3); g.lineWidth = 1.5; g.beginPath(); g.arc(o.x, o.y, 16, 0, 7); g.stroke(); g.globalAlpha = 1; break; }
       case 'hive': if (o.hp <= 0) break; this.shadow(g, o.x, o.y, 14); g.fillStyle = '#c98a14'; g.beginPath(); g.ellipse(o.x, o.y - 4, 14, 18, 0, 0, 7); g.fill(); g.strokeStyle = '#7a5208'; g.lineWidth = 2; for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(o.x - 13, o.y - 4 + i * 6); g.lineTo(o.x + 13, o.y - 4 + i * 6); g.stroke(); } g.fillStyle = '#222'; g.beginPath(); g.arc(o.x, o.y + 4, 3, 0, 7); g.fill(); this.hpbar(g, o.x, o.y - 26, 26, o.hp / o.mhp, '#ffcc00'); break;
+      case 'proba': { const on = o.active, dn = o.done; this.shadow(g, o.x, o.y, 12); g.fillStyle = dn ? '#4a4038' : '#2a2420'; g.beginPath(); g.moveTo(o.x - 10, o.y + 8); g.lineTo(o.x - 6, o.y - 30); g.lineTo(o.x + 6, o.y - 30); g.lineTo(o.x + 10, o.y + 8); g.closePath(); g.fill(); g.fillStyle = dn ? '#6a5a40' : `rgba(255,${on ? 90 : 180},60,${0.6 + 0.4 * Math.sin(t * (on ? 9 : 3))})`; g.fillRect(o.x - 2, o.y - 24, 4, 20); if (!dn) { g.strokeStyle = `rgba(255,180,70,${0.25 + 0.15 * Math.sin(t * 3)})`; g.lineWidth = 2; g.beginPath(); g.arc(o.x, o.y, on ? 170 : 26, 0, 7); g.stroke(); } break; }
       case 'jelado': g.fillStyle = '#3a2a66'; g.fillRect(o.x - 4, o.y - 20, 8, 26); g.fillStyle = `rgba(196,140,255,${0.5 + 0.5 * Math.sin(t * 5)})`; g.beginPath(); g.arc(o.x, o.y - 22, 6, 0, 7); g.fill(); break;
       case 'radio': g.fillStyle = '#4b5240'; g.fillRect(o.x - 12, o.y - 10, 24, 18); g.fillStyle = '#171a14'; g.beginPath(); g.arc(o.x - 4, o.y, 5, 0, 7); g.fill(); g.strokeStyle = '#d8c48a'; g.beginPath(); g.moveTo(o.x + 8, o.y - 10); g.lineTo(o.x + 14, o.y - 28); g.stroke(); g.fillStyle = Math.sin(t * 8) > 0 ? '#4dffb0' : '#1a3a2a'; g.fillRect(o.x + 4, o.y - 6, 4, 4); break;
       case 'buborek': { const vis = G.P.w === o.w ? 1 : 0.12; g.globalAlpha = vis; const gr = g.createRadialGradient(o.x, o.y, 2, o.x, o.y, o.r * 1.5); gr.addColorStop(0, '#fff'); gr.addColorStop(0.4, 'rgba(196,140,255,.6)'); gr.addColorStop(1, 'rgba(196,140,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(o.x, o.y, o.r * 1.5 + Math.sin(t * 2) * 3, 0, 7); g.fill(); g.globalAlpha = 1; break; }
@@ -3692,7 +3779,7 @@ const UI = {
     const S = G.S; this.closeAll(); this.open = 'pDlg'; G.paused = true; $('#pDlg').style.display = 'block';
     let h = this.hd('A Kapu', 'válaszd ki, hová lépsz') + '<div class="bd">';
     if (G.retPortal) h += `<button class="pri" style="width:100%;margin-bottom:8px" data-a="retP">↩ Vissza: ${G.retPortal.label}</button>`;
-    h += `<div class="tabs">${DIFFS.map((d, i) => `<button class="sm ${S.prog.diff === i ? 'on' : ''}" data-a="diff" data-d="${i}" ${i > S.prog.diffMax ? 'disabled' : ''}>${d}${i ? ` (+${[0, 30, 55][i]} szint)` : ''}</button>`).join('')}</div>`;
+    h += `<div class="tabs">${Array.from({ length: Math.max(3, S.prog.diffMax + 2) }, (_, i) => `<button class="sm ${S.prog.diff === i ? 'on' : ''}" data-a="diff" data-d="${i}" ${i > S.prog.diffMax ? 'disabled' : ''}>${diffName(i)}${i ? ` (+${diffLevel(i)} szint)` : ''}</button>`).join('')}</div>`;
     for (const R of REGIONS) {
       const un = S.prog.unlocked.includes(R.id); const wp = S.prog.wp[R.id] || 1; const done = S.prog.bosses[R.boss];
       h += `<div class="row"><span>${un ? '🌀' : '🔒'} <b class="h" style="font-size:14px">${R.nev}</b> <span class="small">${R.lvl + G.diffLvl()}–${R.lvl + R.floors - 1 + G.diffLvl()}. szint · ${R.vilag}${done ? ' · ✔' : ''}</span></span><span>${un ? Array.from({ length: wp }, (_, i) => `<button class="sm" data-a="go" data-r="${R.id}" data-f="${i + 1}">${i + 1 === R.floors ? '👑' : i + 1}</button>`).join(' ') : ''}</span></div>`;
@@ -3703,7 +3790,7 @@ const UI = {
     h += `<div class="small" style="margin-top:8px">A ❗-os lakók küldetést adnak. A Kezelőnél és a Pilótánál a többi világ kapui.</div></div>`;
     $('#pDlg').innerHTML = h;
   },
-  tabla() { Bounty.ensure(); const S = G.S; this.closeAll(); this.open = 'pDlg'; G.paused = true; $('#pDlg').style.display = 'block'; $('#pDlg').innerHTML = this.hd('Hirdetőtábla', 'napi megbízások – éjfélkor frissül') + '<div class="bd">' + S.bounties.map((b, i) => `<div class="row"><span>${b.nev}<br><span class="small">Jutalom: ${fmt(b.rw.xp)} TP, ${b.rw.gold} arany, ${b.rw.szilank} kapuszilánk</span></span><span>${b.done ? '✔' : b.p >= b.n ? `<button class="sm pri" data-a="claim" data-i="${i}">Jutalom</button>` : `${b.p}/${b.n}`}</span></div>`).join('') + '</div>'; },
+  tabla() { Bounty.ensure(); const S = G.S; this.closeAll(); this.open = 'pDlg'; G.paused = true; $('#pDlg').style.display = 'block'; $('#pDlg').innerHTML = this.hd('Hirdetőtábla', 'napi megbízások – éjfélkor frissül') + '<div class="bd">' + S.bounties.map((b, i) => `<div class="row"><span>${b.nev}<br><span class="small">Jutalom: ${fmt(b.rw.xp)} TP, ${b.rw.gold} arany, ${b.rw.szilank} kapuszilánk</span></span><span>${b.done ? '✔' : b.p >= b.n ? `<button class="sm pri" data-a="claim" data-i="${i}">Jutalom</button>` : `${b.p}/${b.n}`}</span></div>`).join('') + Ladder.html() + '</div>'; },
   stash() { this.openShop('raktar', '976. tárhely'); },
   sleepInn() { this.openShop('kocsma', 'Kurta törzshelye – a kocsma'); },
   sleepFade() { this.sleepT = 1.6; },
@@ -3725,11 +3812,11 @@ const UI = {
     o.innerHTML = `<div class="h" style="font-size:42px;color:#e04848">Elestél</div><p>Ellenfél: ${esc(by)} · elveszett ${lost} arany${G.S.exp && G.S.exp.lost ? ` · az útinapló (${fmt(G.S.exp.lost)} TP) a mélyben maradt` : ''}</p><p class="small">„Ne add fel. Megéri.”</p><button class="pri" data-a="respawn">Feltámadás Kapuvárosban</button>`;
   },
   ending() {
-    const S = G.S; S.prog.diffMax = Math.max(S.prog.diffMax, 1); if (S.prog.diff >= 1) S.prog.diffMax = 2;
+    const S = G.S; S.prog.diffMax = Math.max(S.prog.diffMax, S.prog.diff + 1);
     Univ.set('kp:vege'); if (S.prog.diff === 1) Univ.set('kp:remalom'); if (S.prog.diff === 2) Univ.set('kp:pokol');
-    Univ.say(`legyőzte a Szingularitást (${DIFFS[S.prog.diff]}, ${CLASSES[S.cls].nev})`);
+    Univ.say(`legyőzte a Szingularitást (${diffName(S.prog.diff)}, ${CLASSES[S.cls].nev})`);
     const o = $('#over'); o.style.display = 'flex'; G.paused = true;
-    o.innerHTML = `<div style="max-width:660px;padding:20px"><div class="h" style="font-size:34px">Novikov</div><p style="font-size:15px;line-height:1.7">A Szingularitás elhallgat. A tesszeraktban hátulról látod önmagad – és most már tudod, mit kell tenned. Felveszed a jelet, és visszaküldöd a múltba:</p><div class="morse">–·  ·  ·–  –··  –··  ··–·  ·  ·–··  ––  ·  ––·  ·  ·–·  ··</div><p style="font-size:15px">NE ADD FEL MEGÉRI.<br><span class="small">— te magad</span></p><p class="small">Az üzenet sosem a jövőből jött, és sosem a múltba ment: mindig is itt volt, egy hurokban, amely minden világon átfut. Aki elküldi, az kapja meg.</p><p>Megnyílt: <b>${DIFFS[S.prog.diffMax]}</b> nehézség, a <b>Végtelen Hasadék</b> és a <b>Heti Hasadék</b>.</p><button class="pri" data-a="closeOver">Tovább</button></div>`;
+    o.innerHTML = `<div style="max-width:660px;padding:20px"><div class="h" style="font-size:34px">Novikov</div><p style="font-size:15px;line-height:1.7">A Szingularitás elhallgat. A tesszeraktban hátulról látod önmagad – és most már tudod, mit kell tenned. Felveszed a jelet, és visszaküldöd a múltba:</p><div class="morse">–·  ·  ·–  –··  –··  ··–·  ·  ·–··  ––  ·  ––·  ·  ·–·  ··</div><p style="font-size:15px">NE ADD FEL MEGÉRI.<br><span class="small">— te magad</span></p><p class="small">Az üzenet sosem a jövőből jött, és sosem a múltba ment: mindig is itt volt, egy hurokban, amely minden világon átfut. Aki elküldi, az kapja meg.</p><p>Megnyílt: <b>${diffName(S.prog.diffMax)}</b> nehézség, a <b>Végtelen Hasadék</b> és a <b>Heti Hasadék</b>.</p><p class="small">Ez nem a vége. Egy hurokban nincs vége, csak következő kör. A Kapu mögött a világok újra felizzanak, erősebben, és az Ősök még mindig ott kóborolnak. A hirdetőtáblán a Kihívás-létra mindig mutatja a következő lépcsőt.</p><button class="pri" data-a="closeOver">Tovább – a következő körbe</button></div>`;
     G.autosave();
   },
 };
@@ -3779,6 +3866,7 @@ Object.assign(UI.acts, {
   hasadekX() { this.closeAll(); G.enterHasadek(Math.floor(G.S.prog.hasadek / 5) * 5, false); },
   weekly() { this.closeAll(); G.weeklyStart = performance.now(); Univ.connect(); G.enterHasadek(1, true); },
   claim(d) { Bounty.claim(+d.i); this.tabla(); },
+  ladder(d) { Ladder.claim(d.k); this.tabla(); },
   morseAns(d) { const { o, ex } = this.morseCtx; if (d.ok === '1') { ex.locked = null; o.inter = null; o.label = 'Megfejtve'; this.toast(`Helyes: ${o.word}. A zár kioldott.`, '#4dffb0'); Audio2.play('legend'); this.closeAll(); } else { this.toast('Rossz megfejtés. Az adó zajt sugároz – közelednek!', '#ff7a7a'); this.closeAll(); for (let i = 0; i < 4; i++) { const e = G.spawnEnemy('zajleny', o.x + RNG.range(-80, 80), o.y + RNG.range(-80, 80), G.map.lvl, {}); e.state = 'chase'; } } },
   morsePlay(d) { let t = 0; const U = 0.09; for (const c of d.w) { for (const s of MORSE[c] || '') { Audio2.tone(700, s === '·' ? U : U * 3, 'sine', 0.08, 0, t); t += (s === '·' ? U : U * 3) + U; } t += U * 2; } },
 });

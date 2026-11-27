@@ -63,7 +63,7 @@ function recalc(P) {
   st.staInf = m.staInf || 0;
   st.resgen = (m.resgen || 0) + at.allo * 1.5;
   st.arm = Math.round((arm + at.kit * 1.5) * (1 + (m.armp || 0) / 100));
-  st.res = {}; for (const k of ['tuz', 'fagy', 'villam', 'ter']) st.res[k] = Math.min(75, (m['res_' + k] || 0) + (m.resall || 0) + (k === 'tuz' && P.fx.mag ? 30 : 0) - S.prog.diff * 15);
+  st.res = {}; for (const k of ['tuz', 'fagy', 'villam', 'ter']) st.res[k] = Math.min(75, (m['res_' + k] || 0) + (m.resall || 0) + (k === 'tuz' && P.fx.mag ? 30 : 0) - Math.min(45, S.prog.diff * 15));
   st.crit = Math.min(75, 5 + at.ugy * 0.08 + (m.crit || 0)); st.critd = 50 + (m.critd || 0);
   st.aspd = Math.max(0.3, 1 + (m.aspd || 0) / 100);
   st.msp = Math.max(0.4, 1 + ((m.ms || 0) + (m.msp || 0)) / 100) * (P.fx.hold ? 1.15 : 1);

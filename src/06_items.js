@@ -116,7 +116,7 @@ function craftItem(base, tier, extra) {
   const S = G.S; if (!canCraft(base, tier, extra)) return null;
   const c = craftCost(base, tier);
   S.gold -= c.gold; for (const k in c.mats) S.mats[k] -= c.mats[k]; if (extra) S.mats.szilank -= 6;
-  const R = REGIONS[tier]; const ilvl = R.lvl + 4 + [0, 30, 55][S.prog.diffMax ? Math.min(S.prog.diff, S.prog.diffMax) : 0];
+  const R = REGIONS[tier]; const ilvl = R.lvl + 4 + diffLevel(S.prog.diffMax ? Math.min(S.prog.diff, S.prog.diffMax) : 0);
   let rar = 1; const r = RNG(); if (extra) rar = r < 0.12 ? 3 : 2; else rar = r < 0.04 ? 3 : r < 0.3 ? 2 : 1;
   const it = genItem(Math.min(ilvl, S.lvl + 6), RNG, { base, rar });
   it.crafted = true; if (rar === 3) it.nev = it.nev.replace(' – ', ' – mesterremek, ');

@@ -304,7 +304,7 @@ const UI = {
     const S = G.S; this.closeAll(); this.open = 'pDlg'; G.paused = true; $('#pDlg').style.display = 'block';
     let h = this.hd('A Kapu', 'válaszd ki, hová lépsz') + '<div class="bd">';
     if (G.retPortal) h += `<button class="pri" style="width:100%;margin-bottom:8px" data-a="retP">↩ Vissza: ${G.retPortal.label}</button>`;
-    h += `<div class="tabs">${DIFFS.map((d, i) => `<button class="sm ${S.prog.diff === i ? 'on' : ''}" data-a="diff" data-d="${i}" ${i > S.prog.diffMax ? 'disabled' : ''}>${d}${i ? ` (+${[0, 30, 55][i]} szint)` : ''}</button>`).join('')}</div>`;
+    h += `<div class="tabs">${Array.from({ length: Math.max(3, S.prog.diffMax + 2) }, (_, i) => `<button class="sm ${S.prog.diff === i ? 'on' : ''}" data-a="diff" data-d="${i}" ${i > S.prog.diffMax ? 'disabled' : ''}>${diffName(i)}${i ? ` (+${diffLevel(i)} szint)` : ''}</button>`).join('')}</div>`;
     for (const R of REGIONS) {
       const un = S.prog.unlocked.includes(R.id); const wp = S.prog.wp[R.id] || 1; const done = S.prog.bosses[R.boss];
       h += `<div class="row"><span>${un ? '🌀' : '🔒'} <b class="h" style="font-size:14px">${R.nev}</b> <span class="small">${R.lvl + G.diffLvl()}–${R.lvl + R.floors - 1 + G.diffLvl()}. szint · ${R.vilag}${done ? ' · ✔' : ''}</span></span><span>${un ? Array.from({ length: wp }, (_, i) => `<button class="sm" data-a="go" data-r="${R.id}" data-f="${i + 1}">${i + 1 === R.floors ? '👑' : i + 1}</button>`).join(' ') : ''}</span></div>`;
@@ -315,7 +315,7 @@ const UI = {
     h += `<div class="small" style="margin-top:8px">A ❗-os lakók küldetést adnak. A Kezelőnél és a Pilótánál a többi világ kapui.</div></div>`;
     $('#pDlg').innerHTML = h;
   },
-  tabla() { Bounty.ensure(); const S = G.S; this.closeAll(); this.open = 'pDlg'; G.paused = true; $('#pDlg').style.display = 'block'; $('#pDlg').innerHTML = this.hd('Hirdetőtábla', 'napi megbízások – éjfélkor frissül') + '<div class="bd">' + S.bounties.map((b, i) => `<div class="row"><span>${b.nev}<br><span class="small">Jutalom: ${fmt(b.rw.xp)} TP, ${b.rw.gold} arany, ${b.rw.szilank} kapuszilánk</span></span><span>${b.done ? '✔' : b.p >= b.n ? `<button class="sm pri" data-a="claim" data-i="${i}">Jutalom</button>` : `${b.p}/${b.n}`}</span></div>`).join('') + '</div>'; },
+  tabla() { Bounty.ensure(); const S = G.S; this.closeAll(); this.open = 'pDlg'; G.paused = true; $('#pDlg').style.display = 'block'; $('#pDlg').innerHTML = this.hd('Hirdetőtábla', 'napi megbízások – éjfélkor frissül') + '<div class="bd">' + S.bounties.map((b, i) => `<div class="row"><span>${b.nev}<br><span class="small">Jutalom: ${fmt(b.rw.xp)} TP, ${b.rw.gold} arany, ${b.rw.szilank} kapuszilánk</span></span><span>${b.done ? '✔' : b.p >= b.n ? `<button class="sm pri" data-a="claim" data-i="${i}">Jutalom</button>` : `${b.p}/${b.n}`}</span></div>`).join('') + Ladder.html() + '</div>'; },
   stash() { this.openShop('raktar', '976. tárhely'); },
   sleepInn() { this.openShop('kocsma', 'Kurta törzshelye – a kocsma'); },
   sleepFade() { this.sleepT = 1.6; },
@@ -337,11 +337,11 @@ const UI = {
     o.innerHTML = `<div class="h" style="font-size:42px;color:#e04848">Elestél</div><p>Ellenfél: ${esc(by)} · elveszett ${lost} arany${G.S.exp && G.S.exp.lost ? ` · az útinapló (${fmt(G.S.exp.lost)} TP) a mélyben maradt` : ''}</p><p class="small">„Ne add fel. Megéri.”</p><button class="pri" data-a="respawn">Feltámadás Kapuvárosban</button>`;
   },
   ending() {
-    const S = G.S; S.prog.diffMax = Math.max(S.prog.diffMax, 1); if (S.prog.diff >= 1) S.prog.diffMax = 2;
+    const S = G.S; S.prog.diffMax = Math.max(S.prog.diffMax, S.prog.diff + 1);
     Univ.set('kp:vege'); if (S.prog.diff === 1) Univ.set('kp:remalom'); if (S.prog.diff === 2) Univ.set('kp:pokol');
-    Univ.say(`legyőzte a Szingularitást (${DIFFS[S.prog.diff]}, ${CLASSES[S.cls].nev})`);
+    Univ.say(`legyőzte a Szingularitást (${diffName(S.prog.diff)}, ${CLASSES[S.cls].nev})`);
     const o = $('#over'); o.style.display = 'flex'; G.paused = true;
-    o.innerHTML = `<div style="max-width:660px;padding:20px"><div class="h" style="font-size:34px">Novikov</div><p style="font-size:15px;line-height:1.7">A Szingularitás elhallgat. A tesszeraktban hátulról látod önmagad – és most már tudod, mit kell tenned. Felveszed a jelet, és visszaküldöd a múltba:</p><div class="morse">–·  ·  ·–  –··  –··  ··–·  ·  ·–··  ––  ·  ––·  ·  ·–·  ··</div><p style="font-size:15px">NE ADD FEL MEGÉRI.<br><span class="small">— te magad</span></p><p class="small">Az üzenet sosem a jövőből jött, és sosem a múltba ment: mindig is itt volt, egy hurokban, amely minden világon átfut. Aki elküldi, az kapja meg.</p><p>Megnyílt: <b>${DIFFS[S.prog.diffMax]}</b> nehézség, a <b>Végtelen Hasadék</b> és a <b>Heti Hasadék</b>.</p><button class="pri" data-a="closeOver">Tovább</button></div>`;
+    o.innerHTML = `<div style="max-width:660px;padding:20px"><div class="h" style="font-size:34px">Novikov</div><p style="font-size:15px;line-height:1.7">A Szingularitás elhallgat. A tesszeraktban hátulról látod önmagad – és most már tudod, mit kell tenned. Felveszed a jelet, és visszaküldöd a múltba:</p><div class="morse">–·  ·  ·–  –··  –··  ··–·  ·  ·–··  ––  ·  ––·  ·  ·–·  ··</div><p style="font-size:15px">NE ADD FEL MEGÉRI.<br><span class="small">— te magad</span></p><p class="small">Az üzenet sosem a jövőből jött, és sosem a múltba ment: mindig is itt volt, egy hurokban, amely minden világon átfut. Aki elküldi, az kapja meg.</p><p>Megnyílt: <b>${diffName(S.prog.diffMax)}</b> nehézség, a <b>Végtelen Hasadék</b> és a <b>Heti Hasadék</b>.</p><p class="small">Ez nem a vége. Egy hurokban nincs vége, csak következő kör. A Kapu mögött a világok újra felizzanak, erősebben, és az Ősök még mindig ott kóborolnak. A hirdetőtáblán a Kihívás-létra mindig mutatja a következő lépcsőt.</p><button class="pri" data-a="closeOver">Tovább – a következő körbe</button></div>`;
     G.autosave();
   },
 };
@@ -391,6 +391,7 @@ Object.assign(UI.acts, {
   hasadekX() { this.closeAll(); G.enterHasadek(Math.floor(G.S.prog.hasadek / 5) * 5, false); },
   weekly() { this.closeAll(); G.weeklyStart = performance.now(); Univ.connect(); G.enterHasadek(1, true); },
   claim(d) { Bounty.claim(+d.i); this.tabla(); },
+  ladder(d) { Ladder.claim(d.k); this.tabla(); },
   morseAns(d) { const { o, ex } = this.morseCtx; if (d.ok === '1') { ex.locked = null; o.inter = null; o.label = 'Megfejtve'; this.toast(`Helyes: ${o.word}. A zár kioldott.`, '#4dffb0'); Audio2.play('legend'); this.closeAll(); } else { this.toast('Rossz megfejtés. Az adó zajt sugároz – közelednek!', '#ff7a7a'); this.closeAll(); for (let i = 0; i < 4; i++) { const e = G.spawnEnemy('zajleny', o.x + RNG.range(-80, 80), o.y + RNG.range(-80, 80), G.map.lvl, {}); e.state = 'chase'; } } },
   morsePlay(d) { let t = 0; const U = 0.09; for (const c of d.w) { for (const s of MORSE[c] || '') { Audio2.tone(700, s === '·' ? U : U * 3, 'sine', 0.08, 0, t); t += (s === '·' ? U : U * 3) + U; } t += U * 2; } },
 });

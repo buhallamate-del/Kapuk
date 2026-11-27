@@ -20,7 +20,7 @@ const Exped = {
   home(fromDeath) {
     const X = this.st(); const bank = X.bank, n = X.n, rid = X.rid;
     if (!fromDeath && bank > 0) { G.gainXp(bank); UI.toast(`📓 Hazahoztad az útinaplót: +${fmt(bank)} TP (${n}. szint mélyről)`, '#ffd34d', 5); }
-    if (!fromDeath && n > 0) G.emit('hazaert', { n, bank, rid });
+    if (!fromDeath && n > 0) { G.emit('hazaert', { n, bank, rid }); X.bestHome = Math.max(X.bestHome || 0, n); }
     X.lost = fromDeath ? bank : 0; X.bank = 0; X.n = 0;
   },
   hud() { const X = this.st(); if (!G.map || G.inTown() || !X.n) return ''; return `Mélység a Kaputól: ${X.n}${X.bank ? ` · útinapló: ${fmt(X.bank)} TP` : ''}`; },

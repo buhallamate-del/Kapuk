@@ -18,7 +18,7 @@ const G = {
   emit(ev, d) { if (typeof Quests !== 'undefined') Quests.on(ev, d); },
   mapIs(id) { return this.map && this.map.region === id; },
   inTown() { return this.map && (this.map.region === 'varos' || this.map.region === 'otthon'); },
-  diffLvl() { return [0, 30, 55][this.S.prog.diff] || 0; },
+  diffLvl() { return diffLevel(this.S.prog.diff); },
 
   // ---------- térbeli rács az ellenfelekhez ----------
   rebuildGrid() {
@@ -181,7 +181,7 @@ const G = {
       if (P.st.block && RNG() * 100 < P.st.block) { this.text(P.x, P.y - 24, 'Kivédve', '#9fd8ff', 13); const rp = P.st.riposte || (P.st.bastya ? 0.8 : 0); if (src && rp && !src.dead) this.hurtEnemy(src, P.roll(rp, 'melee'), P.wdt(), { melee: true }); if (CLASSES[this.S.cls].rage) P.mp = Math.min(P.mmp, P.mp + 4); return; }
       const sl = src ? src.lvl : this.S.lvl;
       if (dt === 'fiz') amt *= 1 - P.st.arm / (P.st.arm + 60 + 14 * sl); else amt *= 1 - (P.st.res[dt] || 0) / 100;
-      if (this.S.prog.diff === 2) amt *= 1.2;
+      if (this.S.prog.diff >= 2) amt *= 1.2 + 0.05 * (this.S.prog.diff - 2);
       if (P.st.bastya && P.mp >= 50) amt *= 1 - 0.05 * P.st.bastya;
       // a Pengelovag a kapott ütésből is dühöt merít (a Bástya úton jóval többet)
       if (CLASSES[this.S.cls].rage && src) P.mp = Math.min(P.mmp, P.mp + Math.min(15, amt / P.mhp * 60) * (1 + 0.5 * (P.st.bastya || 0)));

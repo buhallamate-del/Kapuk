@@ -35,7 +35,7 @@ Object.assign(G, {
     m.lvl = this.regionLvl(rid, floor); m.rid = rid;
     this.setMap(m, R.pal); this.populate(m, R, boss, makeRng(seed ^ 0xabc));
     S.prog.wp[rid] = Math.max(S.prog.wp[rid] || 1, floor);
-    UI.setRegion(R.nev, `${floor}. szint${boss ? ' – a mélység ura' : ''} · ${m.lvl}. szintű ellenfelek${S.prog.diff ? ' · ' + DIFFS[S.prog.diff] : ''}`);
+    UI.setRegion(R.nev, `${floor}. szint${boss ? ' – a mélység ura' : ''} · ${m.lvl}. szintű ellenfelek${S.prog.diff ? ' · ' + diffName(S.prog.diff) : ''}`);
     if (floor === 1 && !S.flags['intro_' + rid]) { S.flags['intro_' + rid] = 1; UI.toast(R.intro, '#e8dcc0', 6); }
     this.emit('enter', { rid, floor }); this.autosave();
     Audio2.play('portal');
@@ -81,6 +81,7 @@ Object.assign(G, {
       const nb = rng.int(0, 3); for (let i = 0; i < nb; i++) { const p = roomSpot(m, r, rng, 1); m.objs.push({ type: 'barrel', x: p.x, y: p.y, r: 11, hp: 20 * monHp(L) * 0.3, boom: m.style === 'machine' || rng() < 0.12 }); }
       if (rng() < 0.08) { const p = roomSpot(m, r, rng, 2); m.objs.push(this.makeShrine(p.x, p.y, rng)); }
       if (rng() < 0.55) { const pool = REGION_NODES[hasadek ? 'hasadek' : m.region] || REGION_NODES.hasadek; const k = rng.pick(pool); const p = roomSpot(m, r, rng, 1); m.objs.push(this.makeNode(p.x, p.y, k)); }
+      if (!r.exit && !boss && !m.probaDone && rng() < 0.12) { m.probaDone = true; const p = roomSpot(m, r, rng, 3); m.objs.push(Proba.make(p.x, p.y, rng)); }
       if (m.style === 'comb' && rng() < 0.3) { const p = roomSpot(m, r, rng, 2); m.objs.push({ type: 'hive', x: p.x, y: p.y, r: 16, hp: 60 * monHp(L) * 0.4, spawnT: 4 }); }
     });
     // kijárat
@@ -436,7 +437,7 @@ Object.assign(G, {
     }
   },
   regionMech(dt) {
-    const m = this.map, P = this.P;
+    const m = this.map, P = this.P; Proba.tick();
     if (m.mech === 'egtorony') {
       this.envT -= dt;
       if (!this.gust && this.envT <= 0) { const a = RNG() * 6.28; this.gust = { x: Math.cos(a) * 130, y: Math.sin(a) * 130, t: 2.5 }; UI.toast('Széllökés!', '#dfefff', 1.2); }
