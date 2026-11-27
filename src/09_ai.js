@@ -123,7 +123,7 @@ Object.assign(G, {
   // ---------- BOSS MI ----------
   bossAI(e, dt, dP) {
     const P = this.P, m = this.map, D = e.bossDef, toP = Math.atan2(P.y - e.y, P.x - e.x);
-    if (!e.intro) { e.intro = true; UI.bossBar(e); Audio2.play('bossroar'); this.text(e.x, e.y - e.r - 20, RNG.pick(D.lines), '#ffd0d0', 14, { life: 3, vy: -10 }); }
+    if (!e.intro) { e.intro = true; UI.bossBar(e); Audio2.play('bossroar'); this.text(e.x, e.y - e.r - 20, Dialog.fill(RNG.pick(D.lines)), '#ffd0d0', 14, { life: 3, vy: -10 }); if (STORY[e.bossId] && !this.map.hasadek) UI.scene(`${D.nev} – ${D.cim}`, STORY[e.bossId].be, 5); }
     // fázisváltás
     if (e.phase === 1 && e.hp < e.mhp * 0.5) {
       e.phase = 2; UI.toast(D.p2, '#ff7a7a', 4); this.text(e.x, e.y - e.r - 20, D.p2, '#ff9999', 14, { life: 3, vy: -10 }); this.shake(10); Audio2.play('bossroar');

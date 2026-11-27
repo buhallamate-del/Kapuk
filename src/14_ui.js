@@ -29,6 +29,11 @@ const UI = {
     while (box.children.length > 5) box.firstChild.remove();
     setTimeout(() => { el.style.transition = 'opacity .4s'; el.style.opacity = 0; setTimeout(() => el.remove(), 400); }, dur * 1000);
   },
+  // fő szál jelenete: filmszerű sávok és szöveg, nem állítja meg a játékot
+  scene(title, text, dur = 6) {
+    const el = $('#scene'); if (!el) return; el.innerHTML = `<div class="sc-bar"></div><div class="sc-t"><div class="h" style="font-size:24px">${esc(title)}</div><div class="sc-x">${esc(text)}</div></div><div class="sc-bar b"></div>`;
+    el.className = 'on'; clearTimeout(this._scT); this._scT = setTimeout(() => { el.className = ''; }, dur * 1000);
+  },
   setRegion(n, s) { $('#rname').textContent = n; $('#rsub').textContent = s; },
   bossBar(e) { const b = $('#boss'); this.bossE = e; if (!e) { b.style.display = 'none'; return; } b.style.display = 'block'; b.querySelector('.nm').textContent = e.nameTxt; b.querySelector('.ct').textContent = (e.bossDef && e.bossDef.cim) || ''; },
   // ---------- HUD frissítés ----------
@@ -219,7 +224,7 @@ const UI = {
   // ---------- dialógus ----------
   npc(id) {
     const N = NPCS[id]; const S = G.S; S.talk = S.talk || {};
-    let line = RNG.pick(N.lines);
+    let line = Dialog.line(id);
     // multiverzum-reakció (egyszer)
     for (const k in N.react || {}) if (Univ.has(k) && !S.seenKeys[id + k]) { S.seenKeys[id + k] = 1; line = N.react[k]; break; }
     if (typeof Home !== 'undefined') Home.talked(id);

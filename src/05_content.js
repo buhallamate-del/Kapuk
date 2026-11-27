@@ -147,13 +147,13 @@ const BOSSES = {
     p2Pat: { k: 'mirror', cd: 1, nev: 'Te, még egyszer' }, nev: 'Te magad', cim: 'Az idővisszhang a tesszeraktban', hp: 1300, dmg: 22, spd: 140, r: 16, look: { s: 'self', c: '#c48cff', c2: '#ffffff' }, mirror: true,
     patterns: [{ k: 'mirror', cd: 1.2 }, { k: 'charge', cd: 4, spd: 600 }, { k: 'spiral', n: 16, spd: 300, kind: 'bolt', cd: 5 }, { k: 'summon', type: 'idovisszhang', n: 2, cd: 10 }],
     p2: 'Látod magad hátulról? Ez mindig is így volt.',
-    lines: ['Aki elküldi, az kapja meg.', 'Ne add fel. Megéri.', 'Ugyanazt mondtam én is, amikor te voltam.'],
+    lines: ['Aki elküldi, az kapja meg.', 'Ne add fel. Megéri.', 'Ugyanazt mondtam én is, amikor te voltam.', '{halal}-szor haltál meg idáig. Én is. Pontosan ennyiszer.', '{szint}. szint? Emlékszem, én is ennyi voltam. Most.'],
   },
   szingularitas: {
     p2Pat: { k: 'ring', n: 36, spd: 180, kind: 'wave', cd: 6, nev: 'Planck-gyűrű' }, nev: 'A Szingularitás', cim: 'A Zaj, amely minden világot elnyel', hp: 1900, dmg: 24, spd: 0, r: 44, look: { s: 'singularity', c: '#000000', c2: '#ffb347' }, gravity: 140,
     patterns: [{ k: 'spiral', n: 28, spd: 220, kind: 'bolt', cd: 4 }, { k: 'rain', n: 14, r: 70, cd: 5 }, { k: 'ring', n: 32, spd: 200, kind: 'wave', cd: 5 }, { k: 'summon', type: 'spagetti', n: 6, cd: 8 }, { k: 'beam', cd: 8, dur: 2.5 }],
     p2: 'Planck-tartomány. Itt már a tér és az idő sem az, aminek látszik.',
-    lines: ['MINDEN BEESIK.', 'A horizont mindenre emlékszik. Rád is.', 'Nincs kifelé.'],
+    lines: ['MINDEN BEESIK.', 'A horizont mindenre emlékszik. Rád is.', 'Nincs kifelé.', '{oles} ÖLÉS. A HORIZONT MINDET MEGJEGYEZTE.'],
   },
 };
 // a boss-támadások neve a bejelentéshez

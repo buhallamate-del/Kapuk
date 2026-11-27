@@ -190,6 +190,7 @@ Object.assign(G, {
     this.enemies.forEach(x => { if (!x.dead && (x.parent || x.xp < 50) && dist(x, e) < 700) { x.xp = 0; this.killEnemy(x); } });
     if (m.hasadek) { S.prog.hasadek = Math.max(S.prog.hasadek, m.hasadek); m.objs.push({ type: 'exit', x: e.x, y: e.y + 80, r: 22, label: 'Tovább a Hasadékba', inter: () => { if (m.weekly) Univ.weeklyProgress(m.hasadek); this.enterHasadek(m.hasadek + 1, m.weekly); } }); m.objs.push({ type: 'portal', x: e.x - 70, y: e.y + 80, r: 20, label: 'Haza, Kapuvárosba', c: '#6fa8ff', inter: () => this.enterTown() }); return; }
     const R = REGION[m.rid]; const first = !S.prog.bosses[bid];
+    if (STORY[bid]) this.later(1.4, () => UI.scene(first ? 'Fejezet vége' : 'Ismét', STORY[bid].ki, 7));
     S.prog.bosses[bid] = (S.prog.bosses[bid] || 0) + 1;
     if (first) {
       UI.toast(`${e.bossDef.nev} legyőzve!`, '#ffd34d', 5);
