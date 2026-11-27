@@ -250,7 +250,7 @@ const R = {
     g.save(); g.translate(x, y);
     if (e.wind > 0 || e.fuse > 0) { const k = Math.sin(t * 40) * 1.5; g.translate(k, 0); }
     if (e.hitT > 0) { const k = e.hitT / 0.14; g.scale(1 + 0.22 * k, 1 - 0.16 * k); e.hitT -= 1 / 60; }
-    if (e.boss) this.bossShape(g, e, c, c2, t);
+    if (e.boss) { if (e.tellP) { const k = 1 - e.tellT / (e.tellMax || 0.6); g.strokeStyle = e.tellP.sig ? `rgba(255,80,80,${0.4 + 0.5 * k})` : `rgba(255,210,140,${0.3 + 0.5 * k})`; g.lineWidth = 3 + 3 * k; g.beginPath(); g.arc(0, 0, e.r * (1.6 - 0.4 * k), 0, 7); g.stroke(); } this.bossShape(g, e, c, c2, t); }
     else switch (L.s) {
       case 'bug': for (let i = -1; i <= 1; i++) { g.strokeStyle = c2; g.lineWidth = 1.5; g.beginPath(); g.moveTo(i * r * 0.5, 0); g.lineTo(i * r * 0.5 + Math.sin(t * 15 + i) * 3, r * 1.1); g.moveTo(i * r * 0.5, 0); g.lineTo(i * r * 0.5 - Math.sin(t * 15 + i) * 3, -r * 1.1); g.stroke(); } g.fillStyle = c; g.beginPath(); g.ellipse(0, 0, r, r * 0.75, face, 0, 7); g.fill(); g.fillStyle = c2; g.beginPath(); g.arc(Math.cos(face) * r * 0.7, Math.sin(face) * r * 0.7, r * 0.35, 0, 7); g.fill(); break;
       case 'box': { const op = Math.abs(Math.sin(t * 6)) * 4 * (e.wind > 0 ? 2 : 1); g.fillStyle = c; g.fillRect(-r, -r * 0.8, r * 2, r * 1.6); g.fillStyle = c2; g.fillRect(-r, -r * 0.8 - op, r * 2, 4); g.fillStyle = '#000'; g.fillRect(-r * 0.6, -r * 0.3, r * 1.2, 3); g.fillStyle = '#fff'; for (let i = 0; i < 4; i++) g.fillRect(-r * 0.55 + i * r * 0.32, -r * 0.3, 3, 4); g.fillStyle = '#ff3333'; g.fillRect(-r * 0.5, -r * 0.6, 4, 3); g.fillRect(r * 0.3, -r * 0.6, 4, 3); break; }

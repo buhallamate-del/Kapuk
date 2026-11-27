@@ -76,7 +76,7 @@ function recalc(P) {
   st.ls = (m.ls || 0); st.block = Math.min(40, m.block || 0); st.riposte = m.riposte || 0;
   st.gf = (m.gf || 0) + (P.fx.leltar ? 40 : 0); st.mf = (m.mf || 0) + (P.fx.leltar ? 25 : 0);
   st.skill = m.skill || 0; st.mark = m.mark || 0; st.thorns = m.thorns || 0; st.potion = m.potion || 0;
-  st.dmg = { all: (m.dmgp || 0), melee: at.ero * 1.1 + (m.meleep || 0), ranged: at.ugy * 1.1 + (m.rangedp || 0), spell: at.akarat * 1.3 + (m.spellp || 0), summon: (at.akarat + at.ugy) * 0.6 + (m.summonp || 0) + (P.fx.fokonst ? 30 : 0) };
+  st.dmg = { all: (m.dmgp || 0), melee: at.ero * 1.4 + (m.meleep || 0), ranged: at.ugy * 1.1 + (m.rangedp || 0), spell: at.akarat * 1.3 + (m.spellp || 0), summon: (at.akarat + at.ugy) * 0.6 + (m.summonp || 0) + (P.fx.fokonst ? 30 : 0) };
   st.flat = m.flat || 0; st.add = { tuz: m.add_tuz || 0, fagy: m.add_fagy || 0, villam: m.add_villam || 0 };
   st.splashp = m.splashp || 0; st.splashr = m.splashr || 0; st.burnp = m.burnp || 0; st.spellcrit = m.spellcrit || 0; st.farp = m.farp || 0;
   st.killMp = m.killMp || 0; st.shieldPct = m.shield || 0; st.sumaspd = m.sumaspd || 0;

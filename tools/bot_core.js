@@ -253,6 +253,7 @@ window.BOT = (() => {
     const S = newSave(cls, 'Bot'); Save.write(0, S); G.start(S, 0); UI.acts.closeOver();
     B = { cls, plan: plan(), pi: 0, res: {}, attrI: 0, nodeN: 0, tgtT: 0, strafe: 0.5, seen: new WeakSet(), time: 0, floorT: 0, st: { dodges: 0, pots: 0, equips: 0, townVisits: 0 }, finished: false, gaveUp: null, seed: opt.seed || 12345 };
     B.stuckCheck = () => { const P = G.P; B.sc = B.sc || { x: P.x, y: P.y, t: 0 }; B.sc.t += DT; if (B.sc.t > 3) { if (Math.hypot(P.x - B.sc.x, P.y - B.sc.y) < 24) { if (B.goal) B.goal.botSkipT = G.t + 40; B.goal = null; if (B.tgt) B.tgt.botSkip = G.t + 20; B.tgt = null; Input.keys.clear(); move(RNG() * 6.28); Input.pressed.add(' '); } B.sc = { x: P.x, y: P.y, t: 0 }; } };
+    const pd = G.playerDie; G.playerDie = function (src) { B.killer = src ? (src.nameTxt || (src.def && src.def.nev) || '?') : 'környezet/éhség'; return pd.call(this, src); };
     enterCur();
   }
   function run(sec) {
@@ -260,7 +261,7 @@ window.BOT = (() => {
     while (B.time < end && !B.finished) {
       const P = G.P, S = G.S;
       if (P.dead) {
-        rec().deaths++; B.deathsHere = (B.deathsHere || 0) + 1;
+        rec().deaths++; { const r = rec(); r.killers = r.killers || {}; r.killers[B.killer] = (r.killers[B.killer] || 0) + 1; } B.deathsHere = (B.deathsHere || 0) + 1;
         document.querySelector('#over').style.display = 'none'; G.enterTown(true); P.dead = false;
         if (B.deathsHere > 25) { B.gaveUp = B.plan[B.pi].join(':'); B.finished = true; break; }
         enterCur(); continue;

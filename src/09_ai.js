@@ -9,7 +9,7 @@ Object.assign(G, {
       type, def: o.bossDef ? { ai: 'boss', nev: D.nev } : D, look: { ...(D.look) }, x, y, r: o.r || D.r, lvl: dl,
       mhp: D.hp * monHp(dl), dmg: D.dmg * monDmg(dl), spd: D.spd, armor: (D.armor || 0) * (1 + dl * 0.12), res: { ...(D.res || {}) },
       state: 'idle', t: RNG() * 2, cd: RNG() * 1.5, wind: 0, stun: 0, freeze: 0, slow: 0, shock: 0, mark: 0, fear: 0, burn: null, kbx: 0, kby: 0,
-      mods: o.mods || [], xp: (D.xp || 2) * 10 * (1 + 0.22 * (dl - 1)), flash: 0, hurtT: 0, strafe: RNG() < 0.5 ? 1 : -1, losT: 0, seeP: false, w: 0, summoned: 0, tick: 0,
+      mods: o.mods || [], xp: (D.xp || 2) * 10 * (1 + 0.26 * (dl - 1)), flash: 0, hurtT: 0, strafe: RNG() < 0.5 ? 1 : -1, losT: 0, seeP: false, w: 0, summoned: 0, tick: 0,
     };
     if (o.elite) { e.elite = true; e.mhp *= 2.4; e.dmg *= 1.35; e.xp *= 3; e.r *= 1.15; e.look.glow = ELITE_MODS[e.mods[0]] ? ELITE_MODS[e.mods[0]].c : '#6fa8ff'; }
     if (o.champion) { e.champion = true; e.mhp *= 4; e.dmg *= 1.5; e.xp *= 6; e.r *= 1.3; e.look.glow = '#ffd34d'; }
@@ -42,14 +42,17 @@ Object.assign(G, {
       e.losT -= dt; if (e.losT <= 0) { e.losT = 0.25 + RNG() * 0.1; e.seeP = dP < 900 && los(m, e.x, e.y, P.x, P.y); }
       if (e.state === 'idle') { if ((dP < 400 && e.seeP) || e.hurtT > 0) this.aggro(e); else continue; }
       if (e.state === 'wander') { // Ősök: kóborolnak, csak közelről vagy ütésre támadnak
+        if (dP < 420 && !e.warned) { e.warned = true; UI.toast(`⚠ Ős a közelben: ${e.nameTxt} (${e.lvl}. szint). Kerüld el – vagy ne.`, '#ff7a7a', 3); }
         if ((dP < 230 && e.seeP) || e.hurtT > 0) { e.state = 'chase'; UI.toast(`⚠ ${e.nameTxt} felfigyelt rád! (${e.lvl}. szint)`, '#ff3355', 4); Audio2.play('bossroar'); }
         else { e.wa = (e.wa || RNG() * 6.28) + RNG.range(-1, 1) * dt; if (moveCircle(m, e, Math.cos(e.wa) * 40 * dt, Math.sin(e.wa) * 40 * dt)) e.wa += 2; continue; }
       }
       if (e.boss) { this.bossAI(e, dt, dP); continue; }
+      // Ős-póráz: aki elég messzire fut, azt elengedi – erős, de nem csapda
+      if (e.ancient && e.state === 'chase') { if (dP > 620) { e.leashT = (e.leashT || 0) + dt; if (e.leashT > 2.5) { e.state = 'wander'; e.leashT = 0; e.hp = Math.min(e.mhp, e.hp + e.mhp * 0.25); UI.toast(`${e.nameTxt} elvesztette a nyomodat.`, '#e6c47a', 2.5); continue; } } else e.leashT = 0; }
       let spd = e.spd * (e.slow > 0 ? 0.5 : 1); if (e.slow > 0) e.slow -= dt;
       if (e.mods.includes('fagyos') && dP < 130) { P.chill = 0.3; }
       if (e.mods.includes('tuzes')) { e.trailT = (e.trailT || 0) - dt; if (e.trailT <= 0) { e.trailT = 0.6; this.ground(e.x, e.y, 26, 3, e.dmg * 0.6, 'tuz', 'e'); } }
-      if (e.mods.includes('teleport')) { e.tpT = (e.tpT || 4) - dt; if (e.tpT <= 0 && dP < 600) { e.tpT = 5 + RNG() * 3; const a = RNG() * 6.28; const nx = P.x + Math.cos(a) * 90, ny = P.y + Math.sin(a) * 90; if (!solidAt(m, nx, ny)) { this.burst(e.x, e.y, '#c48cff', 10, 120); e.x = nx; e.y = ny; this.burst(e.x, e.y, '#c48cff', 10, 120); } } }
+      if (e.mods.includes('teleport')) { e.tpT = (e.tpT || 4) - dt; if (e.tpT <= 0 && dP < (e.ancient ? 380 : 600)) { e.tpT = 5 + RNG() * 3; const a = RNG() * 6.28; const nx = P.x + Math.cos(a) * 90, ny = P.y + Math.sin(a) * 90; if (!solidAt(m, nx, ny)) { this.burst(e.x, e.y, '#c48cff', 10, 120); e.x = nx; e.y = ny; this.burst(e.x, e.y, '#c48cff', 10, 120); } } }
       e.cd -= dt;
       const ai = e.def.ai;
       let mv = null; // irány, amerre menne
@@ -125,11 +128,15 @@ Object.assign(G, {
     if (e.phase === 1 && e.hp < e.mhp * 0.5) {
       e.phase = 2; UI.toast(D.p2, '#ff7a7a', 4); this.text(e.x, e.y - e.r - 20, D.p2, '#ff9999', 14, { life: 3, vy: -10 }); this.shake(10); Audio2.play('bossroar');
       e.pat.forEach(p => p.cd *= 0.7); e.spd *= 1.25;
+      if (D.p2Pat) { e.pat.push({ ...D.p2Pat, t: 0, sig: true }); e.seqI = e.pat.length - 1; } // a 2. fázis saját támadással nyit
+      e.tellP = null; e.gap = 1.6; this.hitArea(e.x, e.y, 200, 0, 'fiz', 'p', { fx: 'nova3' }); { const P2 = this.P, a = Math.atan2(P2.y - e.y, P2.x - e.x); if (dist(e, P2) < 260) { P2.kbx = Math.cos(a) * 420; P2.kby = Math.sin(a) * 420; } }
       if (D.chains) this.spawnChains(e, 3); if (D.antennas) this.spawnAntennas(e, 3);
     }
     // láncok/antennák: sebezhetetlenség / pajzs
     if (e.links) { const alive = e.links.filter(l => !l.dead).length; if (D.chains) e.immune = alive > 0; if (D.antennas) e.shieldMul = alive > 0 ? 0.2 : 1; }
-    if (D.gravity && dP < 900) { const f = D.gravity * (1 - dP / 900) + 30; P.ext = P.ext || { x: 0, y: 0 }; P.ext.x -= Math.cos(toP) * f; P.ext.y -= Math.sin(toP) * f; if (dP < e.r + 40) this.hurtPlayer(e.dmg * dt * 2, 'ter', e, { silent: true }); }
+    // a gravitáció lüktet: 4 mp beszívás, 3 mp csend – a szünet a közelharc ablaka
+    if (D.gravity) { e.gravT = (e.gravT || 0) + dt; const cyc = e.phase === 2 ? 6 : 7, on = (e.gravT % cyc) < 4; if (on !== e.gravOn) { e.gravOn = on; this.text(e.x, e.y - e.r - 30, on ? 'BESZÍVÁS' : 'csend…', on ? '#ffb347' : '#c48cff', 13, { life: 1 }); this.fxRing(e.x, e.y, on ? 300 : 120, on ? '#ffb347' : '#c48cff', 0.6, 4); }
+      if (on && dP < 900) { const f = D.gravity * (1 - dP / 900) + 30; P.ext = P.ext || { x: 0, y: 0 }; P.ext.x -= Math.cos(toP) * f; P.ext.y -= Math.sin(toP) * f; if (dP < e.r + 30) this.hurtPlayer(e.dmg * dt * 1.5, 'ter', e, { silent: true }); } }
     if (e.stun > 0) { e.stun -= dt; return; }
     // mozgás
     if (e.charging > 0) {
@@ -146,11 +153,11 @@ Object.assign(G, {
       if (mv != null) moveCircle(m, e, Math.cos(mv) * e.spd * dt, Math.sin(mv) * e.spd * dt);
     }
     if (e.beam) this.updateBeam(e, dt);
-    // minták
-    for (const p of e.pat) p.t -= dt;
-    e.gap -= dt; if (e.gap > 0 || e.beam) return;
-    const ready = e.pat.filter(p => p.t <= 0); if (!ready.length) return;
-    const p = RNG.pick(ready); p.t = p.cd * (0.8 + RNG() * 0.4); e.gap = e.phase === 2 ? 0.6 : 1.0;
+    // minták: rögzített sorrend (megtanulható), minden támadás előtt bejelentés
+    e.gap -= dt; if (e.beam) return;
+    if (e.tellP) { e.tellT -= dt; if (e.tellT > 0) return; }
+    else { if (e.gap > 0) return; if (D.gravity && !e.gravOn) return; const nx = e.pat[(e.seqI || 0) % e.pat.length]; e.tellP = nx; e.tellT = e.phase === 2 ? 0.45 : 0.65; e.tellMax = e.tellT; this.text(e.x, e.y - e.r - 26, nx.nev || BOSS_MOVE[nx.k] || '', nx.sig ? '#ff7a7a' : '#ffd0a0', nx.sig ? 15 : 12, { life: 1, vy: -14 }); return; }
+    const p = e.tellP; e.tellP = null; e.seqI = (e.seqI || 0) + 1; e.gap = clamp(p.cd * 0.5, 1.1, 3.2) * (e.phase === 2 ? 0.75 : 1);
     const dmg = e.dmg, dt2 = D.look.s === 'radiohead' || D.look.s === 'heart' ? 'villam' : D.look.s === 'core' || D.look.s === 'mech' ? 'tuz' : D.look.s === 'self' || D.look.s === 'singularity' ? 'ter' : 'fiz';
     const kind = p.kind || 'bolt', col = D.look.c2;
     switch (p.k) {

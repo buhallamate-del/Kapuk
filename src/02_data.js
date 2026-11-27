@@ -3,7 +3,7 @@
 // ============================================================
 const DT = { fiz: { nev: 'Fizikai', c: '#e6e0d4' }, tuz: { nev: 'Tűz', c: '#ff7a2e' }, fagy: { nev: 'Fagy', c: '#7fd8ff' }, villam: { nev: 'Villám', c: '#f4f06a' }, ter: { nev: 'Téridő', c: '#c48cff' } };
 const ATTR = { ero: 'Erő', ugy: 'Ügyesség', akarat: 'Akarat', kit: 'Kitartás', allo: 'Állóképesség' };
-const ATTR_DESC = { ero: '+1,1% közelharci sebzés', ugy: '+1,1% távolsági sebzés, +0,08% kritikus esély', akarat: '+1,3% varázssebzés, +2 erőforrás', kit: '+7 életerő, +1,5 páncél', allo: '+2 állóképesség, +1,5% gyorsabb töltődés, lassabb éhezés' };
+const ATTR_DESC = { ero: '+1,4% közelharci sebzés', ugy: '+1,1% távolsági sebzés, +0,08% kritikus esély', akarat: '+1,3% varázssebzés, +2 erőforrás', kit: '+7 életerő, +1,5 páncél', allo: '+2 állóképesség, +1,5% gyorsabb töltődés, lassabb éhezés' };
 // Kasztonkénti erőforrás
 const RESOURCES = {
   penge: { nev: 'Düh', c: '#e0473a', ikon: '🔥', desc: 'Csak valódi találatból és kapott ütésből gyűlik, harcon kívül elpárolog. 50 fölött Felbőszült (+12% támadási sebesség), teli dühnél Tomboló: a következő képesség ingyenes és +30%-ot sebez.' },
@@ -12,7 +12,8 @@ const RESOURCES = {
   mernok: { nev: 'Áram', c: '#5fe0d0', ikon: '⚡', desc: 'Az akkumulátor töltődik; a gépek és a Túlfeszültség ebből élnek. Az egymás közelében álló gépek hálózatot alkotnak (+8% kapcsolatonként), a lejárt gép árának negyede visszajár.' },
 };
 const MAX_LVL = 70;
-const xpNeed = l => Math.round(120 * Math.pow(l, 1.8) + 80 * l);
+// laposabb görbe: az elején lassabb, a középjátékban nem marad le a játékos a területtől
+const xpNeed = l => Math.round(160 * Math.pow(l, 1.65) + 120 * l);
 
 // Szörnyek erősödése szint szerint
 const monHp = l => 1 + 0.30 * (l - 1) + 0.016 * (l - 1) * (l - 1);
@@ -26,7 +27,7 @@ const CLASSES = {
   penge: {
     nev: 'Pengelovag', ikon: '⚔', szin: '#e0a84a', fegyver: 'kard',
     leiras: 'Közelharcos. Pajzsként viseli a páncélt, düht gyűjt minden ütéssel. Forgószél, roham, földrengés – ahol ő jár, ott nem marad álló szörny.',
-    base: { ero: 15, ugy: 8, akarat: 5, kit: 13, allo: 10 }, hpL: 14, mpL: 0, mpBase: 100, mpRegen: 0, onHitMp: 6, rage: true,
+    base: { ero: 15, ugy: 8, akarat: 5, kit: 13, allo: 10 }, hpL: 15, mpL: 0, mpBase: 100, mpRegen: 0, onHitMp: 6, rage: true,
     kedvenc: 'melee'
   },
   elem: {
@@ -52,9 +53,9 @@ const CLASSES = {
 // ---------------- fegyver- és tárgyalapok ----------------
 // kind: melee/ranged/spell – ez határozza meg az alap támadást (bal gomb)
 const BASES = {
-  kard: { nev: 'Kard', slot: 'fegyver', kind: 'melee', min: 6, max: 10, spd: 1.6, range: 62, arc: 1.7, dtype: 'fiz', knock: 70, stop: 0.04, ikon: '🗡' },
-  poroly: { nev: 'Pöröly', slot: 'fegyver', kind: 'melee', min: 11, max: 17, spd: 0.95, range: 70, arc: 2.3, dtype: 'fiz', knock: 210, stop: 0.075, ikon: '🔨' },
-  lancfuresz: { nev: 'Láncfűrész-penge', slot: 'fegyver', kind: 'melee', min: 3, max: 5, spd: 4.2, range: 54, arc: 1.2, dtype: 'fiz', knock: 12, stop: 0.012, ikon: '⚙', reqLvl: 8 },
+  kard: { nev: 'Kard', slot: 'fegyver', kind: 'melee', min: 7, max: 12, spd: 1.6, range: 62, arc: 1.7, dtype: 'fiz', knock: 70, stop: 0.04, ikon: '🗡' },
+  poroly: { nev: 'Pöröly', slot: 'fegyver', kind: 'melee', min: 13, max: 21, spd: 0.95, range: 70, arc: 2.3, dtype: 'fiz', knock: 210, stop: 0.075, ikon: '🔨' },
+  lancfuresz: { nev: 'Láncfűrész-penge', slot: 'fegyver', kind: 'melee', min: 4, max: 6, spd: 4.2, range: 54, arc: 1.2, dtype: 'fiz', knock: 12, stop: 0.012, ikon: '⚙', reqLvl: 8 },
   palca: { nev: 'Pálca', slot: 'fegyver', kind: 'spell', min: 5, max: 8, spd: 2.0, pspd: 520, prad: 6, dtype: 'ter', mp: 1.5, ikon: '🪄' },
   bot: { nev: 'Varázsbot', slot: 'fegyver', kind: 'spell', min: 10, max: 15, spd: 1.05, pspd: 380, prad: 10, dtype: 'tuz', splash: 46, mp: 3, ikon: '🔮' },
   pisztoly: { nev: 'Pisztoly', slot: 'fegyver', kind: 'ranged', min: 4, max: 7, spd: 3.2, pspd: 760, prad: 3, dtype: 'fiz', spread: 0.06, ikon: '🔫' },

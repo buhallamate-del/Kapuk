@@ -32,6 +32,8 @@ async function one(cls, seed) {
       const xs = rs.map(r => r.res.find(x => x.k === k)).filter(Boolean); const lv = avg(xs.map(x => x.lvlOut || x.lvlIn)), ar = avg(xs.map(x => x.area));
       md += `| ${k}${xs.length < rs.length ? ` (${xs.length}/${rs.length})` : ''} | ${avg(xs.map(x => x.deaths)).toFixed(1)} | ${(avg(xs.map(x => x.t)) / 60).toFixed(1)} | ${lv.toFixed(1)} | ${ar.toFixed(0)} | ${(lv - ar >= 0 ? '+' : '') + (lv - ar).toFixed(1)} |\n`;
     }
+    const kil = {}; for (const r of rs) for (const x of r.res) for (const k in (x.killers || {})) kil[x.k + ' · ' + k] = (kil[x.k + ' · ' + k] || 0) + x.killers[k];
+    const top = Object.entries(kil).sort((a, b) => b[1] - a[1]).slice(0, 6); if (top.length) md += `\nLeggyakoribb halálok: ${top.map(([k, v]) => `${k} (${v})`).join('; ')}\n`;
     for (const r of rs) if (r.gaveUp) md += `\n> ${c}/${r.seed} elakadt: ${r.gaveUp}\n`;
   }
   fs.writeFileSync(`${out}/${label}.md`, md); console.log(md);
