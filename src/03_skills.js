@@ -7,23 +7,23 @@ const SKILLS = {
   // ---------------- PENGELOVAG ----------------
   forgoszel: {
     cls: 'penge', nev: 'Forgószél', ikon: '🌀', tipus: 'aktiv', req: 1, max: 5, cost: r => 16, cd: r => 2.6,
-    desc: r => `Háromszor megpördülsz, mindhárom pörgés ${pct(0.7 + 0.15 * r)} fegyversebzést okoz 90 képpontos körben.`,
-    cast(r, P) { for (let i = 0; i < 3; i++) G.later(i * 0.18, () => { G.hitArea(P.x, P.y, 90, P.roll(0.7 + 0.15 * r, 'melee'), P.wdt(), 'p', { knock: 60, fx: 'spin' }); Audio2.play('swing'); }); }
+    desc: r => `Háromszor megpördülsz, mindhárom pörgés ${pct(0.7 + 0.15 * r)} fegyversebzést okoz 90 képpontos körben. Pörgésenként eltalált ellenfelenként +2 düh.`,
+    cast(r, P) { for (let i = 0; i < 3; i++) G.later(i * 0.18, () => { G.hitArea(P.x, P.y, 90, P.roll(0.7 + 0.15 * r, 'melee'), P.wdt(), 'p', { knock: 60, fx: 'spin', rage: 2 }); Audio2.play('swing'); }); }
   },
   roham: {
     cls: 'penge', nev: 'Roham', ikon: '➶', tipus: 'aktiv', req: 1, max: 5, cost: r => 14, cd: r => 6 - r * 0.4,
-    desc: r => `A célpont felé rontasz (max. 240 képpont), az utadba esőket ${pct(1.3 + 0.25 * r)} sebzéssel letarolod és 0,8 mp-re elkábítod.`,
-    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x); G.dash(P, a, Math.min(240, Math.hypot(tx - P.x, ty - P.y) + 30), 0.22, { dmg: P.roll(1.3 + 0.25 * r, 'melee'), dt: P.wdt(), stun: 0.8, invul: true }); Audio2.play('dash'); }
+    desc: r => `A célpont felé rontasz (max. 240 képpont), az utadba esőket ${pct(1.3 + 0.25 * r)} sebzéssel letarolod és 0,8 mp-re elkábítod. Minden eltalált ellenfél +6 dühöt ad.`,
+    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x); G.dash(P, a, Math.min(240, Math.hypot(tx - P.x, ty - P.y) + 30), 0.22, { dmg: P.roll(1.3 + 0.25 * r, 'melee'), dt: P.wdt(), stun: 0.8, invul: true, rage: 6 }); Audio2.play('dash'); }
   },
   csatakialtas: {
     cls: 'penge', nev: 'Csatakiáltás', ikon: '📯', tipus: 'aktiv', req: 6, max: 5, cost: r => 20, cd: r => 22,
-    desc: r => `10 mp-re +${15 + 6 * r}% sebzés és +${20 + 10 * r}% páncél. A közeli ellenfelek 1,5 mp-re megrémülnek.`,
-    cast(r, P) { G.buff(P, 'csata', 10, { dmgp: 15 + 6 * r, armp: 20 + 10 * r }); G.hitArea(P.x, P.y, 180, 0, 'fiz', 'p', { fear: 1.5, fx: 'shout' }); Audio2.play('bossroar'); }
+    desc: r => `10 mp-re +${15 + 6 * r}% sebzés és +${20 + 10 * r}% páncél, és azonnal +25 düh. A közeli ellenfelek 1,5 mp-re megrémülnek.`,
+    cast(r, P) { G.buff(P, 'csata', 10, { dmgp: 15 + 6 * r, armp: 20 + 10 * r }); P.mp = Math.min(P.mmp, P.mp + 25); G.hitArea(P.x, P.y, 180, 0, 'fiz', 'p', { fear: 1.5, fx: 'shout' }); Audio2.play('bossroar'); }
   },
   foldrenges: {
     cls: 'penge', nev: 'Földrengés-csapás', ikon: '💢', tipus: 'aktiv', req: 12, max: 5, cost: r => 28, cd: r => 7,
-    desc: r => `A földbe csapsz: 220 képpontos kúpban ${pct(2.2 + 0.4 * r)} sebzés, és 3 mp-re 50%-kal lelassítja az ellenfeleket.`,
-    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x); G.arc(P.x, P.y, a, 1.1, 220, P.roll(2.2 + 0.4 * r, 'melee'), P.wdt(), { slow: 3, fx: 'quake' }); G.shake(8); Audio2.play('boom'); }
+    desc: r => `A földbe csapsz: 220 képpontos kúpban ${pct(2.2 + 0.4 * r)} sebzés, és 3 mp-re 50%-kal lelassítja az ellenfeleket. Kábult vagy megrémült ellenfélre +50% (Roham vagy Csatakiáltás után).`,
+    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x); G.arc(P.x, P.y, a, 1.1, 220, P.roll(2.2 + 0.4 * r, 'melee'), P.wdt(), { slow: 3, fx: 'quake', ccBonus: 1.5, melee: true, stop: 0.07, knock: 90 }); G.shake(8); Audio2.play('boom'); }
   },
   pengevihar: {
     cls: 'penge', nev: 'Pengevihar', ikon: '⚔', tipus: 'aktiv', req: 20, max: 3, cost: r => 45, cd: r => 50 - r * 5, ult: true,
@@ -38,17 +38,17 @@ const SKILLS = {
   // ---------------- ELEMENTALISTA ----------------
   tuzgolyo: {
     cls: 'elem', nev: 'Tűzgolyó', ikon: '🔥', tipus: 'aktiv', req: 1, max: 5, cost: r => 9, cd: r => 0.55,
-    desc: r => `Tűzgolyót lősz, ami becsapódáskor 70 képpontos körben ${pct(1.3 + 0.3 * r)} tűzsebzést okoz és meggyújtja a célt.`,
+    desc: r => `Tűzgolyót lősz, ami becsapódáskor 70 képpontos körben ${pct(1.3 + 0.3 * r)} tűzsebzést okoz és meggyújtja a célt. Fagyott célponton Hősokk: ×1,7, és a jég szétrobban.`,
     cast(r, P, tx, ty) { G.proj({ x: P.x, y: P.y, a: Math.atan2(ty - P.y, tx - P.x), spd: 480, r: 9, dmg: P.roll(1.3 + 0.3 * r, 'spell'), dt: 'tuz', own: 'p', kind: 'fireball', splash: 70, burn: 3, spell: true }); Audio2.play('fire'); }
   },
   fagynova: {
     cls: 'elem', nev: 'Fagynova', ikon: '❄', tipus: 'aktiv', req: 1, max: 5, cost: r => 22, cd: r => 6,
-    desc: r => `Jéghullám tör ki belőled (140 képpont): ${pct(0.9 + 0.25 * r)} fagysebzés és ${1.5 + 0.3 * r} mp fagyás.`,
+    desc: r => `Jéghullám tör ki belőled (140 képpont): ${pct(0.9 + 0.25 * r)} fagysebzés és ${1.5 + 0.3 * r} mp fagyás. Villámtól sokkolt célponton Ridegség: +30%, és tovább fagy.`,
     cast(r, P) { G.hitArea(P.x, P.y, 140, P.roll(0.9 + 0.25 * r, 'spell'), 'fagy', 'p', { freeze: 1.5 + 0.3 * r, fx: 'nova', spell: true }); Audio2.play('ice'); }
   },
   lancvillam: {
     cls: 'elem', nev: 'Láncvillám', ikon: '⚡', tipus: 'aktiv', req: 6, max: 5, cost: r => 15, cd: r => 1.1,
-    desc: r => `Villám csap a célpont felé, és ${3 + r} további ellenfélre ugrik át; mindegyik ${pct(1.0 + 0.22 * r)} villámsebzést kap.`,
+    desc: r => `Villám csap a célpont felé, és ${3 + r} további ellenfélre ugrik át; mindegyik ${pct(1.0 + 0.22 * r)} villámsebzést kap. Égő célponton Túlvezetés: a láng átterjed a szomszédokra.`,
     cast(r, P, tx, ty) { G.chain(P.x, P.y, tx, ty, 3 + r, P.roll(1.0 + 0.22 * r, 'spell'), 'villam'); Audio2.play('zap'); }
   },
   meteor: {
@@ -74,8 +74,8 @@ const SKILLS = {
   },
   atuto: {
     cls: 'loves', nev: 'Átütő lövés', ikon: '➹', tipus: 'aktiv', req: 1, max: 5, cost: r => 15, cd: r => 2.8,
-    desc: r => `Mindenen áthatoló lövés: ${pct(2.4 + 0.45 * r)} sebzés minden eltalált ellenfélnek, +${10 * r}% kritikus esély.`,
-    cast(r, P, tx, ty) { G.proj({ x: P.x, y: P.y, a: Math.atan2(ty - P.y, tx - P.x), spd: 1500, r: 5, dmg: P.roll(2.4 + 0.45 * r, 'ranged', 10 * r), dt: P.wdt(), own: 'p', kind: 'rail', pierce: 99 }); Audio2.play('rifle'); G.shake(3); }
+    desc: r => `Mindenen áthatoló lövés: ${pct(2.4 + 0.45 * r)} sebzés minden eltalált ellenfélnek, +${10 * r}% kritikus esély. Elhasználja a Fókuszt: töltetenként +25% sebzés, 3 töltettől biztos kritikus.`,
+    cast(r, P, tx, ty) { const f = Focus.spend(P), per = 0.25 + 0.08 * (P.st.turelem || 0); const d = P.roll((2.4 + 0.45 * r) * (1 + per * f), 'ranged', 10 * r + (f >= 3 ? 100 : 0)); if (f) G.text(P.x, P.y - 36, `Fókusz ×${f}`, '#f2d36b', 12); G.proj({ x: P.x, y: P.y, a: Math.atan2(ty - P.y, tx - P.x), spd: 1500, r: 5, dmg: d, dt: P.wdt(), own: 'p', kind: 'rail', pierce: 99 }); Audio2.play('rifle'); G.shake(3 + f * 0.5); if (f >= 3) G.hitStop(0.05); }
   },
   granat: {
     cls: 'loves', nev: 'Gránát', ikon: '💣', tipus: 'aktiv', req: 6, max: 5, cost: r => 16, cd: r => 4.5,
@@ -100,18 +100,18 @@ const SKILLS = {
   // ---------------- MÉRNÖK ----------------
   dron: {
     cls: 'mernok', nev: 'Harci drón', ikon: '🛸', tipus: 'aktiv', req: 1, max: 5, cost: r => 22, cd: r => 6,
-    desc: r => `Drónt indítasz (30 mp), ami követ és tüzel (${pct(0.6 + 0.15 * r)} lövésenként). Egyszerre ${1 + Math.floor(r / 2)} drón lehet.`,
-    cast(r, P) { const max = 1 + Math.floor(r / 2) + (P.fx.fokonst ? 1 : 0); G.allyCap('dron', max); G.ally({ kind: 'dron', owner: P, life: 30, dmgMul: 0.6 + 0.15 * r, rate: 0.5, range: 330 }); Audio2.play('magic'); }
+    desc: r => `Drónt indítasz (30 mp), ami követ és tüzel (${pct(0.6 + 0.15 * r)} lövésenként). Egyszerre ${1 + Math.floor(r / 2)} drón lehet. A lövegtorony által megjelölt célpontot választja.`,
+    cast(r, P) { const max = Math.max(1, 1 + Math.floor(r / 2) + (P.fx.fokonst ? 1 : 0) - (P.st.tuzer ? 1 : 0)); G.allyCap('dron', max); G.ally({ kind: 'dron', owner: P, life: 30, dmgMul: 0.6 + 0.15 * r, rate: 0.5, range: 330 }); Audio2.play('magic'); }
   },
   loveg: {
     cls: 'mernok', nev: 'Lövegtorony', ikon: '🗼', tipus: 'aktiv', req: 1, max: 5, cost: r => 26, cd: r => 9,
-    desc: r => `Lövegtornyot telepítesz a célpontra (18 mp): ${pct(0.8 + 0.2 * r)} sebzés, gyors tűz. Egyszerre 2 torony.`,
-    cast(r, P, tx, ty) { const max = 2 + (P.fx.fokonst ? 1 : 0); G.allyCap('torony', max); const p = G.freeSpot(tx, ty, P); G.ally({ kind: 'torony', owner: P, x: p.x, y: p.y, life: 18, dmgMul: 0.8 + 0.2 * r, rate: 0.3, range: 380 }); Audio2.play('door'); }
+    desc: r => `Lövegtornyot telepítesz a célpontra (18 mp): ${pct(0.8 + 0.2 * r)} sebzés, gyors tűz. Egyszerre 2 torony. A találat 2,5 mp-re megjelöli a célt: a gépek +15%-ot sebeznek rá, és a drónok, rakéták azt veszik célba.`,
+    cast(r, P, tx, ty) { const max = 2 + (P.fx.fokonst ? 1 : 0) + ((P.st.gepesz || 0) >= 2 ? 1 : 0); G.allyCap('torony', max); const p = G.freeSpot(tx, ty, P); G.ally({ kind: 'torony', owner: P, x: p.x, y: p.y, life: 18, dmgMul: 0.8 + 0.2 * r, rate: 0.3, range: 380 }); Audio2.play('door'); }
   },
   raketazapor: {
     cls: 'mernok', nev: 'Rakétazápor', ikon: '🚀', tipus: 'aktiv', req: 6, max: 5, cost: r => 18, cd: r => 3.5,
     desc: r => `${3 + r} önirányító rakéta, egyenként ${pct(0.9 + 0.2 * r)} tűzsebzés kis körben.`,
-    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x), n = 3 + r; for (let i = 0; i < n; i++) G.later(i * 0.07, () => G.proj({ x: P.x, y: P.y, a: a + RNG.range(-0.9, 0.9), spd: 380, r: 5, dmg: P.roll(0.9 + 0.2 * r, 'summon'), dt: 'tuz', own: 'p', kind: 'rocket', homing: 5, splash: 40, life: 3 })); Audio2.play('shoot'); }
+    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x), n = 3 + r + (P.st.tuzer || 0); for (let i = 0; i < n; i++) G.later(i * 0.07, () => G.proj({ x: P.x, y: P.y, a: a + RNG.range(-0.9, 0.9), spd: 380, r: 5, dmg: P.roll(0.9 + 0.2 * r, 'summon'), dt: 'tuz', own: 'p', kind: 'rocket', homing: 5, splash: 40, life: 3, machine: true, burn: P.st.tuzer ? 2 : 0 })); Audio2.play('shoot'); }
   },
   javitoraj: {
     cls: 'mernok', nev: 'Javítóraj', ikon: '🔧', tipus: 'aktiv', req: 10, max: 5, cost: r => 25, cd: r => 16,
@@ -220,7 +220,7 @@ Object.assign(SKILLS, {
   },
   golyoido: {
     cls: 'loves', nev: 'Golyóidő', ikon: '⏱', tipus: 'aktiv', req: 4, max: 5, cost: r => 20, cd: r => 3, toggle: true,
-    desc: r => `Be/ki: körülötted ${60 + r * 4}%-kal lelassul a világ (ellenfelek, lövedékek), te nem. Másodpercenként ${22 - r * 2} belső időt emészt.`,
+    desc: r => `Be/ki: körülötted ${60 + r * 4}%-kal lelassul a világ (ellenfelek, lövedékek), te nem. Másodpercenként ${22 - r * 2} belső időt emészt. Közben a Fókusz kétszer gyorsabban gyűlik, és minden ölés 6 belső időt ad vissza.`,
     cast(r, P) { P.bulletTime = P.bulletTime ? 0 : r; Audio2.play(P.bulletTime ? 'portal' : 'ui'); }
   },
   tulfeszultseg: {

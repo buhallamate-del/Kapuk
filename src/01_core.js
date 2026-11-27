@@ -83,6 +83,10 @@ const Audio2 = {
     switch (name) {
       case 'swing': this.noiseHit(0.12, 0.12, 2500, 0.8); break;
       case 'hit': this.noiseHit(0.08, 0.18, 900, 1.5); this.tone(140, 0.08, 'square', 0.05, -60); break;
+      case 'heavy': this.noiseHit(0.16, 0.3, 380, 0.7); this.tone(70, 0.18, 'sine', 0.22, -30); break;
+      case 'crit': this.noiseHit(0.06, 0.2, 2600, 2); this.tone(1200, 0.07, 'triangle', 0.06, -500); break;
+      case 'perfect': this.tone(1568, 0.25, 'sine', 0.08, -800); this.tone(784, 0.3, 'triangle', 0.06, 0, 0.04); break;
+      case 'stamina': this.tone(220, 0.12, 'triangle', 0.06, -60); break;
       case 'shoot': this.noiseHit(0.07, 0.15, 3000, 0.7); this.tone(600, 0.06, 'square', 0.04, -400); break;
       case 'rifle': this.noiseHit(0.18, 0.25, 1500, 0.5); this.tone(220, 0.12, 'sawtooth', 0.06, -150); break;
       case 'magic': this.tone(520, 0.18, 'sine', 0.1, 400); this.tone(780, 0.14, 'triangle', 0.05, 300, 0.03); break;

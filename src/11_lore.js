@@ -153,6 +153,11 @@ const QUESTS = [
   { id: 's_bemondo', giver: 'kezelo', req: 'm4', nev: 'Az 1957-es Bemondó', desc: '„Öt-egy. Egy-egy. Nulla-egy.” A Jeltörő-állomás 2. szintjén kísért.', goal: { t: 'named', id: 'lidérc2', where: { jeltoro: [2] } }, rw: { xp: 9000, gold: 1500, relic: 'fejhallgato' } },
   { id: 's_holdkomp', giver: 'fokonstruktor', req: 'm5', nev: 'Holdkomp-alkatrészek', desc: 'A holdkomp 15 tonna. A Lőtér csarnokaiban négy alkatrész hiányzik hozzá.', goal: { t: 'collect', id: 'alkatresz', n: 4, where: { loter: [1, 2, 3] }, per: 2 }, rw: { xp: 14000, gold: 2500, relic: 'holdsisak' } },
   { id: 's_gep', giver: 'fokonstruktor', req: 'm5', nev: 'A megbolondult gép', desc: 'Az egyik szerelőrobotom azt hiszi, ő a Főkonstruktőr. A 3. csarnokban van.', goal: { t: 'named', id: 'fokonst', where: { loter: [3] } }, rw: { xp: 15000, gold: 2500, relic: 'hegeszto' } },
+  // túlélő szál: messzire menni könnyű, visszajönni a művészet
+  { id: 's_exped', giver: 'leltaros', req: 'm1', nev: 'Leltár a mélyből', desc: '„Ami lent van, az csak akkor van meg, ha fel is hozod. Különben az is hiány.” Menj le három szintet egyhuzamban, hazatérés nélkül – és érj vissza élve. Minden szinttel erősebbek odalent, de az útinaplód is vastagszik.', goal: { t: 'exped', n: 3 }, rw: { xp: 900, gold: 250, food: { satorlap: 1, konzerv: 2 } } },
+  { id: 's_vacsora', giver: 'nagyi', req: 'm2', nev: 'Vacsorára itthon', desc: 'Nagyi szerint az a tapasztalat, amit hazahozol, nem az, amit lent hagysz. Hozz haza egyszerre legalább 2500 TP-t az útinaplódban. „És ne késs, kihűl a gulyás.”', goal: { t: 'bank', n: 2500 }, rw: { xp: 1500, elix: { ero: 2, vasbor: 2 }, food: { langos: 3 } } },
+  { id: 's_kulacs', giver: 'furomester', req: 'm3', nev: 'Az utolsó kulacs', desc: '„Odalent a víz drágább az aranynál, és huszonöt fokkal melegebb kilométerenként.” Juss el a Mélység 4. szintjéig a Kaputól egyhuzamban, és gyere vissza. A boss is számít.', goal: { t: 'exped', n: 4, rid: 'melyseg' }, rw: { xp: 7000, gold: 1200, item: { rar: 3, base: 'csizma' } } },
+  { id: 's_horizontrol', giver: 'pilota', req: 'm6', nev: 'Vissza a horizont alól', desc: 'Az Eseményhorizont mögül még senki sem hozott haza tízezer TP-nyi emléket. Az idő ott lassabban telik – a hazaút annál hosszabb.', goal: { t: 'bank', n: 10000 }, rw: { xp: 20000, skill: 1, food: { tubus: 3 } } },
   { id: 's_buborek', giver: 'pilota', req: 'm6', nev: 'Bébi-univerzumok', desc: 'Smolin, 1992: minden fekete lyuk mögött új világ születik. Találj meg hármat a W-tengely mentén (Z/X: W-eltolás, ±4).', goal: { t: 'buborek', n: 3 }, rw: { xp: 24000, gold: 4000, relic: 'fotongyuru' } },
 ];
 const QUEST = Object.fromEntries(QUESTS.map(q => [q.id, q]));
@@ -186,6 +191,8 @@ const Quests = {
       else if (ev === 'hive' && g.t === 'hive') this.progress(q);
       else if (ev === 'gate' && g.t === 'gate' && d === g.id) this.progress(q);
       else if (ev === 'buborek' && g.t === 'buborek') this.progress(q);
+      else if (ev === 'hazaert' && g.t === 'exped' && d.n >= g.n && (!g.rid || d.rid === g.rid)) this.progress(q);
+      else if (ev === 'hazaert' && g.t === 'bank' && d.bank >= g.n) this.progress(q);
       else if (ev === 'kill' && g.t === 'ancient' && d.ancient) this.progress(q);
       else if (ev === 'mat' && g.t === 'mat' && d === g.id && (G.S.mats[g.id] || 0) >= g.n) { s.n = g.n; this.progress(q, 0); }
     }

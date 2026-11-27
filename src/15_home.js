@@ -44,7 +44,11 @@ const BUILD = {
 };
 const BUILD_KAT = { fal: 'Falak és ajtók', padlo: 'Padlók', butor: 'Bútorok', kert: 'Kert', bont: 'Bontás' };
 const HOME_RECIPES = {
-  gulyas: { nev: 'Házi gulyás', ikon: '🍲', mats: { bor: 1, gyogyfu: 1 }, food: { kaja: 75, ital: 25 }, buff: { t: 600, mods: { hpp: 10 } }, desc: 'Laktató, 10 percre +10% életerő.' },
+  gulyas: { nev: 'Házi gulyás', ikon: '🍲', mats: { bor: 1, gyogyfu: 1 }, food: { kaja: 75, ital: 25 }, buff: { t: 1200, mods: { hpp: 12, dmgp: 5 } }, desc: 'Laktató: 20 percre +12% életerő, +5% sebzés.' },
+  mezeslepeny: { nev: 'Mézes lepény', ikon: '🥧', mats: { mez: 2, gyogyfu: 1, fa: 1 }, food: { kaja: 50 }, buff: { t: 1200, mods: { aspd: 10, resgen: 20 } }, desc: '20 percre +10% támadási sebesség, +20% erőforrás-töltődés.' },
+  felhoporkolt: { nev: 'Felhőpörkölt', ikon: '🍛', mats: { felho: 2, bor: 1 }, food: { kaja: 60, ital: 20 }, buff: { t: 1200, mods: { msp: 10, sta: 40 } }, desc: 'Könnyű, mint a felhő: 20 percre +10% mozgás, +40 állóképesség.' },
+  magmagulyas: { nev: 'Magmás gulyás', ikon: '🌶', mats: { magma: 2, bor: 1, gyogyfu: 1 }, food: { kaja: 70, ital: -10 }, buff: { t: 1200, mods: { dmgp: 12, res_tuz: 20 } }, desc: 'Csíp. Nagyon. 20 percre +12% sebzés, +20% tűzállóság.' },
+  urleves: { nev: 'Horizont-leves', ikon: '🥣', mats: { egzotikus: 1, jel: 1, gyogyfu: 2 }, food: { kaja: 60, ital: 40 }, buff: { t: 1200, mods: { cdr: 12, res_ter: 20, xpb: 10 } }, desc: 'Lassan kanalazd, az idő is lassabb benne. 20 percre −12% újratöltés, +20% téridő-állóság, +10% TP.' },
   langosh: { nev: 'Házi lángos', ikon: '🫓', mats: { gyogyfu: 1 }, gold: 10, give: 'langos', desc: 'Nagyi receptje.' },
   pogacsah: { nev: 'Tepertős pogácsa (3 db)', ikon: '🥐', mats: { bor: 1 }, give: 'pogacsa', n: 3, desc: 'Nagyi szerint csak egyet.' },
   mezestea: { nev: 'Mézes tea', ikon: '🍵', mats: { mez: 1, gyogyfu: 1 }, food: { ital: 50, alvas: 25 }, desc: 'Ébren tart és szomjat olt.' },
@@ -255,7 +259,7 @@ Object.assign(UI.acts, {
   hmBuildOff() { Home.build = false; $('#pShop').style.display = 'none'; UI.open = null; },
   hmKat(d) { Home.kat = d.k; const first = Object.keys(BUILD).find(k => BUILD[k].kat === d.k); if (first) Home.sel = first; Home.palette(); },
   hmSel(d) { Home.sel = d.id; Home.palette(); },
-  hmCook(d) { const S = G.S, R0 = HOME_RECIPES[d.id]; if (!Object.keys(R0.mats).every(m => (S.mats[m] || 0) >= R0.mats[m]) || S.gold < (R0.gold || 0)) return; for (const m in R0.mats) S.mats[m] -= R0.mats[m]; S.gold -= R0.gold || 0; if (R0.give) S.food[R0.give] = (S.food[R0.give] || 0) + (R0.n || 1); if (R0.food) { const sv = S.surv; if (R0.food.kaja) sv.kaja = Math.min(100, sv.kaja + R0.food.kaja); if (R0.food.ital) sv.ital = Math.min(100, sv.ital + R0.food.ital); if (R0.food.alvas) sv.ebren = Math.min(100, sv.ebren + R0.food.alvas); } if (R0.buff) G.buff(G.P, 'gulyas', R0.buff.t, R0.buff.mods); recalc(G.P); Audio2.play('potion'); UI.toast(`${R0.ikon} ${R0.nev} elkészült.`, '#e8d7b0'); this.renderShop(); },
+  hmCook(d) { const S = G.S, R0 = HOME_RECIPES[d.id]; if (!Object.keys(R0.mats).every(m => (S.mats[m] || 0) >= R0.mats[m]) || S.gold < (R0.gold || 0)) return; for (const m in R0.mats) S.mats[m] -= R0.mats[m]; S.gold -= R0.gold || 0; if (R0.give) S.food[R0.give] = (S.food[R0.give] || 0) + (R0.n || 1); if (R0.food) { const sv = S.surv; if (R0.food.kaja) sv.kaja = Math.min(100, sv.kaja + R0.food.kaja); if (R0.food.ital) sv.ital = Math.min(100, sv.ital + R0.food.ital); if (R0.food.alvas) sv.ebren = Math.min(100, sv.ebren + R0.food.alvas); } if (R0.buff) { G.buff(G.P, 'hazikoszt', R0.buff.t, R0.buff.mods); UI.toast('🏡 Házi koszt: egyszerre egy él – a bolti étel ezt nem tudja.', '#9fe07a', 3); } if (R0.food && R0.food.ital < 0) S.surv.ital = Math.max(0, S.surv.ital + R0.food.ital); recalc(G.P); Audio2.play('potion'); UI.toast(`${R0.ikon} ${R0.nev} elkészült.`, '#e8d7b0'); this.renderShop(); },
 });
 Home.starter = function () {
   // kis kezdőház: 6×5 gerendafal, parketta, ajtó, ágy

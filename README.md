@@ -28,6 +28,18 @@ A Kapuk a szerző többi játékával közös naplót vezet (`univerzum-naplo` a
 - **Más világok:** a Kezelőnél és a Pilótánál kapuk vezetnek a többi játékba.
 - **Heti Hasadék:** mindenkinek ugyanaz a pálya a héten, a rangsor a közös `multiverzum-bajnoksag-r4w8` csatornán megy (játékkód: `kp`, nyilvános MQTT üzenetközvetítő, HiveMQ). A könyvtár: `vendor/mqtt/` (MIT licenc).
 
+## Mélység (elmélyítés, 1. kör)
+
+- **Harc:** hitstop, súlyos találatok, olvasható előjelzések, kardkombó, tökéletes kitérés.
+- **Kasztutak:** kasztonként két, egymást kizáró út 6. szinttől, és kölcsönhatások (düh-küszöbök, elemi reakciók, Fókusz, gép-hálózat).
+- **Expedíció:** minél messzebb a Kaputól, annál erősebbek a szörnyek, és annál többet ér a zsákmány. Az útinapló TP-je csak élve hazaérve számít.
+- **Próbakő, Kihívás-létra, Ciklusok:** mindig van következő kihívás, a történetnek nincs vége.
+- **Bossok:** megtanulható mintasorrend, bejelentett támadások, 2. fázis saját támadással.
+- **Tárgyak:** áldozat-affixek, mesterjegy, átkovácsolás. Az étel hatást ad, a házi koszt többet.
+- **Lakók:** reagálnak arra, amit csinálsz, egymást is szapulják, és van, aki többet tud rólad, mint kellene.
+
+Tesztek: `node tools/smoke.js` (füstteszt), `node tools/bot.js <címke>` (átlagjátékos-bot, egyensúlymérés). A részletek az `ELMELYITES.md`-ben vannak.
+
 ## Irányítás
 
 WASD mozgás · egér célzás · bal gomb támadás · jobb gomb és 1–4 képességek · V Kapukő · Space kitérés · Shift sprint · E interakció · Q gyógyital · 6–9 elixírek · B artefaktum · H/G evés/ivás · N sátor · T kapu haza · U építés (otthon) · I/C/K/J/M panelek · Z/X W-eltolás az Eseményhorizontban · F1 súgó

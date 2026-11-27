@@ -108,54 +108,56 @@ const ENEMIES = {
 // minták: radial, spiral, aimed, charge, slam, rain, summon, ring, beam
 const BOSSES = {
   leltarhiany: {
-    nev: 'A Leltárhiány', cim: 'Ami nincs meg, az is van valahol', hp: 520, dmg: 12, spd: 70, r: 34, look: { s: 'leltar', c: '#2a3a52', c2: '#ff3355' },
+    p2Pat: { k: 'ring', n: 22, spd: 210, kind: 'box', cd: 6, nev: 'Leltárzárás' }, nev: 'A Leltárhiány', cim: 'Ami nincs meg, az is van valahol', hp: 520, dmg: 12, spd: 70, r: 34, look: { s: 'leltar', c: '#2a3a52', c2: '#ff3355' },
     patterns: [{ k: 'aimed', n: 5, spread: 0.5, spd: 300, kind: 'box', cd: 2.2 }, { k: 'charge', cd: 5, spd: 520 }, { k: 'summon', type: 'raklapbogar', n: 4, cd: 9 }, { k: 'rain', n: 6, r: 60, cd: 7 }],
     p2: 'A hiány nő! Minden polc üres lesz…',
     lines: ['Leltárhiány: 1 db. Te.', 'Ami nincs a rendszerben, az nem létezik!', 'Kétezer tétel, nyolcszázkilencven hely. Valakinek mennie kell.'],
   },
   kiralyno: {
-    nev: 'A Darázskirálynő', cim: 'Mézország bitorlója', hp: 620, dmg: 14, spd: 95, r: 30, look: { s: 'queen', c: '#ffcc00', c2: '#1a1a1a' },
+    p2Pat: { k: 'summon', type: 'rablomeh', n: 5, cd: 9, nev: 'A Raj hívása' }, nev: 'A Darázskirálynő', cim: 'Mézország bitorlója', hp: 620, dmg: 14, spd: 95, r: 30, look: { s: 'queen', c: '#ffcc00', c2: '#1a1a1a' },
     patterns: [{ k: 'summon', type: 'darazs', n: 6, cd: 7 }, { k: 'spiral', n: 18, spd: 260, kind: 'stinger', cd: 5 }, { k: 'charge', cd: 6, spd: 560 }, { k: 'ring', n: 24, spd: 240, kind: 'stinger', cd: 6, slowHaz: true }],
     p2: 'Az egész raj felém repül!',
     lines: ['Zzzz… a Csillagméhes az enyém!', 'Az akác májusban háromszor édesebb. A vér is.', 'A Kárpátokig mind az enyém!'],
   },
   sziv: {
-    nev: 'Az Égtorony Szíve', cim: '„Ne az Urat üsd, a láncot nézd.” – Bodor', hp: 760, dmg: 16, spd: 0, r: 36, look: { s: 'heart', c: '#c23a5a', c2: '#ffd27a' }, chains: 4,
+    p2Pat: { k: 'spiral', n: 20, spd: 230, kind: 'feather', cd: 6, nev: 'Szélörvény' }, nev: 'Az Égtorony Szíve', cim: '„Ne az Urat üsd, a láncot nézd.” – Bodor', hp: 760, dmg: 16, spd: 0, r: 36, look: { s: 'heart', c: '#c23a5a', c2: '#ffd27a' }, chains: 4,
     patterns: [{ k: 'radial', n: 16, spd: 250, kind: 'feather', cd: 3 }, { k: 'slam', r: 170, cd: 6 }, { k: 'rain', n: 8, r: 65, cd: 6 }, { k: 'summon', type: 'szelszellem', n: 4, cd: 10 }],
     p2: 'A láncok megfeszülnek – a torony a völgy vizét issza!',
     lines: ['Nem én akartam… fentről húznak.', 'Három éve nem esett a völgyben.', 'Állj a helyemre, és mindenki szabad lesz.'],
   },
   magorzo: {
-    nev: 'A Mag Őre', cim: '6371 km – ahol a g nulla', hp: 900, dmg: 18, spd: 60, r: 36, look: { s: 'core', c: '#ff7a2a', c2: '#fff0a0' },
+    p2Pat: { k: 'rain', n: 14, r: 70, cd: 7, ground: true, nev: 'Magmaeső' }, nev: 'A Mag Őre', cim: '6371 km – ahol a g nulla', hp: 900, dmg: 18, spd: 60, r: 36, look: { s: 'core', c: '#ff7a2a', c2: '#fff0a0' },
     patterns: [{ k: 'ring', n: 20, spd: 220, kind: 'rock', cd: 4 }, { k: 'rain', n: 10, r: 70, cd: 6, ground: true }, { k: 'slam', r: 190, cd: 7 }, { k: 'summon', type: 'hoszellem', n: 4, cd: 9 }],
     p2: '5150 km: a belső mag szilárd, mert a nyomás préseli – és most téged is.',
     lines: ['Kéreg, köpeny, mag. Te csak egy ásvány vagy.', '330 gigapascal. Bírod még?', 'Itt nincs lent és fent.'],
   },
   szamallomas: {
-    nev: 'A Számállomás', cim: '29999 kHz', hp: 1000, dmg: 19, spd: 50, r: 32, look: { s: 'radiohead', c: '#2a2e25', c2: '#4dffb0' }, antennas: 3,
+    p2Pat: { k: 'beam', cd: 7, dur: 3, nev: 'Végtelen adás' }, nev: 'A Számállomás', cim: '29999 kHz', hp: 1000, dmg: 19, spd: 50, r: 32, look: { s: 'radiohead', c: '#2a2e25', c2: '#4dffb0' }, antennas: 3,
     patterns: [{ k: 'beam', cd: 6, dur: 2.2 }, { k: 'radial', n: 20, spd: 230, kind: 'wave', cd: 3.5 }, { k: 'rain', n: 8, r: 70, cd: 5 }, { k: 'summon', type: 'zajleny', n: 5, cd: 9 }],
     p2: 'Nulla-egy. Nulla-négy. Egy-kilenc. Öt-hét…',
     lines: ['Figyelem. Figyelem. Öt-egy, egy-egy, nulla-egy.', 'A HOLD NEM MESSZE.', 'NEM VAGY EGYEDÜL.'],
   },
   n1: {
-    nev: 'Az N-1 Szörnyeteg', cim: 'A Holdrakéta, ami sosem jutott el a Holdra', hp: 1150, dmg: 21, spd: 55, r: 38, look: { s: 'mech', c: '#b8b8b8', c2: '#ff4422' },
+    p2Pat: { k: 'charge', cd: 5, spd: 560, nev: 'Második fokozat' }, nev: 'Az N-1 Szörnyeteg', cim: 'A Holdrakéta, ami sosem jutott el a Holdra', hp: 1150, dmg: 21, spd: 55, r: 38, look: { s: 'mech', c: '#b8b8b8', c2: '#ff4422' },
     patterns: [{ k: 'summon', type: 'elszabadultraketa', n: 4, cd: 7 }, { k: 'aimed', n: 7, spread: 0.6, spd: 420, kind: 'fireball', cd: 2.5 }, { k: 'rain', n: 12, r: 75, cd: 6 }, { k: 'charge', cd: 7, spd: 480 }],
     p2: 'Második fokozat: GYÚJTÁS!',
     lines: ['Visszaszámlálás: 3… 2… 1…', '6800 kilonewton. Te hány vagy?', 'A Keleti Unió 9000 kilométerre van. Te kettőre.'],
   },
   onmagad: {
-    nev: 'Te magad', cim: 'Az idővisszhang a tesszeraktban', hp: 1300, dmg: 22, spd: 140, r: 16, look: { s: 'self', c: '#c48cff', c2: '#ffffff' }, mirror: true,
+    p2Pat: { k: 'mirror', cd: 1, nev: 'Te, még egyszer' }, nev: 'Te magad', cim: 'Az idővisszhang a tesszeraktban', hp: 1300, dmg: 22, spd: 140, r: 16, look: { s: 'self', c: '#c48cff', c2: '#ffffff' }, mirror: true,
     patterns: [{ k: 'mirror', cd: 1.2 }, { k: 'charge', cd: 4, spd: 600 }, { k: 'spiral', n: 16, spd: 300, kind: 'bolt', cd: 5 }, { k: 'summon', type: 'idovisszhang', n: 2, cd: 10 }],
     p2: 'Látod magad hátulról? Ez mindig is így volt.',
-    lines: ['Aki elküldi, az kapja meg.', 'Ne add fel. Megéri.', 'Ugyanazt mondtam én is, amikor te voltam.'],
+    lines: ['Aki elküldi, az kapja meg.', 'Ne add fel. Megéri.', 'Ugyanazt mondtam én is, amikor te voltam.', '{halal}-szor haltál meg idáig. Én is. Pontosan ennyiszer.', '{szint}. szint? Emlékszem, én is ennyi voltam. Most.'],
   },
   szingularitas: {
-    nev: 'A Szingularitás', cim: 'A Zaj, amely minden világot elnyel', hp: 1900, dmg: 24, spd: 0, r: 44, look: { s: 'singularity', c: '#000000', c2: '#ffb347' }, gravity: 140,
+    p2Pat: { k: 'ring', n: 36, spd: 180, kind: 'wave', cd: 6, nev: 'Planck-gyűrű' }, nev: 'A Szingularitás', cim: 'A Zaj, amely minden világot elnyel', hp: 1900, dmg: 24, spd: 0, r: 44, look: { s: 'singularity', c: '#000000', c2: '#ffb347' }, gravity: 140,
     patterns: [{ k: 'spiral', n: 28, spd: 220, kind: 'bolt', cd: 4 }, { k: 'rain', n: 14, r: 70, cd: 5 }, { k: 'ring', n: 32, spd: 200, kind: 'wave', cd: 5 }, { k: 'summon', type: 'spagetti', n: 6, cd: 8 }, { k: 'beam', cd: 8, dur: 2.5 }],
     p2: 'Planck-tartomány. Itt már a tér és az idő sem az, aminek látszik.',
-    lines: ['MINDEN BEESIK.', 'A horizont mindenre emlékszik. Rád is.', 'Nincs kifelé.'],
+    lines: ['MINDEN BEESIK.', 'A horizont mindenre emlékszik. Rád is.', 'Nincs kifelé.', '{oles} ÖLÉS. A HORIZONT MINDET MEGJEGYEZTE.'],
   },
 };
+// a boss-támadások neve a bejelentéshez
+const BOSS_MOVE = { radial: 'Sugárzás', spiral: 'Spirál', aimed: 'Célzott sorozat', charge: 'Roham!', slam: 'Döngölés', rain: 'Zápor', summon: 'Hívás', ring: 'Kettős gyűrű', beam: 'Sugárnyaláb', mirror: 'Tükör' };
 // Mini-bossok (névvel ellátott elitek)
 const NAMED = {
   'lidérc_kiraly': { base: 'lidérc', nev: 'A pohármosó Lidérce', hpM: 6, dmgM: 1.6, mods: ['gyors', 'fagyos'], c: '#bfe9ff' },
@@ -185,17 +187,17 @@ const ANCIENTS = {
 
 // ---------------- ÉLELEM (éhség, szomjúság, fáradtság) ----------------
 const FOODS = {
-  pogacsa: { nev: 'Nagyi tepertős pogácsája', ikon: '🥐', kaja: 35, ar: 12, desc: 'Ropogós. Nagyi szerint „csak egyet”, de senki sem eszik egyet.' },
-  langos: { nev: 'Lángos', ikon: '🫓', kaja: 55, hp: 0.15, ar: 25, desc: 'Fokhagymás tejföllel. Egy egész napra elég.' },
-  mezescsupor: { nev: 'Akácmézes csupor', ikon: '🍯', kaja: 18, ital: 6, hp: 0.3, ar: 30, desc: 'Mézország májusi akácmézéből.' },
-  konzerv: { nev: 'Lőtéri hadtápkonzerv', ikon: '🥫', kaja: 45, ar: 18, desc: 'Gyártási év: 1957. Még ehető. Talán.' },
-  tubus: { nev: 'Űrhajós-tubus', ikon: '🧴', kaja: 30, ital: 25, ar: 40, desc: 'Gulyás tubusban. Súlytalanságban is.' },
-  gomba: { nev: 'Barlangi gomba', ikon: '🍄', kaja: 22, ar: 6, desc: 'A Mélység melegében nőtt. Világít.' },
+  pogacsa: { nev: 'Nagyi tepertős pogácsája', ikon: '🥐', kaja: 35, fb: { t: 180, mods: { aspd: 5 }, d: '+5% támadási sebesség 3 percig' },  ar: 12, desc: 'Ropogós. Nagyi szerint „csak egyet”, de senki sem eszik egyet.' },
+  langos: { nev: 'Lángos', ikon: '🫓', kaja: 55, hp: 0.15, fb: { t: 300, mods: { hpp: 8 }, d: '+8% életerő 5 percig' },  ar: 25, desc: 'Fokhagymás tejföllel. Egy egész napra elég.' },
+  mezescsupor: { nev: 'Akácmézes csupor', ikon: '🍯', kaja: 18, ital: 6, hp: 0.3, fb: { t: 240, mods: { regenMul: 40 }, d: '+40% életerő-töltődés 4 percig' },  ar: 30, desc: 'Mézország májusi akácmézéből.' },
+  konzerv: { nev: 'Lőtéri hadtápkonzerv', ikon: '🥫', kaja: 45, fb: { t: 300, mods: { armp: 15 }, d: '+15% páncél 5 percig' },  ar: 18, desc: 'Gyártási év: 1957. Még ehető. Talán.' },
+  tubus: { nev: 'Űrhajós-tubus', ikon: '🧴', kaja: 30, ital: 25, fb: { t: 300, mods: { resall: 8 }, d: '+8% minden állóság 5 percig' },  ar: 40, desc: 'Gulyás tubusban. Súlytalanságban is.' },
+  gomba: { nev: 'Barlangi gomba', ikon: '🍄', kaja: 22, fb: { t: 180, mods: { dmgp: 5 }, d: '+5% sebzés 3 percig' },  ar: 6, desc: 'A Mélység melegében nőtt. Világít.' },
   viz: { nev: 'Kulacs víz', ikon: '💧', ital: 45, ar: 8, desc: 'Egyszerű, és mégis ez kell a legjobban.' },
   kola: { nev: 'Kóla', ikon: '🥤', ital: 30, alvas: 12, ar: 10, desc: 'Kurta kedvence. +14% gáz.' },
-  bika: { nev: 'Bika energiaital', ikon: '🐂', ital: 22, alvas: 35, ar: 18, desc: 'Szárnyakat nem ad, de ébren tart. +22% gáz.' },
+  bika: { nev: 'Bika energiaital', ikon: '🐂', ital: 22, alvas: 35, fb: { t: 90, mods: { aspd: 8, msp: 5 }, d: '+8% támadási, +5% mozgási sebesség 90 mp-ig' },  ar: 18, desc: 'Szárnyakat nem ad, de ébren tart. +22% gáz.' },
   sprite: { nev: 'Spréjt', ikon: '🍋', ital: 38, ar: 10, desc: 'Az egyetlen, ami elveszi a gázt.' },
-  kave: { nev: 'Raktári automatás kávé', ikon: '☕', ital: 10, alvas: 45, ar: 9, desc: 'A hajnali műszak üzemanyaga.' },
+  kave: { nev: 'Raktári automatás kávé', ikon: '☕', ital: 10, alvas: 45, fb: { t: 120, mods: { cdr: 8 }, d: '−8% újratöltés 2 percig' },  ar: 9, desc: 'A hajnali műszak üzemanyaga.' },
   satorlap: { nev: 'Sátor', ikon: '⛺', ar: 60, tent: true, desc: 'Egy kitakarított teremben felverve kialszod magad (N gomb).' },
 };
 // melyik világban mi esik

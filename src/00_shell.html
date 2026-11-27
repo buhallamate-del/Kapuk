@@ -48,6 +48,10 @@ input{font:inherit;background:#15120e;color:var(--tx);border:1px solid var(--bd)
 #buffs{position:absolute;left:14px;top:62px;display:flex;gap:4px;flex-wrap:wrap;width:320px}
 .bf{font-size:11px;background:rgba(0,0,0,.6);border:1px solid var(--bd2);border-radius:3px;padding:1px 5px}
 #keys{position:absolute;left:14px;top:100px;color:#8a7f66;font-size:11px;line-height:1.5;text-shadow:0 1px 2px #000}
+#scene{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .8s}#scene.on{opacity:1}
+#scene .sc-bar{position:absolute;left:0;right:0;top:0;height:9vh;background:#000}#scene .sc-bar.b{top:auto;bottom:0}
+#scene .sc-t{position:absolute;left:50%;top:24vh;transform:translateX(-50%);width:min(680px,90vw);text-align:center;text-shadow:0 2px 6px #000;background:radial-gradient(ellipse at center,rgba(0,0,0,.55),rgba(0,0,0,0) 70%);padding:14px 24px}
+#scene .sc-x{font-size:15px;line-height:1.6;margin-top:6px;font-style:italic;color:#e8dcc0}
 /* panelek */
 .panel{position:fixed;background:var(--pan);border:1px solid var(--bd);border-radius:6px;box-shadow:0 10px 40px #000c;display:none;z-index:10}
 .panel .hd{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd2)}
@@ -66,7 +70,7 @@ input{font:inherit;background:#15120e;color:var(--tx);border:1px solid var(--bd)
 .row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #2a241b}
 .tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}.tabs button.on{border-color:var(--gold);color:#fff;background:linear-gradient(#5a4320,#2e2212)}
 .sktree{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.skc{border:1px solid var(--bd2);border-radius:5px;padding:8px;background:#14110d}.skc.lk{opacity:.5}.skc .t{display:flex;gap:8px;align-items:center}.skc .ic{font-size:24px}.skc .nm{font-weight:700}.skc .d{font-size:11px;color:var(--dim);margin:4px 0}
+.skc.ut{border-color:#8a6a2a;background:#1c160c}.ar{color:#ff9a7a}.skc{border:1px solid var(--bd2);border-radius:5px;padding:8px;background:#14110d}.skc.lk{opacity:.5}.skc .t{display:flex;gap:8px;align-items:center}.skc .ic{font-size:24px}.skc .nm{font-weight:700}.skc .d{font-size:11px;color:var(--dim);margin:4px 0}
 .dlg-txt{font-size:14px;line-height:1.55;margin:6px 0 12px;min-height:44px}.dlg-opts{display:flex;flex-direction:column;gap:5px}.dlg-opts button{text-align:left}
 .port{width:56px;height:56px;border-radius:50%;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:28px}
 /* menü */
@@ -88,7 +92,7 @@ input{font:inherit;background:#15120e;color:var(--tx);border:1px solid var(--bd)
 <body>
 <canvas id="c"></canvas>
 <div id="hud">
-  <div id="topl"><div id="rname" class="h"></div><div id="rsub"></div></div>
+  <div id="scene"></div><div id="topl"><div id="rname" class="h"></div><div id="rsub"></div><div id="exped" style="color:#e6c47a;font-size:12px;margin-top:2px"></div></div>
   <div id="buffs"></div>
   <div id="keys"></div>
   <canvas id="mm" width="190" height="190"></canvas>

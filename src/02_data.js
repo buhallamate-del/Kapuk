@@ -3,16 +3,17 @@
 // ============================================================
 const DT = { fiz: { nev: 'Fizikai', c: '#e6e0d4' }, tuz: { nev: 'Tűz', c: '#ff7a2e' }, fagy: { nev: 'Fagy', c: '#7fd8ff' }, villam: { nev: 'Villám', c: '#f4f06a' }, ter: { nev: 'Téridő', c: '#c48cff' } };
 const ATTR = { ero: 'Erő', ugy: 'Ügyesség', akarat: 'Akarat', kit: 'Kitartás', allo: 'Állóképesség' };
-const ATTR_DESC = { ero: '+1,1% közelharci sebzés', ugy: '+1,1% távolsági sebzés, +0,08% kritikus esély', akarat: '+1,3% varázssebzés, +2 erőforrás', kit: '+7 életerő, +1,5 páncél', allo: '+2 állóképesség, +1,5% gyorsabb töltődés, lassabb éhezés' };
+const ATTR_DESC = { ero: '+1,4% közelharci sebzés', ugy: '+1,1% távolsági sebzés, +0,08% kritikus esély', akarat: '+1,3% varázssebzés, +2 erőforrás', kit: '+7 életerő, +1,5 páncél', allo: '+2 állóképesség, +1,5% gyorsabb töltődés, lassabb éhezés' };
 // Kasztonkénti erőforrás
 const RESOURCES = {
-  penge: { nev: 'Düh', c: '#e0473a', ikon: '🔥', desc: 'Ütéssel és sebződéssel gyűlik, harcon kívül elpárolog.' },
-  elem: { nev: 'Mana', c: '#4f8dff', ikon: '💧', desc: 'Folyamatosan töltődik. Az Akarat növeli.' },
-  loves: { nev: 'Belső idő', c: '#f2d36b', ikon: '⏳', desc: 'Lassan töltődik; a Golyóidő ebből lassítja a világot.' },
-  mernok: { nev: 'Áram', c: '#5fe0d0', ikon: '⚡', desc: 'Az akkumulátor töltődik; a gépek és a Túlfeszültség ebből élnek.' },
+  penge: { nev: 'Düh', c: '#e0473a', ikon: '🔥', desc: 'Csak valódi találatból és kapott ütésből gyűlik, harcon kívül elpárolog. 50 fölött Felbőszült (+12% támadási sebesség), teli dühnél Tomboló: a következő képesség ingyenes és +30%-ot sebez.' },
+  elem: { nev: 'Mana', c: '#4f8dff', ikon: '💧', desc: 'Folyamatosan töltődik, az Akarat növeli. Teli manánál a töltődés túltöltő tartályba folyik (max. 30%): a következő varázslat abból fizet, és +25%-ot sebez. Elemi reakciók: tűz a fagyottra, villám az égőre, fagy a sokkoltra.' },
+  loves: { nev: 'Belső idő', c: '#f2d36b', ikon: '⏳', desc: 'Lassan töltődik; a Golyóidő ebből lassítja a világot. Ugyanarra a célpontra leadott lövések Fókuszt gyűjtenek (+5% kritikus töltetenként), az Átütő lövés elhasználja.' },
+  mernok: { nev: 'Áram', c: '#5fe0d0', ikon: '⚡', desc: 'Az akkumulátor töltődik; a gépek és a Túlfeszültség ebből élnek. Az egymás közelében álló gépek hálózatot alkotnak (+8% kapcsolatonként), a lejárt gép árának negyede visszajár.' },
 };
 const MAX_LVL = 70;
-const xpNeed = l => Math.round(120 * Math.pow(l, 1.8) + 80 * l);
+// laposabb görbe: az elején lassabb, a középjátékban nem marad le a játékos a területtől
+const xpNeed = l => Math.round(160 * Math.pow(l, 1.65) + 120 * l);
 
 // Szörnyek erősödése szint szerint
 const monHp = l => 1 + 0.30 * (l - 1) + 0.016 * (l - 1) * (l - 1);
@@ -26,7 +27,7 @@ const CLASSES = {
   penge: {
     nev: 'Pengelovag', ikon: '⚔', szin: '#e0a84a', fegyver: 'kard',
     leiras: 'Közelharcos. Pajzsként viseli a páncélt, düht gyűjt minden ütéssel. Forgószél, roham, földrengés – ahol ő jár, ott nem marad álló szörny.',
-    base: { ero: 15, ugy: 8, akarat: 5, kit: 13, allo: 10 }, hpL: 14, mpL: 0, mpBase: 100, mpRegen: 0, onHitMp: 6, rage: true,
+    base: { ero: 15, ugy: 8, akarat: 5, kit: 13, allo: 10 }, hpL: 15, mpL: 0, mpBase: 100, mpRegen: 0, onHitMp: 6, rage: true,
     kedvenc: 'melee'
   },
   elem: {
@@ -52,9 +53,9 @@ const CLASSES = {
 // ---------------- fegyver- és tárgyalapok ----------------
 // kind: melee/ranged/spell – ez határozza meg az alap támadást (bal gomb)
 const BASES = {
-  kard: { nev: 'Kard', slot: 'fegyver', kind: 'melee', min: 6, max: 10, spd: 1.6, range: 62, arc: 1.7, dtype: 'fiz', ikon: '🗡' },
-  poroly: { nev: 'Pöröly', slot: 'fegyver', kind: 'melee', min: 11, max: 17, spd: 0.95, range: 70, arc: 2.3, dtype: 'fiz', knock: 140, ikon: '🔨' },
-  lancfuresz: { nev: 'Láncfűrész-penge', slot: 'fegyver', kind: 'melee', min: 3, max: 5, spd: 4.2, range: 54, arc: 1.2, dtype: 'fiz', ikon: '⚙', reqLvl: 8 },
+  kard: { nev: 'Kard', slot: 'fegyver', kind: 'melee', min: 7, max: 12, spd: 1.6, range: 62, arc: 1.7, dtype: 'fiz', knock: 70, stop: 0.04, ikon: '🗡' },
+  poroly: { nev: 'Pöröly', slot: 'fegyver', kind: 'melee', min: 13, max: 21, spd: 0.95, range: 70, arc: 2.3, dtype: 'fiz', knock: 210, stop: 0.075, ikon: '🔨' },
+  lancfuresz: { nev: 'Láncfűrész-penge', slot: 'fegyver', kind: 'melee', min: 4, max: 6, spd: 4.2, range: 54, arc: 1.2, dtype: 'fiz', knock: 12, stop: 0.012, ikon: '⚙', reqLvl: 8 },
   palca: { nev: 'Pálca', slot: 'fegyver', kind: 'spell', min: 5, max: 8, spd: 2.0, pspd: 520, prad: 6, dtype: 'ter', mp: 1.5, ikon: '🪄' },
   bot: { nev: 'Varázsbot', slot: 'fegyver', kind: 'spell', min: 10, max: 15, spd: 1.05, pspd: 380, prad: 10, dtype: 'tuz', splash: 46, mp: 3, ikon: '🔮' },
   pisztoly: { nev: 'Pisztoly', slot: 'fegyver', kind: 'ranged', min: 4, max: 7, spd: 3.2, pspd: 760, prad: 3, dtype: 'fiz', spread: 0.06, ikon: '🔫' },
@@ -140,6 +141,13 @@ const AFFIX = [
   { id: 'sta', nev: v => `+${v} állóképesség`, v: (l, r) => r.int(8, 18), slots: ['lab', 'test', 'artefakt'], pre: 'Kitartó' },
   { id: 'allo', nev: v => `+${v} Állóképesség`, v: (l, r) => r.int(2, 5) + Math.floor(l / 6), slots: null, pre: 'Edzett' },
   { id: 'potion', nev: v => `+${v}% italhatás`, v: (l, r) => r.int(10, 25), slots: ['test', 'nyak'], pre: 'Szomjas' },
+  // áldozat-affixek: nagy bónusz, valódi hátránnyal – csak ritka vagy jobb tárgyon
+  { id: 't_uveg', nev: v => `Üvegágyú: +${v}% sebzés, −${Math.round(v * 0.7)}% életerő`, v: (l, r) => r.int(18, 28), slots: ['fegyver', 'gyuru', 'nyak'], pre: 'Üvegágyús', trade: (v, add) => { add('dmgp', v); add('hpp', -v * 0.7); } },
+  { id: 't_nehez', nev: v => `Nehéz vért: +${v}% páncél, −${Math.round(v / 6)}% mozgási sebesség`, v: (l, r) => r.int(40, 70), slots: ['test', 'fej', 'lab'], pre: 'Ólomnehéz', trade: (v, add) => { add('armp', v); add('msp', -v / 6); } },
+  { id: 't_ver', nev: v => `Vérpakt: ${v}% életlopás, nincs életerő-töltődés`, v: (l, r) => r.int(3, 6), slots: ['fegyver', 'gyuru'], pre: 'Vérpaktos', trade: (v, add) => { add('ls', v); add('regenMul', -100); } },
+  { id: 't_lazas', nev: v => `Lázas sietség: +${v}% támadási sebesség, −${v}% kritikus sebzés`, v: (l, r) => r.int(15, 25), slots: ['fegyver', 'kez'], pre: 'Lázas', trade: (v, add) => { add('aspd', v); add('critd', -v); } },
+  { id: 't_moho', nev: v => `Mohóság: +${v}% jobb zsákmány és arany, −${Math.round(v / 4)}% minden állóság`, v: (l, r) => r.int(40, 70), slots: ['gyuru', 'nyak', 'fej'], pre: 'Mohó', trade: (v, add) => { add('mf', v); add('gf', v); add('resall', -v / 4); } },
+  { id: 't_ido', nev: v => `Kölcsönidő: −${v}% újratöltés, −${v * 2} max. erőforrás`, v: (l, r) => r.int(12, 20), slots: ['fej', 'nyak', 'artefakt'], pre: 'Kölcsönzött', trade: (v, add) => { add('cdr', v); add('resmax', -v * 2); } },
 ];
 
 // ---------------- Ereklyék (egyedi tárgyak a multiverzumból) ----------------
@@ -148,7 +156,7 @@ const RELICS = [
   { id: 'papucs', nev: 'Nagyi papucsa', base: 'csizma', minL: 3, fx: 'papucs', txt: 'Találatkor 15% eséllyel papucs repül a támadóra: kábít 1 mp-ig. „Nem öl, csak nevel.”', aff: [['ms', 12], ['hp', 1.3]] },
   { id: 'croptop', nev: 'Kurta rózsaszín crop topja', base: 'vert', minL: 6, fx: 'croptop', txt: 'Minden 10. találatod böfi-lökéshullámot ereszt (fizikai, hátralök). A hangerő a szinteddel nő.', aff: [['hp', 1.5], ['kit', 1], ['thorns', 1]] },
   { id: 'bika', nev: 'Bika-doboz amulett', base: 'amulett', minL: 4, fx: 'bika', txt: 'Ölés után 2 mp-re +25% támadási sebesség (halmozódik 3-ig).', aff: [['aspd', 1], ['mregen', 1]] },
-  { id: 'leltarkonyv', nev: 'A Leltárkönyv', base: 'amulett', minL: 5, fx: 'leltar', txt: '+40% arany és +25% jobb zsákmány. Minden hiányzó tétel egyszer előkerül.', aff: [['gf', 1.6], ['mf', 1.4]] },
+  { id: 'leltarkonyv', nev: 'A Leltárkönyv', base: 'amulett', minL: 5, fx: 'leltar', txt: '+40% arany és +25% jobb zsákmány. Minden hiányzó tétel egyszer előkerül. Ára: −15% életerő – a könyv nehéz, és a lapjai élesek.', aff: [['gf', 1.6], ['mf', 1.4]] },
   { id: 'mezkorona', nev: 'Méhkirálynő koronája', base: 'sisak', minL: 9, fx: 'mehraj', txt: 'Ölésnél 30% eséllyel méh születik, aki 10 mp-ig veled harcol.', aff: [['regen', 1.4], ['akarat', 1]] },
   { id: 'virgonc', nev: 'Virágporos kesztyű', base: 'kesztyu', minL: 8, fx: 'viragpor', txt: 'A találataid 20% eséllyel lassítják az ellenfelet (méz). +20% sebzés lassított célpontra.', aff: [['dmgp', 1], ['aspd', 1]] },
   { id: 'szivkard', nev: 'Az Égtorony Szíve', base: 'kard', minL: 14, fx: 'sziv', txt: 'Közelharci találatnál a sebzés 4%-át visszakapod életerőként. Szélroham: minden 4. csapás hullámot vet.', aff: [['dmgp', 1.5], ['ls', 1], ['critd', 1]] },

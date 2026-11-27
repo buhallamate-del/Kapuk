@@ -40,10 +40,11 @@ function recalc(P) {
   for (const sl in S.eq) {
     const it = S.eq[sl]; if (!it) continue; if (it.req > S.lvl) continue;
     if (it.arm) arm += itemArm(it);
-    it.aff.forEach(a => add(a.id, affVal(it, a)));
+    it.aff.forEach(a => { const A = AFFIX.find(x => x.id === a.id); if (A && A.trade) A.trade(affVal(it, a), add); else add(a.id, affVal(it, a)); });
     if (it.relic) P.fx[RELICS.find(r => r.id === it.relic).fx] = true;
   }
   add('skill', 0);
+  if (P.fx.leltar) add('hpp', -15);
   for (const id in S.skills) { const sk = SKILLS[id]; if (sk && sk.tipus === 'passziv') { const r = S.skills[id] + (m.skill || 0); const mm = sk.mods(r); for (const k in mm) add(k, mm[k]); } }
   if (typeof Home !== 'undefined') Home.mods(S, add);
   if (S.forbidden.includes('osforma')) for (const k in OSFORMA.mods) add(k, OSFORMA.mods[k]);
@@ -63,7 +64,7 @@ function recalc(P) {
   st.staInf = m.staInf || 0;
   st.resgen = (m.resgen || 0) + at.allo * 1.5;
   st.arm = Math.round((arm + at.kit * 1.5) * (1 + (m.armp || 0) / 100));
-  st.res = {}; for (const k of ['tuz', 'fagy', 'villam', 'ter']) st.res[k] = Math.min(75, (m['res_' + k] || 0) + (m.resall || 0) + (k === 'tuz' && P.fx.mag ? 30 : 0) - S.prog.diff * 15);
+  st.res = {}; for (const k of ['tuz', 'fagy', 'villam', 'ter']) st.res[k] = Math.min(75, (m['res_' + k] || 0) + (m.resall || 0) + (k === 'tuz' && P.fx.mag ? 30 : 0) - Math.min(45, S.prog.diff * 15));
   st.crit = Math.min(75, 5 + at.ugy * 0.08 + (m.crit || 0)); st.critd = 50 + (m.critd || 0);
   st.aspd = Math.max(0.3, 1 + (m.aspd || 0) / 100);
   st.msp = Math.max(0.4, 1 + ((m.ms || 0) + (m.msp || 0)) / 100) * (P.fx.hold ? 1.15 : 1);
@@ -76,7 +77,7 @@ function recalc(P) {
   st.ls = (m.ls || 0); st.block = Math.min(40, m.block || 0); st.riposte = m.riposte || 0;
   st.gf = (m.gf || 0) + (P.fx.leltar ? 40 : 0); st.mf = (m.mf || 0) + (P.fx.leltar ? 25 : 0);
   st.skill = m.skill || 0; st.mark = m.mark || 0; st.thorns = m.thorns || 0; st.potion = m.potion || 0;
-  st.dmg = { all: (m.dmgp || 0), melee: at.ero * 1.1 + (m.meleep || 0), ranged: at.ugy * 1.1 + (m.rangedp || 0), spell: at.akarat * 1.3 + (m.spellp || 0), summon: (at.akarat + at.ugy) * 0.6 + (m.summonp || 0) + (P.fx.fokonst ? 30 : 0) };
+  st.dmg = { all: (m.dmgp || 0), melee: at.ero * 1.4 + (m.meleep || 0), ranged: at.ugy * 1.1 + (m.rangedp || 0), spell: at.akarat * 1.3 + (m.spellp || 0), summon: (at.akarat + at.ugy) * 0.6 + (m.summonp || 0) + (P.fx.fokonst ? 30 : 0) };
   st.flat = m.flat || 0; st.add = { tuz: m.add_tuz || 0, fagy: m.add_fagy || 0, villam: m.add_villam || 0 };
   st.splashp = m.splashp || 0; st.splashr = m.splashr || 0; st.burnp = m.burnp || 0; st.spellcrit = m.spellcrit || 0; st.farp = m.farp || 0;
   st.killMp = m.killMp || 0; st.shieldPct = m.shield || 0; st.sumaspd = m.sumaspd || 0;
@@ -99,16 +100,19 @@ function rollDmg(P, mult, kind, extraCrit = 0) {
   const w = P.S.eq.fegyver, C = CLASSES[P.S.cls];
   if (w && ((C.kedvenc === 'melee' && BASES[w.base].kind === 'melee') || (C.kedvenc === 'spell' && BASES[w.base].kind === 'spell') || (C.kedvenc === 'ranged' && BASES[w.base].kind === 'ranged'))) bonus += 15;
   if (kind === 'spell' && w && BASES[w.base].kind !== 'spell') base *= 0.85; // varázslat nem varázsfegyverrel
+  if (st.verszomj && CLASSES[P.S.cls].rage) bonus += Math.floor(P.mp / 10) * st.verszomj;
   let amt = base * mult * (1 + bonus / 100);
+  if (P.empowerT > 0) amt *= P.empowerMul || 1;
+  if (kind === 'ranged' && P.focus) extraCrit += P.focus * 5;
   let crit = Math.random() * 100 < st.crit + extraCrit + (kind === 'spell' ? st.spellcrit : 0) || st.critForce > 0;
   if (crit) amt *= 1 + st.critd / 100;
   return { a: amt, c: crit, k: kind };
 }
 
 // ---------------- túlélés ----------------
-const SURV_RATE = { kaja: 100 / 1300, ital: 100 / 850, ebren: 100 / 2200 };
+const SURV_RATE = { kaja: 100 / 1400, ital: 100 / 1050, ebren: 100 / 2400 };
 function survivalTick(P, dt, inTown) {
-  const sv = P.S.surv; const mul = (inTown ? 0.4 : 1) / (1 + P.st.at.allo * 0.006);
+  const sv = P.S.surv; const mul = (inTown ? 0.4 : Exped.hungerMul()) / (1 + P.st.at.allo * 0.006);
   const before = [sv.kaja < 30, sv.ital < 30, sv.ebren < 30, sv.kaja <= 0, sv.ital <= 0, sv.ebren <= 0].join();
   sv.kaja = Math.max(0, sv.kaja - SURV_RATE.kaja * dt * mul * (P.combatT > 0 ? 1.3 : 1));
   sv.ital = Math.max(0, sv.ital - SURV_RATE.ital * dt * mul * (P.combatT > 0 ? 1.4 : 1) * (G.map && G.map.region === 'melyseg' ? 1.6 : 1));
@@ -124,9 +128,11 @@ function eatFood(id) {
   S.food[id]--; if (!S.food[id]) delete S.food[id];
   const sv = S.surv; if (F.kaja) sv.kaja = Math.min(100, sv.kaja + F.kaja); if (F.ital) sv.ital = Math.min(100, sv.ital + F.ital); if (F.alvas) sv.ebren = Math.min(100, sv.ebren + F.alvas);
   if (F.hp) G.P.hp = Math.min(G.P.mhp, G.P.hp + G.P.mhp * F.hp);
+  // egyszerre egy falat hatása él; a házi koszt külön, erősebb és hosszabb
+  if (F.fb) G.buff(G.P, 'falat', F.fb.t * (G.S.spouse === 'bence' ? 1.25 : 1), F.fb.mods);
   if (id === 'kola' || id === 'bika') { G.P.gas = Math.min(100, (G.P.gas || 0) + (id === 'kola' ? 14 : 22)); }
   if (id === 'sprite') G.P.gas = Math.max(0, (G.P.gas || 0) - 25);
-  recalc(G.P); Audio2.play('potion'); UI.toast(`${F.ikon} ${F.nev}`, '#e8d7b0'); G.emit('eat', id);
+  recalc(G.P); Audio2.play('potion'); UI.toast(`${F.ikon} ${F.nev}${F.fb ? ' – ' + F.fb.d : ''}`, '#e8d7b0'); G.emit('eat', id);
   return true;
 }
 function autoEat(kind) { // H: étel, G: ital

@@ -9,7 +9,7 @@ Object.assign(G, {
       type, def: o.bossDef ? { ai: 'boss', nev: D.nev } : D, look: { ...(D.look) }, x, y, r: o.r || D.r, lvl: dl,
       mhp: D.hp * monHp(dl), dmg: D.dmg * monDmg(dl), spd: D.spd, armor: (D.armor || 0) * (1 + dl * 0.12), res: { ...(D.res || {}) },
       state: 'idle', t: RNG() * 2, cd: RNG() * 1.5, wind: 0, stun: 0, freeze: 0, slow: 0, shock: 0, mark: 0, fear: 0, burn: null, kbx: 0, kby: 0,
-      mods: o.mods || [], xp: (D.xp || 2) * 10 * (1 + 0.22 * (dl - 1)), flash: 0, hurtT: 0, strafe: RNG() < 0.5 ? 1 : -1, losT: 0, seeP: false, w: 0, summoned: 0, tick: 0,
+      mods: o.mods || [], xp: (D.xp || 2) * 10 * (1 + 0.26 * (dl - 1)), flash: 0, hurtT: 0, strafe: RNG() < 0.5 ? 1 : -1, losT: 0, seeP: false, w: 0, summoned: 0, tick: 0,
     };
     if (o.elite) { e.elite = true; e.mhp *= 2.4; e.dmg *= 1.35; e.xp *= 3; e.r *= 1.15; e.look.glow = ELITE_MODS[e.mods[0]] ? ELITE_MODS[e.mods[0]].c : '#6fa8ff'; }
     if (o.champion) { e.champion = true; e.mhp *= 4; e.dmg *= 1.5; e.xp *= 6; e.r *= 1.3; e.look.glow = '#ffd34d'; }
@@ -31,7 +31,7 @@ Object.assign(G, {
       if (e.dead) continue;
       const dx = P.x - e.x, dy = P.y - e.y, dP = Math.hypot(dx, dy);
       if (dP > 1500 && !e.boss) continue; // alszik
-      e.t += dt; e.flash -= dt; e.hurtT -= dt; e.mark -= dt; e.shock -= dt;
+      e.t += dt; e.flash -= dt; e.hurtT -= dt; e.mark -= dt; e.shock -= dt; if (e.tmark > 0) e.tmark -= dt; if (e.brittle > 0) e.brittle -= dt;
       if (e.burn) { e.burn.t -= dt; e.tick -= dt; if (e.tick <= 0) { e.tick = 0.5; this.hurtEnemy(e, { a: e.burn.dps * 0.5, c: false }, 'tuz', { noReflect: true }); if (RNG() < 0.5) this.burst(e.x, e.y - 6, '#ff7a2e', 2, 40, 0.4); } if (e.burn && e.burn.t <= 0) e.burn = null; if (e.dead) continue; }
       if (e.freeze > 0) { e.freeze -= dt; continue; }
       if (e.stun > 0) { e.stun -= dt; e.wind = 0; e.charging = 0; continue; }
@@ -40,16 +40,21 @@ Object.assign(G, {
       // hátralökés
       if (e.kbx || e.kby) { moveCircle(m, e, e.kbx * dt, e.kby * dt); e.kbx *= Math.pow(0.002, dt); e.kby *= Math.pow(0.002, dt); if (Math.abs(e.kbx) + Math.abs(e.kby) < 5) e.kbx = e.kby = 0; }
       e.losT -= dt; if (e.losT <= 0) { e.losT = 0.25 + RNG() * 0.1; e.seeP = dP < 900 && los(m, e.x, e.y, P.x, P.y); }
-      if (e.state === 'idle') { if ((dP < 400 && e.seeP) || e.hurtT > 0) this.aggro(e); else continue; }
+      if (e.state === 'idle') { if ((dP < (this.darkBoost > 0 ? 140 : 400) && e.seeP) || e.hurtT > 0) this.aggro(e); else continue; }
       if (e.state === 'wander') { // Ősök: kóborolnak, csak közelről vagy ütésre támadnak
-        if ((dP < 230 && e.seeP) || e.hurtT > 0) { e.state = 'chase'; UI.toast(`⚠ ${e.nameTxt} felfigyelt rád! (${e.lvl}. szint)`, '#ff3355', 4); Audio2.play('bossroar'); }
+        if (dP < 420 && !e.warned) { e.warned = true; UI.toast(`⚠ Ős a közelben: ${e.nameTxt} (${e.lvl}. szint). Kerüld el – vagy ne.`, '#ff7a7a', 3); }
+        // felfigyelés: 1,5 mp, amíg dönthetsz – harc vagy menekülés
+        if ((dP < 230 && e.seeP) || e.hurtT > 0) { e.state = 'alert'; e.alertT = 1.5; UI.toast(`⚠ ${e.nameTxt} felfigyelt rád! (${e.lvl}. szint) – most még elfuthatsz.`, '#ff3355', 4); Audio2.play('bossroar'); this.text(e.x, e.y - e.r - 24, '!', '#ff3355', 26, { life: 1.5, vy: -6 }); continue; }
         else { e.wa = (e.wa || RNG() * 6.28) + RNG.range(-1, 1) * dt; if (moveCircle(m, e, Math.cos(e.wa) * 40 * dt, Math.sin(e.wa) * 40 * dt)) e.wa += 2; continue; }
       }
+      if (e.state === 'alert') { e.alertT -= dt; e.wind = 0; if (e.alertT <= 0) e.state = 'chase'; continue; }
       if (e.boss) { this.bossAI(e, dt, dP); continue; }
+      // Ős-póráz: aki elég messzire fut, azt elengedi – erős, de nem csapda
+      if (e.ancient && e.state === 'chase') { if (dP > 620) { e.leashT = (e.leashT || 0) + dt; if (e.leashT > 2.5) { e.state = 'wander'; e.leashT = 0; e.hp = Math.min(e.mhp, e.hp + e.mhp * 0.25); UI.toast(`${e.nameTxt} elvesztette a nyomodat.`, '#e6c47a', 2.5); continue; } } else e.leashT = 0; }
       let spd = e.spd * (e.slow > 0 ? 0.5 : 1); if (e.slow > 0) e.slow -= dt;
       if (e.mods.includes('fagyos') && dP < 130) { P.chill = 0.3; }
       if (e.mods.includes('tuzes')) { e.trailT = (e.trailT || 0) - dt; if (e.trailT <= 0) { e.trailT = 0.6; this.ground(e.x, e.y, 26, 3, e.dmg * 0.6, 'tuz', 'e'); } }
-      if (e.mods.includes('teleport')) { e.tpT = (e.tpT || 4) - dt; if (e.tpT <= 0 && dP < 600) { e.tpT = 5 + RNG() * 3; const a = RNG() * 6.28; const nx = P.x + Math.cos(a) * 90, ny = P.y + Math.sin(a) * 90; if (!solidAt(m, nx, ny)) { this.burst(e.x, e.y, '#c48cff', 10, 120); e.x = nx; e.y = ny; this.burst(e.x, e.y, '#c48cff', 10, 120); } } }
+      if (e.mods.includes('teleport')) { e.tpT = (e.tpT || 4) - dt; if (e.tpT <= 0 && dP < (e.ancient ? 380 : 600)) { e.tpT = 5 + RNG() * 3; const a = RNG() * 6.28; const nx = P.x + Math.cos(a) * 90, ny = P.y + Math.sin(a) * 90; if (!solidAt(m, nx, ny)) { this.burst(e.x, e.y, '#c48cff', 10, 120); e.x = nx; e.y = ny; this.burst(e.x, e.y, '#c48cff', 10, 120); } } }
       e.cd -= dt;
       const ai = e.def.ai;
       let mv = null; // irány, amerre menne
@@ -58,8 +63,9 @@ Object.assign(G, {
       if (e.fear > 0) { e.fear -= dt; mv = toP + Math.PI; }
       else if (ai === 'melee' || ai === 'tank' || ai === 'phase') {
         const reach = e.r + P.r + (ai === 'tank' ? 22 : 14);
-        if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { if (dP < reach + 16) this.hurtPlayer(e.dmg * (ai === 'tank' ? 1.5 : 1), e.def.dt || 'fiz', e); this.fxArc(e.x, e.y, toP, 1.4, reach, 'claw'); if (ai === 'tank') { this.shake(3); if (dP < reach + 16) { P.kbx = Math.cos(toP) * 300; P.kby = Math.sin(toP) * 300; } } e.cd = ai === 'tank' ? 1.8 : 1.2; } }
-        else if (dP < reach && e.cd <= 0) { e.wind = ai === 'tank' ? 0.6 : 0.35; }
+        // a lendítés iránya a felhúzáskor rögzül: oldalra lépve vagy kitérve el lehet kerülni
+        if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { const arcW = ai === 'tank' ? 1.25 : 0.95, inArc = Math.abs(angDiff(e.windA, toP)) < arcW + 0.15; if (dP < reach + 16 && inArc) this.hurtPlayer(e.dmg * (ai === 'tank' ? 1.5 : 1), e.def.dt || 'fiz', e, { fx: 'claw' }); this.fxArc(e.x, e.y, e.windA, arcW * 2, reach + 16, 'claw'); if (ai === 'tank') { this.shake(3); if (dP < reach + 16 && inArc) { P.kbx = Math.cos(toP) * 300; P.kby = Math.sin(toP) * 300; } } e.cd = ai === 'tank' ? 1.8 : 1.2; } }
+        else if (dP < reach && e.cd <= 0) { e.wind = e.windMax = (ai === 'tank' ? 0.7 : 0.45) * (e.mods.includes('gyors') ? 0.8 : 1); e.windA = toP; e.windR = reach + 16; e.windW = ai === 'tank' ? 1.25 : 0.95; }
         else mv = chaseDir();
         if (ai === 'phase' && e.cd <= -2 && dP < 300 && e.seeP) { e.cd = 1; const a = toP + Math.PI + RNG.range(-0.8, 0.8); const nx = P.x + Math.cos(a) * 50, ny = P.y + Math.sin(a) * 50; if (!solidAt(m, nx, ny)) { this.burst(e.x, e.y, e.look.c2, 8, 100); e.x = nx; e.y = ny; } }
       } else if (ai === 'swarm') {
@@ -73,29 +79,31 @@ Object.assign(G, {
         else if (dP < pref - 70) mv = toP + Math.PI;
         else { mv = toP + e.strafe * Math.PI / 2; if (RNG() < dt * 0.6) e.strafe *= -1; spd *= 0.6; }
         if (e.seeP && e.cd <= 0 && dP < 620) {
-          if (ai === 'ranged') this.enemyShoot(e, toP);
-          else if (ai === 'caster') { const C = e.def.cast; for (let i = 0; i < (C.n || 1); i++) { const ox = i ? RNG.range(-90, 90) : 0, oy = i ? RNG.range(-90, 90) : 0; this.tele(P.x + ox + P.vx * 0.4, P.y + oy + P.vy * 0.4, C.r, C.delay, e.dmg * 1.4, e.def.dt || 'fiz', 'e', { src: e, fx: e.def.dt === 'fagy' ? 'nova' : 'bolt', freezeP: e.def.dt === 'fagy' }); } e.cd = C.cd; }
+          if (ai === 'ranged') { if (!(e.aimT > 0)) e.aimT = 0.32; }
+          else if (ai === 'caster') { const C = e.def.cast; for (let i = 0; i < (C.n || 1); i++) { const ox = i ? RNG.range(-90, 90) : 0, oy = i ? RNG.range(-90, 90) : 0; this.tele(P.x + ox + P.vx * 0.4, P.y + oy + P.vy * 0.4, C.r, C.delay, e.dmg * 1.4, e.def.dt || 'fiz', 'e', { src: e, fx: e.def.dt === 'fagy' ? 'nova' : 'bolt', freezeP: e.def.dt === 'fagy' }); } e.cd = C.cd * (e.ancient ? 1.5 : 1); }
           else if (ai === 'summoner') { const Sm = e.def.summon; if (e.summoned < 8) for (let i = 0; i < Sm.n; i++) { const c = this.spawnEnemy(Sm.type, e.x + RNG.range(-30, 30), e.y + RNG.range(-30, 30), e.lvl, {}); c.state = 'chase'; c.xp *= 0.3; e.summoned++; c.parent = e; } e.cd = Sm.cd; this.fxRing(e.x, e.y, 40, e.look.c, 0.4); }
         }
+        if (e.aimT > 0) { e.aimT -= dt; spd *= 0.35; if (e.aimT <= 0) { if (!e.dead && e.seeP) this.enemyShoot(e, toP); else e.cd = 0.5; } }
       } else if (ai === 'charger') {
         if (e.charging > 0) { e.charging -= dt; const hit = moveCircle(m, e, e.cvx * dt, e.cvy * dt); if (!e.chHit && dist(e, P) < e.r + P.r + 4) { e.chHit = true; this.hurtPlayer(e.dmg * 1.6, e.def.dt || 'fiz', e); P.kbx = e.cvx * 0.6; P.kby = e.cvy * 0.6; } if (hit) { e.charging = 0; e.stun = 0.9; this.shake(3); this.burst(e.x, e.y, '#ccc', 8, 100); } if (RNG() < 0.5) this.burst(e.x, e.y, '#aaa', 1, 30, 0.3); continue; }
-        if (e.wind > 0) { e.wind -= dt; e.windA = toP; if (e.wind <= 0) { const s = 520 + e.spd * 2; e.cvx = Math.cos(e.windA) * s; e.cvy = Math.sin(e.windA) * s; e.charging = 0.55; e.chHit = false; e.cd = 3; } continue; }
-        if (e.seeP && dP < 330 && dP > 70 && e.cd <= 0) { e.wind = 0.6; continue; }
+        if (e.wind > 0) { e.wind -= dt; if (e.wind > 0.22) e.windA = toP; if (e.wind <= 0) { const s = 520 + e.spd * 2; e.cvx = Math.cos(e.windA) * s; e.cvy = Math.sin(e.windA) * s; e.charging = 0.55; e.chHit = false; e.cd = 3; } continue; }
+        if (e.seeP && dP < 330 && dP > 70 && e.cd <= 0) { e.wind = 0.65; e.windA = toP; this.teles.push({ line: true, follow: e, x: e.x, y: e.y, a: toP, len: (520 + e.spd * 2) * 0.55, w: e.r * 2, t: 0, delay: 0.65, own: 'none' }); continue; }
         if (dP < e.r + P.r + 10 && e.cd <= 0) { this.hurtPlayer(e.dmg, e.def.dt || 'fiz', e); e.cd = 1.2; }
         mv = chaseDir();
       } else if (ai === 'exploder') {
         if (e.fuse > 0) { e.fuse -= dt; if (e.fuse <= 0) { this.hitArea(e.x, e.y, 80, e.dmg, e.def.dt || 'tuz', 'e', { fx: 'boom', src: e }); Audio2.play('boom'); e.xp *= 0.5; this.killEnemy(e); } continue; }
         mv = chaseDir(); spd *= 1.1;
-        if (dP < e.r + P.r + 20) { e.fuse = 0.45; }
+        if (dP < e.r + P.r + 20) { e.fuse = e.fuseMax = 0.6; }
       } else if (ai === 'turret') {
-        if (!e.def.noShot && e.seeP && dP < 600 && e.cd <= 0) this.enemyShoot(e, toP);
+        if (!e.def.noShot && e.seeP && dP < 600 && e.cd <= 0 && !(e.aimT > 0)) e.aimT = 0.4;
+        if (e.aimT > 0) { e.aimT -= dt; if (e.aimT <= 0) this.enemyShoot(e, toP); }
       }
       if (mv != null && !isNaN(mv)) {
         // szétválás a szomszédoktól
         let sx = 0, sy = 0;
         for (const o of this.near(e.x, e.y, e.r + 14)) { if (o === e) continue; const dd = Math.hypot(e.x - o.x, e.y - o.y) || 1; sx += (e.x - o.x) / dd; sy += (e.y - o.y) / dd; }
         let vx = Math.cos(mv) * spd + sx * 40, vy = Math.sin(mv) * spd + sy * 40;
-        if (this.gust) { vx += this.gust.x * 0.6; vy += this.gust.y * 0.6; }
+        if (this.gust && !this.sheltered(e)) { vx += this.gust.x * 0.6; vy += this.gust.y * 0.6; }
         const t = tileAt(m, Math.floor(e.x / TILE), Math.floor(e.y / TILE)); if (t === T_HAZ) { const fx = REGION[m.region] && REGION[m.region].haz.fx; if (fx === 'slow') { vx *= 0.55; vy *= 0.55; } }
         moveCircle(m, e, vx * dt, vy * dt);
         e.face = mv;
@@ -117,16 +125,20 @@ Object.assign(G, {
   // ---------- BOSS MI ----------
   bossAI(e, dt, dP) {
     const P = this.P, m = this.map, D = e.bossDef, toP = Math.atan2(P.y - e.y, P.x - e.x);
-    if (!e.intro) { e.intro = true; UI.bossBar(e); Audio2.play('bossroar'); this.text(e.x, e.y - e.r - 20, RNG.pick(D.lines), '#ffd0d0', 14, { life: 3, vy: -10 }); }
+    if (!e.intro) { e.intro = true; UI.bossBar(e); Audio2.play('bossroar'); this.text(e.x, e.y - e.r - 20, Dialog.fill(RNG.pick(D.lines)), '#ffd0d0', 14, { life: 3, vy: -10 }); if (STORY[e.bossId] && !this.map.hasadek) UI.scene(`${D.nev} – ${D.cim}`, STORY[e.bossId].be, 5); }
     // fázisváltás
     if (e.phase === 1 && e.hp < e.mhp * 0.5) {
       e.phase = 2; UI.toast(D.p2, '#ff7a7a', 4); this.text(e.x, e.y - e.r - 20, D.p2, '#ff9999', 14, { life: 3, vy: -10 }); this.shake(10); Audio2.play('bossroar');
       e.pat.forEach(p => p.cd *= 0.7); e.spd *= 1.25;
+      if (D.p2Pat) { e.pat.push({ ...D.p2Pat, t: 0, sig: true }); e.seqI = e.pat.length - 1; } // a 2. fázis saját támadással nyit
+      e.tellP = null; e.gap = 1.6; this.hitArea(e.x, e.y, 200, 0, 'fiz', 'p', { fx: 'nova3' }); { const P2 = this.P, a = Math.atan2(P2.y - e.y, P2.x - e.x); if (dist(e, P2) < 260) { P2.kbx = Math.cos(a) * 420; P2.kby = Math.sin(a) * 420; } }
       if (D.chains) this.spawnChains(e, 3); if (D.antennas) this.spawnAntennas(e, 3);
     }
     // láncok/antennák: sebezhetetlenség / pajzs
     if (e.links) { const alive = e.links.filter(l => !l.dead).length; if (D.chains) e.immune = alive > 0; if (D.antennas) e.shieldMul = alive > 0 ? 0.2 : 1; }
-    if (D.gravity && dP < 900) { const f = D.gravity * (1 - dP / 900) + 30; P.ext = P.ext || { x: 0, y: 0 }; P.ext.x -= Math.cos(toP) * f; P.ext.y -= Math.sin(toP) * f; if (dP < e.r + 40) this.hurtPlayer(e.dmg * dt * 2, 'ter', e, { silent: true }); }
+    // a gravitáció lüktet: 4 mp beszívás, 3 mp csend – a szünet a közelharc ablaka
+    if (D.gravity) { e.gravT = (e.gravT || 0) + dt; const cyc = e.phase === 2 ? 6 : 7, on = (e.gravT % cyc) < 4; if (on !== e.gravOn) { e.gravOn = on; this.text(e.x, e.y - e.r - 30, on ? 'BESZÍVÁS' : 'csend…', on ? '#ffb347' : '#c48cff', 13, { life: 1 }); this.fxRing(e.x, e.y, on ? 300 : 120, on ? '#ffb347' : '#c48cff', 0.6, 4); }
+      if (on && dP < 900) { const f = D.gravity * (1 - dP / 900) + 30; P.ext = P.ext || { x: 0, y: 0 }; P.ext.x -= Math.cos(toP) * f; P.ext.y -= Math.sin(toP) * f; if (dP < e.r + 30) this.hurtPlayer(e.dmg * dt * 1.5, 'ter', e, { silent: true }); } }
     if (e.stun > 0) { e.stun -= dt; return; }
     // mozgás
     if (e.charging > 0) {
@@ -143,11 +155,11 @@ Object.assign(G, {
       if (mv != null) moveCircle(m, e, Math.cos(mv) * e.spd * dt, Math.sin(mv) * e.spd * dt);
     }
     if (e.beam) this.updateBeam(e, dt);
-    // minták
-    for (const p of e.pat) p.t -= dt;
-    e.gap -= dt; if (e.gap > 0 || e.beam) return;
-    const ready = e.pat.filter(p => p.t <= 0); if (!ready.length) return;
-    const p = RNG.pick(ready); p.t = p.cd * (0.8 + RNG() * 0.4); e.gap = e.phase === 2 ? 0.6 : 1.0;
+    // minták: rögzített sorrend (megtanulható), minden támadás előtt bejelentés
+    e.gap -= dt; if (e.beam) return;
+    if (e.tellP) { e.tellT -= dt; if (e.tellT > 0) return; }
+    else { if (e.gap > 0) return; if (D.gravity && !e.gravOn) return; const nx = e.pat[(e.seqI || 0) % e.pat.length]; e.tellP = nx; e.tellT = e.phase === 2 ? 0.45 : 0.65; e.tellMax = e.tellT; this.text(e.x, e.y - e.r - 26, nx.nev || BOSS_MOVE[nx.k] || '', nx.sig ? '#ff7a7a' : '#ffd0a0', nx.sig ? 15 : 12, { life: 1, vy: -14 }); return; }
+    const p = e.tellP; e.tellP = null; e.seqI = (e.seqI || 0) + 1; e.gap = clamp(p.cd * 0.5, 1.1, 3.2) * (e.phase === 2 ? 0.75 : 1);
     const dmg = e.dmg, dt2 = D.look.s === 'radiohead' || D.look.s === 'heart' ? 'villam' : D.look.s === 'core' || D.look.s === 'mech' ? 'tuz' : D.look.s === 'self' || D.look.s === 'singularity' ? 'ter' : 'fiz';
     const kind = p.kind || 'bolt', col = D.look.c2;
     switch (p.k) {
@@ -186,13 +198,14 @@ Object.assign(G, {
     for (const a of this.allies) {
       a.t += dt; a.life -= dt; if (a.life <= 0) continue;
       a.cd -= dt * (1 + P.st.sumaspd / 100);
+      if (Machines.isM(a)) { a.linkT = (a.linkT || 0) - dt; if (a.linkT <= 0) { a.linkT = 0.5; a.links = Machines.links(a); } }
       if (a.kind === 'dron') {
         const i = this.allies.filter(x => x.kind === 'dron').indexOf(a); const ang = this.t * 1.4 + i * 1.3;
         const tx = a.owner.x + Math.cos(ang) * (46 + (i % 3) * 14), ty = a.owner.y + Math.sin(ang) * (46 + (i % 3) * 14) - 8;
         a.x = lerp(a.x, tx, Math.min(1, dt * 6)); a.y = lerp(a.y, ty, Math.min(1, dt * 6));
-        if (a.cd <= 0) { const e = this.nearestEnemy(a.x, a.y, a.range); if (e) { a.cd = a.rate; this.proj({ x: a.x, y: a.y, a: Math.atan2(e.y - a.y, e.x - a.x), spd: 700, r: 3, dmg: P.roll(a.dmgMul, 'summon'), dt: a.grey ? 'ter' : 'villam', own: 'p', kind: 'laser', col: a.grey ? '#c0c0c0' : '#7fd8ff', life: 1 }); Audio2.play('shoot'); } }
+        if (a.cd <= 0) { const e = Machines.target(a.x, a.y, a.range); if (e) { a.cd = a.rate; this.proj({ x: a.x, y: a.y, a: Math.atan2(e.y - a.y, e.x - a.x), spd: 700, r: 3, dmg: P.roll(a.dmgMul * Machines.mul(a), 'summon'), dt: a.grey ? 'ter' : 'villam', own: 'p', kind: 'laser', col: a.grey ? '#c0c0c0' : '#7fd8ff', life: 1, machine: true }); Audio2.play('shoot'); } }
       } else if (a.kind === 'torony') {
-        if (a.cd <= 0) { const e = this.nearestEnemy(a.x, a.y, a.range); if (e) { a.cd = a.rate; a.aim = Math.atan2(e.y - a.y, e.x - a.x); this.proj({ x: a.x, y: a.y, a: a.aim + RNG.range(-0.05, 0.05), spd: 800, r: 3, dmg: P.roll(a.dmgMul, 'summon'), dt: 'fiz', own: 'p', kind: 'bullet', col: '#ffd27a', life: 1 }); Audio2.play('shoot'); } }
+        if (a.cd <= 0) { const e = this.nearestEnemy(a.x, a.y, a.range); if (e) { a.cd = a.rate; a.aim = Math.atan2(e.y - a.y, e.x - a.x); this.proj({ x: a.x, y: a.y, a: a.aim + RNG.range(-0.05, 0.05), spd: 800, r: 3, dmg: P.roll(a.dmgMul * Machines.mul(a), 'summon'), dt: 'fiz', own: 'p', kind: 'bullet', col: '#ffd27a', life: 1, machine: true, tmark: true }); Audio2.play('shoot'); } }
       } else if (a.kind === 'meh') {
         const e = this.nearestEnemy(a.x, a.y, a.range, false);
         const tx = e ? e.x : P.x + Math.cos(a.t * 3) * 40, ty = e ? e.y : P.y + Math.sin(a.t * 3) * 40;
@@ -201,7 +214,7 @@ Object.assign(G, {
       } else if (a.kind === 'orbit') {
         a.ang += dt * 3.2; a.x = a.owner.x + Math.cos(a.ang) * a.rad; a.y = a.owner.y + Math.sin(a.ang) * a.rad;
         a.hitT = a.hitT || new Map();
-        for (const e of this.near(a.x, a.y, 16)) { const lt = a.hitT.get(e) || 0; if (this.t - lt > 0.4) { a.hitT.set(e, this.t); this.hurtEnemy(e, P.roll(a.dmgMul, a.dk), P.wdt(), { melee: true }); } }
+        for (const e of this.near(a.x, a.y, 16)) { const lt = a.hitT.get(e) || 0; if (this.t - lt > 0.4) { a.hitT.set(e, this.t); this.hurtEnemy(e, P.roll(a.dmgMul, a.dk), P.wdt(), { melee: true, noStop: true }); } }
       } else if (a.kind === 'mine') {
         const e = this.near(a.x, a.y, a.trig * 0.6)[0];
         if (e || a.life < 0.1) { this.hitArea(a.x, a.y, a.trig, a.dmg, a.dt, 'p', { fx: 'boom', isSplash: true }); Audio2.play('boom'); a.life = 0; }
@@ -211,7 +224,7 @@ Object.assign(G, {
         if (RNG() < 0.6) { const an = RNG() * 6.28, d = a.rad * 0.6; this.parts.push({ x: a.x + Math.cos(an) * d, y: a.y + Math.sin(an) * d, vx: -Math.cos(an) * 200, vy: -Math.sin(an) * 200, t: 0, life: 0.6, c: '#c48cff', size: 2, drag: 0 }); }
       }
     }
-    if (this.allies.some(a => a.life <= 0)) this.allies = this.allies.filter(a => a.life > 0);
+    if (this.allies.some(a => a.life <= 0)) { for (const a of this.allies) if (a.life <= 0 && a.t > 1) Machines.expire(a); this.allies = this.allies.filter(a => a.life > 0); }
   },
 
   // ---------- lövedékek ----------
@@ -220,7 +233,8 @@ Object.assign(G, {
     for (const p of this.projs) {
       const dt = p.own === 'e' ? (this.wdt != null ? this.wdt : dt0) : dt0;
       p.t += dt; if (p.t > p.life) { p.dead = true; if (p.splash && p.own === 'p') this.explode(p); continue; }
-      if (p.homing && p.own === 'p') { const e = this.nearestEnemy(p.x, p.y, 380, false); if (e) { const a = Math.atan2(p.vy, p.vx), ta = Math.atan2(e.y - p.y, e.x - p.x); const na = a + clamp(angDiff(a, ta), -p.homing * dt, p.homing * dt); const s = Math.hypot(p.vx, p.vy); p.vx = Math.cos(na) * s; p.vy = Math.sin(na) * s; } }
+      if (p.homing && p.own === 'p') { const e = p.machine ? Machines.target(p.x, p.y, 380) : this.nearestEnemy(p.x, p.y, 380, false); if (e) { const a = Math.atan2(p.vy, p.vx), ta = Math.atan2(e.y - p.y, e.x - p.x); const na = a + clamp(angDiff(a, ta), -p.homing * dt, p.homing * dt); const s = Math.hypot(p.vx, p.vy); p.vx = Math.cos(na) * s; p.vy = Math.sin(na) * s; } }
+      if (this.gust && p.own === 'e') { p.vx += this.gust.x * 1.4 * dt; p.vy += this.gust.y * 1.4 * dt; } // a szél elsodorja az ellenséges lövedékeket
       if (p.homingP && p.own === 'e') { const a = Math.atan2(p.vy, p.vx), ta = Math.atan2(P.y - p.y, P.x - p.x); const na = a + clamp(angDiff(a, ta), -p.homingP * dt, p.homingP * dt); const s = Math.hypot(p.vx, p.vy); p.vx = Math.cos(na) * s; p.vy = Math.sin(na) * s; }
       const steps = Math.max(1, Math.ceil(Math.hypot(p.vx, p.vy) * dt / 10));
       for (let s = 0; s < steps && !p.dead; s++) {
@@ -235,7 +249,7 @@ Object.assign(G, {
             if (p.hit.has(e) || (e.wphase && this.mapIs('eh') && e.w !== P.w)) continue;
             p.hit.add(e);
             if (p.splash) { this.explode(p); p.dead = true; break; }
-            this.hurtEnemy(e, p.dmg, p.dt, { burn: p.burn, slow: p.slow, stun: p.stun, knock: p.knock || (p.kind === 'bullet' ? 15 : 30), kx: p.x - p.vx, ky: p.y - p.vy, basic: p.basic, ranged: p.ranged, far: true, k: p.k });
+            this.hurtEnemy(e, p.dmg, p.dt, { burn: p.burn, slow: p.slow, stun: p.stun, knock: p.knock || (p.kind === 'bullet' ? 15 : 30), kx: p.x - p.vx, ky: p.y - p.vy, basic: p.basic, ranged: p.ranged, far: true, k: p.k, machine: p.machine, tmark: p.tmark });
             if (p.add) for (const k in p.add) if (p.add[k]) this.hurtEnemy(e, { a: p.add[k], c: false }, k, {});
             this.burst(p.x, p.y, p.col || DT[p.dt].c, 4, 80, 0.3, 2);
             if (p.pierce-- <= 0) { p.dead = true; break; }
@@ -252,13 +266,13 @@ Object.assign(G, {
   },
   explode(p) {
     const r = p.splash * (1 + this.P.st.splashr / 100);
-    this.hitArea(p.x, p.y, r, { a: p.dmg.a * (1 + this.P.st.splashp / 100), c: p.dmg.c }, p.dt, 'p', { fx: 'boom', burn: p.burn, isSplash: true });
+    this.hitArea(p.x, p.y, r, { a: p.dmg.a * (1 + this.P.st.splashp / 100), c: p.dmg.c }, p.dt, 'p', { fx: 'boom', burn: p.burn || (this.P.st.tuzer ? 2 : 0), isSplash: true, machine: p.machine });
     if (p.kind === 'rocket' || p.kind === 'fireball' || p.kind === 'orb') Audio2.play('boom');
     if (this.P.fx.szonda && p.kind === 'rocket' && !p.child) this.later(0.25, () => this.proj({ x: p.x, y: p.y, a: RNG() * 6.28, spd: 300, r: 4, dmg: { a: p.dmg.a * 0.5, c: false }, dt: 'tuz', own: 'p', kind: 'rocket', homing: 6, splash: 40, life: 1.5, child: true, trail: '#ffb070' }));
   },
   updateTeles(dt) {
     for (const t of this.teles) {
-      t.t += dt;
+      t.t += dt; if (t.follow) { if (t.follow.dead || t.follow.stun > 0) { t.dead = true; continue; } t.x = t.follow.x; t.y = t.follow.y; t.a = t.follow.windA; }
       if (t.t >= t.delay) {
         t.dead = true; if (t.line || t.own === 'none') continue;
         this.hitArea(t.x, t.y, t.r, t.dmg, t.dt, t.own, { ...t.o, fx: t.o.fx || 'boom', src: t.o.src, isSplash: t.own === 'p' });
@@ -288,6 +302,6 @@ Object.assign(G, {
     else if (fx === 'radio') { this.fxRing(x, y, r * 0.6, c, 0.6, 3); this.fxRing(x, y, r * 0.3, c, 0.8, 2); }
     else this.burst(x, y, c, 12, r * 2, 0.35, 2);
   },
-  fxArc(x, y, a, arc, range, fx) { this.parts.push({ arc: true, x, y, a, arc, range, t: 0, life: fx === 'burp' ? 0.5 : 0.18, c: fx === 'burp' ? '#ff9be0' : fx === 'quake' ? '#d9a441' : fx === 'claw' ? 'rgba(255,90,90,.8)' : '#fff3d0' }); },
+  fxArc(x, y, a, arc, range, fx) { this.parts.push({ arc: true, x, y, a, arc, range, t: 0, life: fx === 'burp' ? 0.5 : fx === 'swing3' ? 0.26 : 0.18, heavy: fx === 'swing3', c: fx === 'burp' ? '#ff9be0' : fx === 'quake' ? '#d9a441' : fx === 'claw' ? 'rgba(255,90,90,.8)' : fx === 'swing3' ? '#ffe2a0' : '#fff3d0' }); },
   lightFlash(x, y, r) { this.flashes = this.flashes || []; this.flashes.push({ x, y, r, t: 0, life: 0.25 }); },
 });

@@ -48,6 +48,10 @@ input{font:inherit;background:#15120e;color:var(--tx);border:1px solid var(--bd)
 #buffs{position:absolute;left:14px;top:62px;display:flex;gap:4px;flex-wrap:wrap;width:320px}
 .bf{font-size:11px;background:rgba(0,0,0,.6);border:1px solid var(--bd2);border-radius:3px;padding:1px 5px}
 #keys{position:absolute;left:14px;top:100px;color:#8a7f66;font-size:11px;line-height:1.5;text-shadow:0 1px 2px #000}
+#scene{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .8s}#scene.on{opacity:1}
+#scene .sc-bar{position:absolute;left:0;right:0;top:0;height:9vh;background:#000}#scene .sc-bar.b{top:auto;bottom:0}
+#scene .sc-t{position:absolute;left:50%;top:24vh;transform:translateX(-50%);width:min(680px,90vw);text-align:center;text-shadow:0 2px 6px #000;background:radial-gradient(ellipse at center,rgba(0,0,0,.55),rgba(0,0,0,0) 70%);padding:14px 24px}
+#scene .sc-x{font-size:15px;line-height:1.6;margin-top:6px;font-style:italic;color:#e8dcc0}
 /* panelek */
 .panel{position:fixed;background:var(--pan);border:1px solid var(--bd);border-radius:6px;box-shadow:0 10px 40px #000c;display:none;z-index:10}
 .panel .hd{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd2)}
@@ -66,7 +70,7 @@ input{font:inherit;background:#15120e;color:var(--tx);border:1px solid var(--bd)
 .row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #2a241b}
 .tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}.tabs button.on{border-color:var(--gold);color:#fff;background:linear-gradient(#5a4320,#2e2212)}
 .sktree{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.skc{border:1px solid var(--bd2);border-radius:5px;padding:8px;background:#14110d}.skc.lk{opacity:.5}.skc .t{display:flex;gap:8px;align-items:center}.skc .ic{font-size:24px}.skc .nm{font-weight:700}.skc .d{font-size:11px;color:var(--dim);margin:4px 0}
+.skc.ut{border-color:#8a6a2a;background:#1c160c}.ar{color:#ff9a7a}.skc{border:1px solid var(--bd2);border-radius:5px;padding:8px;background:#14110d}.skc.lk{opacity:.5}.skc .t{display:flex;gap:8px;align-items:center}.skc .ic{font-size:24px}.skc .nm{font-weight:700}.skc .d{font-size:11px;color:var(--dim);margin:4px 0}
 .dlg-txt{font-size:14px;line-height:1.55;margin:6px 0 12px;min-height:44px}.dlg-opts{display:flex;flex-direction:column;gap:5px}.dlg-opts button{text-align:left}
 .port{width:56px;height:56px;border-radius:50%;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:28px}
 /* menü */
@@ -88,7 +92,7 @@ input{font:inherit;background:#15120e;color:var(--tx);border:1px solid var(--bd)
 <body>
 <canvas id="c"></canvas>
 <div id="hud">
-  <div id="topl"><div id="rname" class="h"></div><div id="rsub"></div></div>
+  <div id="scene"></div><div id="topl"><div id="rname" class="h"></div><div id="rsub"></div><div id="exped" style="color:#e6c47a;font-size:12px;margin-top:2px"></div></div>
   <div id="buffs"></div>
   <div id="keys"></div>
   <canvas id="mm" width="190" height="190"></canvas>
@@ -196,6 +200,10 @@ const Audio2 = {
     switch (name) {
       case 'swing': this.noiseHit(0.12, 0.12, 2500, 0.8); break;
       case 'hit': this.noiseHit(0.08, 0.18, 900, 1.5); this.tone(140, 0.08, 'square', 0.05, -60); break;
+      case 'heavy': this.noiseHit(0.16, 0.3, 380, 0.7); this.tone(70, 0.18, 'sine', 0.22, -30); break;
+      case 'crit': this.noiseHit(0.06, 0.2, 2600, 2); this.tone(1200, 0.07, 'triangle', 0.06, -500); break;
+      case 'perfect': this.tone(1568, 0.25, 'sine', 0.08, -800); this.tone(784, 0.3, 'triangle', 0.06, 0, 0.04); break;
+      case 'stamina': this.tone(220, 0.12, 'triangle', 0.06, -60); break;
       case 'shoot': this.noiseHit(0.07, 0.15, 3000, 0.7); this.tone(600, 0.06, 'square', 0.04, -400); break;
       case 'rifle': this.noiseHit(0.18, 0.25, 1500, 0.5); this.tone(220, 0.12, 'sawtooth', 0.06, -150); break;
       case 'magic': this.tone(520, 0.18, 'sine', 0.1, 400); this.tone(780, 0.14, 'triangle', 0.05, 300, 0.03); break;
@@ -233,16 +241,17 @@ const Audio2 = {
 // ============================================================
 const DT = { fiz: { nev: 'Fizikai', c: '#e6e0d4' }, tuz: { nev: 'Tűz', c: '#ff7a2e' }, fagy: { nev: 'Fagy', c: '#7fd8ff' }, villam: { nev: 'Villám', c: '#f4f06a' }, ter: { nev: 'Téridő', c: '#c48cff' } };
 const ATTR = { ero: 'Erő', ugy: 'Ügyesség', akarat: 'Akarat', kit: 'Kitartás', allo: 'Állóképesség' };
-const ATTR_DESC = { ero: '+1,1% közelharci sebzés', ugy: '+1,1% távolsági sebzés, +0,08% kritikus esély', akarat: '+1,3% varázssebzés, +2 erőforrás', kit: '+7 életerő, +1,5 páncél', allo: '+2 állóképesség, +1,5% gyorsabb töltődés, lassabb éhezés' };
+const ATTR_DESC = { ero: '+1,4% közelharci sebzés', ugy: '+1,1% távolsági sebzés, +0,08% kritikus esély', akarat: '+1,3% varázssebzés, +2 erőforrás', kit: '+7 életerő, +1,5 páncél', allo: '+2 állóképesség, +1,5% gyorsabb töltődés, lassabb éhezés' };
 // Kasztonkénti erőforrás
 const RESOURCES = {
-  penge: { nev: 'Düh', c: '#e0473a', ikon: '🔥', desc: 'Ütéssel és sebződéssel gyűlik, harcon kívül elpárolog.' },
-  elem: { nev: 'Mana', c: '#4f8dff', ikon: '💧', desc: 'Folyamatosan töltődik. Az Akarat növeli.' },
-  loves: { nev: 'Belső idő', c: '#f2d36b', ikon: '⏳', desc: 'Lassan töltődik; a Golyóidő ebből lassítja a világot.' },
-  mernok: { nev: 'Áram', c: '#5fe0d0', ikon: '⚡', desc: 'Az akkumulátor töltődik; a gépek és a Túlfeszültség ebből élnek.' },
+  penge: { nev: 'Düh', c: '#e0473a', ikon: '🔥', desc: 'Csak valódi találatból és kapott ütésből gyűlik, harcon kívül elpárolog. 50 fölött Felbőszült (+12% támadási sebesség), teli dühnél Tomboló: a következő képesség ingyenes és +30%-ot sebez.' },
+  elem: { nev: 'Mana', c: '#4f8dff', ikon: '💧', desc: 'Folyamatosan töltődik, az Akarat növeli. Teli manánál a töltődés túltöltő tartályba folyik (max. 30%): a következő varázslat abból fizet, és +25%-ot sebez. Elemi reakciók: tűz a fagyottra, villám az égőre, fagy a sokkoltra.' },
+  loves: { nev: 'Belső idő', c: '#f2d36b', ikon: '⏳', desc: 'Lassan töltődik; a Golyóidő ebből lassítja a világot. Ugyanarra a célpontra leadott lövések Fókuszt gyűjtenek (+5% kritikus töltetenként), az Átütő lövés elhasználja.' },
+  mernok: { nev: 'Áram', c: '#5fe0d0', ikon: '⚡', desc: 'Az akkumulátor töltődik; a gépek és a Túlfeszültség ebből élnek. Az egymás közelében álló gépek hálózatot alkotnak (+8% kapcsolatonként), a lejárt gép árának negyede visszajár.' },
 };
 const MAX_LVL = 70;
-const xpNeed = l => Math.round(120 * Math.pow(l, 1.8) + 80 * l);
+// laposabb görbe: az elején lassabb, a középjátékban nem marad le a játékos a területtől
+const xpNeed = l => Math.round(160 * Math.pow(l, 1.65) + 120 * l);
 
 // Szörnyek erősödése szint szerint
 const monHp = l => 1 + 0.30 * (l - 1) + 0.016 * (l - 1) * (l - 1);
@@ -256,7 +265,7 @@ const CLASSES = {
   penge: {
     nev: 'Pengelovag', ikon: '⚔', szin: '#e0a84a', fegyver: 'kard',
     leiras: 'Közelharcos. Pajzsként viseli a páncélt, düht gyűjt minden ütéssel. Forgószél, roham, földrengés – ahol ő jár, ott nem marad álló szörny.',
-    base: { ero: 15, ugy: 8, akarat: 5, kit: 13, allo: 10 }, hpL: 14, mpL: 0, mpBase: 100, mpRegen: 0, onHitMp: 6, rage: true,
+    base: { ero: 15, ugy: 8, akarat: 5, kit: 13, allo: 10 }, hpL: 15, mpL: 0, mpBase: 100, mpRegen: 0, onHitMp: 6, rage: true,
     kedvenc: 'melee'
   },
   elem: {
@@ -282,9 +291,9 @@ const CLASSES = {
 // ---------------- fegyver- és tárgyalapok ----------------
 // kind: melee/ranged/spell – ez határozza meg az alap támadást (bal gomb)
 const BASES = {
-  kard: { nev: 'Kard', slot: 'fegyver', kind: 'melee', min: 6, max: 10, spd: 1.6, range: 62, arc: 1.7, dtype: 'fiz', ikon: '🗡' },
-  poroly: { nev: 'Pöröly', slot: 'fegyver', kind: 'melee', min: 11, max: 17, spd: 0.95, range: 70, arc: 2.3, dtype: 'fiz', knock: 140, ikon: '🔨' },
-  lancfuresz: { nev: 'Láncfűrész-penge', slot: 'fegyver', kind: 'melee', min: 3, max: 5, spd: 4.2, range: 54, arc: 1.2, dtype: 'fiz', ikon: '⚙', reqLvl: 8 },
+  kard: { nev: 'Kard', slot: 'fegyver', kind: 'melee', min: 7, max: 12, spd: 1.6, range: 62, arc: 1.7, dtype: 'fiz', knock: 70, stop: 0.04, ikon: '🗡' },
+  poroly: { nev: 'Pöröly', slot: 'fegyver', kind: 'melee', min: 13, max: 21, spd: 0.95, range: 70, arc: 2.3, dtype: 'fiz', knock: 210, stop: 0.075, ikon: '🔨' },
+  lancfuresz: { nev: 'Láncfűrész-penge', slot: 'fegyver', kind: 'melee', min: 4, max: 6, spd: 4.2, range: 54, arc: 1.2, dtype: 'fiz', knock: 12, stop: 0.012, ikon: '⚙', reqLvl: 8 },
   palca: { nev: 'Pálca', slot: 'fegyver', kind: 'spell', min: 5, max: 8, spd: 2.0, pspd: 520, prad: 6, dtype: 'ter', mp: 1.5, ikon: '🪄' },
   bot: { nev: 'Varázsbot', slot: 'fegyver', kind: 'spell', min: 10, max: 15, spd: 1.05, pspd: 380, prad: 10, dtype: 'tuz', splash: 46, mp: 3, ikon: '🔮' },
   pisztoly: { nev: 'Pisztoly', slot: 'fegyver', kind: 'ranged', min: 4, max: 7, spd: 3.2, pspd: 760, prad: 3, dtype: 'fiz', spread: 0.06, ikon: '🔫' },
@@ -370,6 +379,13 @@ const AFFIX = [
   { id: 'sta', nev: v => `+${v} állóképesség`, v: (l, r) => r.int(8, 18), slots: ['lab', 'test', 'artefakt'], pre: 'Kitartó' },
   { id: 'allo', nev: v => `+${v} Állóképesség`, v: (l, r) => r.int(2, 5) + Math.floor(l / 6), slots: null, pre: 'Edzett' },
   { id: 'potion', nev: v => `+${v}% italhatás`, v: (l, r) => r.int(10, 25), slots: ['test', 'nyak'], pre: 'Szomjas' },
+  // áldozat-affixek: nagy bónusz, valódi hátránnyal – csak ritka vagy jobb tárgyon
+  { id: 't_uveg', nev: v => `Üvegágyú: +${v}% sebzés, −${Math.round(v * 0.7)}% életerő`, v: (l, r) => r.int(18, 28), slots: ['fegyver', 'gyuru', 'nyak'], pre: 'Üvegágyús', trade: (v, add) => { add('dmgp', v); add('hpp', -v * 0.7); } },
+  { id: 't_nehez', nev: v => `Nehéz vért: +${v}% páncél, −${Math.round(v / 6)}% mozgási sebesség`, v: (l, r) => r.int(40, 70), slots: ['test', 'fej', 'lab'], pre: 'Ólomnehéz', trade: (v, add) => { add('armp', v); add('msp', -v / 6); } },
+  { id: 't_ver', nev: v => `Vérpakt: ${v}% életlopás, nincs életerő-töltődés`, v: (l, r) => r.int(3, 6), slots: ['fegyver', 'gyuru'], pre: 'Vérpaktos', trade: (v, add) => { add('ls', v); add('regenMul', -100); } },
+  { id: 't_lazas', nev: v => `Lázas sietség: +${v}% támadási sebesség, −${v}% kritikus sebzés`, v: (l, r) => r.int(15, 25), slots: ['fegyver', 'kez'], pre: 'Lázas', trade: (v, add) => { add('aspd', v); add('critd', -v); } },
+  { id: 't_moho', nev: v => `Mohóság: +${v}% jobb zsákmány és arany, −${Math.round(v / 4)}% minden állóság`, v: (l, r) => r.int(40, 70), slots: ['gyuru', 'nyak', 'fej'], pre: 'Mohó', trade: (v, add) => { add('mf', v); add('gf', v); add('resall', -v / 4); } },
+  { id: 't_ido', nev: v => `Kölcsönidő: −${v}% újratöltés, −${v * 2} max. erőforrás`, v: (l, r) => r.int(12, 20), slots: ['fej', 'nyak', 'artefakt'], pre: 'Kölcsönzött', trade: (v, add) => { add('cdr', v); add('resmax', -v * 2); } },
 ];
 
 // ---------------- Ereklyék (egyedi tárgyak a multiverzumból) ----------------
@@ -378,7 +394,7 @@ const RELICS = [
   { id: 'papucs', nev: 'Nagyi papucsa', base: 'csizma', minL: 3, fx: 'papucs', txt: 'Találatkor 15% eséllyel papucs repül a támadóra: kábít 1 mp-ig. „Nem öl, csak nevel.”', aff: [['ms', 12], ['hp', 1.3]] },
   { id: 'croptop', nev: 'Kurta rózsaszín crop topja', base: 'vert', minL: 6, fx: 'croptop', txt: 'Minden 10. találatod böfi-lökéshullámot ereszt (fizikai, hátralök). A hangerő a szinteddel nő.', aff: [['hp', 1.5], ['kit', 1], ['thorns', 1]] },
   { id: 'bika', nev: 'Bika-doboz amulett', base: 'amulett', minL: 4, fx: 'bika', txt: 'Ölés után 2 mp-re +25% támadási sebesség (halmozódik 3-ig).', aff: [['aspd', 1], ['mregen', 1]] },
-  { id: 'leltarkonyv', nev: 'A Leltárkönyv', base: 'amulett', minL: 5, fx: 'leltar', txt: '+40% arany és +25% jobb zsákmány. Minden hiányzó tétel egyszer előkerül.', aff: [['gf', 1.6], ['mf', 1.4]] },
+  { id: 'leltarkonyv', nev: 'A Leltárkönyv', base: 'amulett', minL: 5, fx: 'leltar', txt: '+40% arany és +25% jobb zsákmány. Minden hiányzó tétel egyszer előkerül. Ára: −15% életerő – a könyv nehéz, és a lapjai élesek.', aff: [['gf', 1.6], ['mf', 1.4]] },
   { id: 'mezkorona', nev: 'Méhkirálynő koronája', base: 'sisak', minL: 9, fx: 'mehraj', txt: 'Ölésnél 30% eséllyel méh születik, aki 10 mp-ig veled harcol.', aff: [['regen', 1.4], ['akarat', 1]] },
   { id: 'virgonc', nev: 'Virágporos kesztyű', base: 'kesztyu', minL: 8, fx: 'viragpor', txt: 'A találataid 20% eséllyel lassítják az ellenfelet (méz). +20% sebzés lassított célpontra.', aff: [['dmgp', 1], ['aspd', 1]] },
   { id: 'szivkard', nev: 'Az Égtorony Szíve', base: 'kard', minL: 14, fx: 'sziv', txt: 'Közelharci találatnál a sebzés 4%-át visszakapod életerőként. Szélroham: minden 4. csapás hullámot vet.', aff: [['dmgp', 1.5], ['ls', 1], ['critd', 1]] },
@@ -435,23 +451,23 @@ const SKILLS = {
   // ---------------- PENGELOVAG ----------------
   forgoszel: {
     cls: 'penge', nev: 'Forgószél', ikon: '🌀', tipus: 'aktiv', req: 1, max: 5, cost: r => 16, cd: r => 2.6,
-    desc: r => `Háromszor megpördülsz, mindhárom pörgés ${pct(0.7 + 0.15 * r)} fegyversebzést okoz 90 képpontos körben.`,
-    cast(r, P) { for (let i = 0; i < 3; i++) G.later(i * 0.18, () => { G.hitArea(P.x, P.y, 90, P.roll(0.7 + 0.15 * r, 'melee'), P.wdt(), 'p', { knock: 60, fx: 'spin' }); Audio2.play('swing'); }); }
+    desc: r => `Háromszor megpördülsz, mindhárom pörgés ${pct(0.7 + 0.15 * r)} fegyversebzést okoz 90 képpontos körben. Pörgésenként eltalált ellenfelenként +2 düh.`,
+    cast(r, P) { for (let i = 0; i < 3; i++) G.later(i * 0.18, () => { G.hitArea(P.x, P.y, 90, P.roll(0.7 + 0.15 * r, 'melee'), P.wdt(), 'p', { knock: 60, fx: 'spin', rage: 2 }); Audio2.play('swing'); }); }
   },
   roham: {
     cls: 'penge', nev: 'Roham', ikon: '➶', tipus: 'aktiv', req: 1, max: 5, cost: r => 14, cd: r => 6 - r * 0.4,
-    desc: r => `A célpont felé rontasz (max. 240 képpont), az utadba esőket ${pct(1.3 + 0.25 * r)} sebzéssel letarolod és 0,8 mp-re elkábítod.`,
-    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x); G.dash(P, a, Math.min(240, Math.hypot(tx - P.x, ty - P.y) + 30), 0.22, { dmg: P.roll(1.3 + 0.25 * r, 'melee'), dt: P.wdt(), stun: 0.8, invul: true }); Audio2.play('dash'); }
+    desc: r => `A célpont felé rontasz (max. 240 képpont), az utadba esőket ${pct(1.3 + 0.25 * r)} sebzéssel letarolod és 0,8 mp-re elkábítod. Minden eltalált ellenfél +6 dühöt ad.`,
+    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x); G.dash(P, a, Math.min(240, Math.hypot(tx - P.x, ty - P.y) + 30), 0.22, { dmg: P.roll(1.3 + 0.25 * r, 'melee'), dt: P.wdt(), stun: 0.8, invul: true, rage: 6 }); Audio2.play('dash'); }
   },
   csatakialtas: {
     cls: 'penge', nev: 'Csatakiáltás', ikon: '📯', tipus: 'aktiv', req: 6, max: 5, cost: r => 20, cd: r => 22,
-    desc: r => `10 mp-re +${15 + 6 * r}% sebzés és +${20 + 10 * r}% páncél. A közeli ellenfelek 1,5 mp-re megrémülnek.`,
-    cast(r, P) { G.buff(P, 'csata', 10, { dmgp: 15 + 6 * r, armp: 20 + 10 * r }); G.hitArea(P.x, P.y, 180, 0, 'fiz', 'p', { fear: 1.5, fx: 'shout' }); Audio2.play('bossroar'); }
+    desc: r => `10 mp-re +${15 + 6 * r}% sebzés és +${20 + 10 * r}% páncél, és azonnal +25 düh. A közeli ellenfelek 1,5 mp-re megrémülnek.`,
+    cast(r, P) { G.buff(P, 'csata', 10, { dmgp: 15 + 6 * r, armp: 20 + 10 * r }); P.mp = Math.min(P.mmp, P.mp + 25); G.hitArea(P.x, P.y, 180, 0, 'fiz', 'p', { fear: 1.5, fx: 'shout' }); Audio2.play('bossroar'); }
   },
   foldrenges: {
     cls: 'penge', nev: 'Földrengés-csapás', ikon: '💢', tipus: 'aktiv', req: 12, max: 5, cost: r => 28, cd: r => 7,
-    desc: r => `A földbe csapsz: 220 képpontos kúpban ${pct(2.2 + 0.4 * r)} sebzés, és 3 mp-re 50%-kal lelassítja az ellenfeleket.`,
-    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x); G.arc(P.x, P.y, a, 1.1, 220, P.roll(2.2 + 0.4 * r, 'melee'), P.wdt(), { slow: 3, fx: 'quake' }); G.shake(8); Audio2.play('boom'); }
+    desc: r => `A földbe csapsz: 220 képpontos kúpban ${pct(2.2 + 0.4 * r)} sebzés, és 3 mp-re 50%-kal lelassítja az ellenfeleket. Kábult vagy megrémült ellenfélre +50% (Roham vagy Csatakiáltás után).`,
+    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x); G.arc(P.x, P.y, a, 1.1, 220, P.roll(2.2 + 0.4 * r, 'melee'), P.wdt(), { slow: 3, fx: 'quake', ccBonus: 1.5, melee: true, stop: 0.07, knock: 90 }); G.shake(8); Audio2.play('boom'); }
   },
   pengevihar: {
     cls: 'penge', nev: 'Pengevihar', ikon: '⚔', tipus: 'aktiv', req: 20, max: 3, cost: r => 45, cd: r => 50 - r * 5, ult: true,
@@ -466,17 +482,17 @@ const SKILLS = {
   // ---------------- ELEMENTALISTA ----------------
   tuzgolyo: {
     cls: 'elem', nev: 'Tűzgolyó', ikon: '🔥', tipus: 'aktiv', req: 1, max: 5, cost: r => 9, cd: r => 0.55,
-    desc: r => `Tűzgolyót lősz, ami becsapódáskor 70 képpontos körben ${pct(1.3 + 0.3 * r)} tűzsebzést okoz és meggyújtja a célt.`,
+    desc: r => `Tűzgolyót lősz, ami becsapódáskor 70 képpontos körben ${pct(1.3 + 0.3 * r)} tűzsebzést okoz és meggyújtja a célt. Fagyott célponton Hősokk: ×1,7, és a jég szétrobban.`,
     cast(r, P, tx, ty) { G.proj({ x: P.x, y: P.y, a: Math.atan2(ty - P.y, tx - P.x), spd: 480, r: 9, dmg: P.roll(1.3 + 0.3 * r, 'spell'), dt: 'tuz', own: 'p', kind: 'fireball', splash: 70, burn: 3, spell: true }); Audio2.play('fire'); }
   },
   fagynova: {
     cls: 'elem', nev: 'Fagynova', ikon: '❄', tipus: 'aktiv', req: 1, max: 5, cost: r => 22, cd: r => 6,
-    desc: r => `Jéghullám tör ki belőled (140 képpont): ${pct(0.9 + 0.25 * r)} fagysebzés és ${1.5 + 0.3 * r} mp fagyás.`,
+    desc: r => `Jéghullám tör ki belőled (140 képpont): ${pct(0.9 + 0.25 * r)} fagysebzés és ${1.5 + 0.3 * r} mp fagyás. Villámtól sokkolt célponton Ridegség: +30%, és tovább fagy.`,
     cast(r, P) { G.hitArea(P.x, P.y, 140, P.roll(0.9 + 0.25 * r, 'spell'), 'fagy', 'p', { freeze: 1.5 + 0.3 * r, fx: 'nova', spell: true }); Audio2.play('ice'); }
   },
   lancvillam: {
     cls: 'elem', nev: 'Láncvillám', ikon: '⚡', tipus: 'aktiv', req: 6, max: 5, cost: r => 15, cd: r => 1.1,
-    desc: r => `Villám csap a célpont felé, és ${3 + r} további ellenfélre ugrik át; mindegyik ${pct(1.0 + 0.22 * r)} villámsebzést kap.`,
+    desc: r => `Villám csap a célpont felé, és ${3 + r} további ellenfélre ugrik át; mindegyik ${pct(1.0 + 0.22 * r)} villámsebzést kap. Égő célponton Túlvezetés: a láng átterjed a szomszédokra.`,
     cast(r, P, tx, ty) { G.chain(P.x, P.y, tx, ty, 3 + r, P.roll(1.0 + 0.22 * r, 'spell'), 'villam'); Audio2.play('zap'); }
   },
   meteor: {
@@ -502,8 +518,8 @@ const SKILLS = {
   },
   atuto: {
     cls: 'loves', nev: 'Átütő lövés', ikon: '➹', tipus: 'aktiv', req: 1, max: 5, cost: r => 15, cd: r => 2.8,
-    desc: r => `Mindenen áthatoló lövés: ${pct(2.4 + 0.45 * r)} sebzés minden eltalált ellenfélnek, +${10 * r}% kritikus esély.`,
-    cast(r, P, tx, ty) { G.proj({ x: P.x, y: P.y, a: Math.atan2(ty - P.y, tx - P.x), spd: 1500, r: 5, dmg: P.roll(2.4 + 0.45 * r, 'ranged', 10 * r), dt: P.wdt(), own: 'p', kind: 'rail', pierce: 99 }); Audio2.play('rifle'); G.shake(3); }
+    desc: r => `Mindenen áthatoló lövés: ${pct(2.4 + 0.45 * r)} sebzés minden eltalált ellenfélnek, +${10 * r}% kritikus esély. Elhasználja a Fókuszt: töltetenként +25% sebzés, 3 töltettől biztos kritikus.`,
+    cast(r, P, tx, ty) { const f = Focus.spend(P), per = 0.25 + 0.08 * (P.st.turelem || 0); const d = P.roll((2.4 + 0.45 * r) * (1 + per * f), 'ranged', 10 * r + (f >= 3 ? 100 : 0)); if (f) G.text(P.x, P.y - 36, `Fókusz ×${f}`, '#f2d36b', 12); G.proj({ x: P.x, y: P.y, a: Math.atan2(ty - P.y, tx - P.x), spd: 1500, r: 5, dmg: d, dt: P.wdt(), own: 'p', kind: 'rail', pierce: 99 }); Audio2.play('rifle'); G.shake(3 + f * 0.5); if (f >= 3) G.hitStop(0.05); }
   },
   granat: {
     cls: 'loves', nev: 'Gránát', ikon: '💣', tipus: 'aktiv', req: 6, max: 5, cost: r => 16, cd: r => 4.5,
@@ -528,18 +544,18 @@ const SKILLS = {
   // ---------------- MÉRNÖK ----------------
   dron: {
     cls: 'mernok', nev: 'Harci drón', ikon: '🛸', tipus: 'aktiv', req: 1, max: 5, cost: r => 22, cd: r => 6,
-    desc: r => `Drónt indítasz (30 mp), ami követ és tüzel (${pct(0.6 + 0.15 * r)} lövésenként). Egyszerre ${1 + Math.floor(r / 2)} drón lehet.`,
-    cast(r, P) { const max = 1 + Math.floor(r / 2) + (P.fx.fokonst ? 1 : 0); G.allyCap('dron', max); G.ally({ kind: 'dron', owner: P, life: 30, dmgMul: 0.6 + 0.15 * r, rate: 0.5, range: 330 }); Audio2.play('magic'); }
+    desc: r => `Drónt indítasz (30 mp), ami követ és tüzel (${pct(0.6 + 0.15 * r)} lövésenként). Egyszerre ${1 + Math.floor(r / 2)} drón lehet. A lövegtorony által megjelölt célpontot választja.`,
+    cast(r, P) { const max = Math.max(1, 1 + Math.floor(r / 2) + (P.fx.fokonst ? 1 : 0) - (P.st.tuzer ? 1 : 0)); G.allyCap('dron', max); G.ally({ kind: 'dron', owner: P, life: 30, dmgMul: 0.6 + 0.15 * r, rate: 0.5, range: 330 }); Audio2.play('magic'); }
   },
   loveg: {
     cls: 'mernok', nev: 'Lövegtorony', ikon: '🗼', tipus: 'aktiv', req: 1, max: 5, cost: r => 26, cd: r => 9,
-    desc: r => `Lövegtornyot telepítesz a célpontra (18 mp): ${pct(0.8 + 0.2 * r)} sebzés, gyors tűz. Egyszerre 2 torony.`,
-    cast(r, P, tx, ty) { const max = 2 + (P.fx.fokonst ? 1 : 0); G.allyCap('torony', max); const p = G.freeSpot(tx, ty, P); G.ally({ kind: 'torony', owner: P, x: p.x, y: p.y, life: 18, dmgMul: 0.8 + 0.2 * r, rate: 0.3, range: 380 }); Audio2.play('door'); }
+    desc: r => `Lövegtornyot telepítesz a célpontra (18 mp): ${pct(0.8 + 0.2 * r)} sebzés, gyors tűz. Egyszerre 2 torony. A találat 2,5 mp-re megjelöli a célt: a gépek +15%-ot sebeznek rá, és a drónok, rakéták azt veszik célba.`,
+    cast(r, P, tx, ty) { const max = 2 + (P.fx.fokonst ? 1 : 0) + ((P.st.gepesz || 0) >= 2 ? 1 : 0); G.allyCap('torony', max); const p = G.freeSpot(tx, ty, P); G.ally({ kind: 'torony', owner: P, x: p.x, y: p.y, life: 18, dmgMul: 0.8 + 0.2 * r, rate: 0.3, range: 380 }); Audio2.play('door'); }
   },
   raketazapor: {
     cls: 'mernok', nev: 'Rakétazápor', ikon: '🚀', tipus: 'aktiv', req: 6, max: 5, cost: r => 18, cd: r => 3.5,
     desc: r => `${3 + r} önirányító rakéta, egyenként ${pct(0.9 + 0.2 * r)} tűzsebzés kis körben.`,
-    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x), n = 3 + r; for (let i = 0; i < n; i++) G.later(i * 0.07, () => G.proj({ x: P.x, y: P.y, a: a + RNG.range(-0.9, 0.9), spd: 380, r: 5, dmg: P.roll(0.9 + 0.2 * r, 'summon'), dt: 'tuz', own: 'p', kind: 'rocket', homing: 5, splash: 40, life: 3 })); Audio2.play('shoot'); }
+    cast(r, P, tx, ty) { const a = Math.atan2(ty - P.y, tx - P.x), n = 3 + r + (P.st.tuzer || 0); for (let i = 0; i < n; i++) G.later(i * 0.07, () => G.proj({ x: P.x, y: P.y, a: a + RNG.range(-0.9, 0.9), spd: 380, r: 5, dmg: P.roll(0.9 + 0.2 * r, 'summon'), dt: 'tuz', own: 'p', kind: 'rocket', homing: 5, splash: 40, life: 3, machine: true, burn: P.st.tuzer ? 2 : 0 })); Audio2.play('shoot'); }
   },
   javitoraj: {
     cls: 'mernok', nev: 'Javítóraj', ikon: '🔧', tipus: 'aktiv', req: 10, max: 5, cost: r => 25, cd: r => 16,
@@ -648,7 +664,7 @@ Object.assign(SKILLS, {
   },
   golyoido: {
     cls: 'loves', nev: 'Golyóidő', ikon: '⏱', tipus: 'aktiv', req: 4, max: 5, cost: r => 20, cd: r => 3, toggle: true,
-    desc: r => `Be/ki: körülötted ${60 + r * 4}%-kal lelassul a világ (ellenfelek, lövedékek), te nem. Másodpercenként ${22 - r * 2} belső időt emészt.`,
+    desc: r => `Be/ki: körülötted ${60 + r * 4}%-kal lelassul a világ (ellenfelek, lövedékek), te nem. Másodpercenként ${22 - r * 2} belső időt emészt. Közben a Fókusz kétszer gyorsabban gyűlik, és minden ölés 6 belső időt ad vissza.`,
     cast(r, P) { P.bulletTime = P.bulletTime ? 0 : r; Audio2.play(P.bulletTime ? 'portal' : 'ui'); }
   },
   tulfeszultseg: {
@@ -657,6 +673,144 @@ Object.assign(SKILLS, {
     cast(r, P, tx, ty, spent) { G.buff(P, 'tulfesz', 4 + r, { sumaspd: 200 }); G.chain(P.x, P.y, tx, ty, 6, P.roll(spent * (1 + 0.3 * r) / 100, 'summon'), 'villam'); Audio2.play('zap'); }
   },
 });
+
+// ============================================================
+//  KASZTUTAK ÉS KÖLCSÖNHATÁSOK
+//  Minden kasztnak két, egymást kizáró útja van (6. szinttől). Az egyiket választva a
+//  másik zárva marad – Bodor felejtetése oldja. Mindkét útnak ára is van, nem csak bónusza.
+// ============================================================
+Object.assign(SKILLS, {
+  // ---- Pengelovag ----
+  verszomj: {
+    cls: 'penge', nev: 'Út: Vérszomjas', ikon: '🩸', tipus: 'passziv', ut: 'A', req: 6, max: 3,
+    desc: r => `Minden 10 düh után +${r}% sebzés. Életerőd fele alatt +${2 * r}% életlopás. A düh harc után ${2 + r} mp-ig nem párolog.<br><span class="ar">Ára: −${8 * r}% páncél.</span>`,
+    mods: r => ({ verszomj: r, armp: -8 * r })
+  },
+  bastya: {
+    cls: 'penge', nev: 'Út: Bástya', ikon: '🏰', tipus: 'passziv', ut: 'B', req: 6, max: 3,
+    desc: r => `A kapott ütések ${50 * r}%-kal több dühöt adnak, +${5 * r}% kivédés, és ha legalább 50 dühöd van, −${5 * r}% kapott sebzés. A kivédés akkor is visszavág, ha nincs Ellentámadásod.<br><span class="ar">Ára: −${5 * r}% támadási sebesség.</span>`,
+    mods: r => ({ bastya: r, block: 5 * r, aspd: -5 * r })
+  },
+  // ---- Elementalista ----
+  langelme: {
+    cls: 'elem', nev: 'Út: Lángoló elme', ikon: '🔥', tipus: 'passziv', ut: 'A', req: 6, max: 3,
+    desc: r => `Az elemi reakciók (Hősokk, Túlvezetés, Ridegség) +${25 * r}%-kal erősebbek, a Túlvezetés ${90 + 30 * r} képpontra terjed.<br><span class="ar">Ára: a fagyás ${10 * r}%-kal rövidebb.</span>`,
+    mods: r => ({ langelme: r, reakcio: 25 * r, freezeMul: -10 * r })
+  },
+  fagyelme: {
+    cls: 'elem', nev: 'Út: Fagyos nyugalom', ikon: '❄', tipus: 'passziv', ut: 'B', req: 6, max: 3,
+    desc: r => `A fagyás ${15 * r}%-kal tovább tart. Fagyott ellenfél megölése ${4 * r} manát ad, minden elemi reakció ${3 * r}% max. életerőnyi jégpajzsot.<br><span class="ar">Ára: −${10 * r}% tűzsebzés.</span>`,
+    mods: r => ({ fagyelme: r, freezeMul: 15 * r })
+  },
+  // ---- Mesterlövész ----
+  turelem: {
+    cls: 'loves', nev: 'Út: Türelmes vadász', ikon: '🎯', tipus: 'passziv', ut: 'A', req: 6, max: 3,
+    desc: r => `A Fókusz legfeljebb ${5 + r} töltetig gyűlik, az Átütő lövés töltetenként további +${8 * r}%-ot sebez.<br><span class="ar">Ára: −${4 * r}% mozgási sebesség; célpontváltáskor a Fókusz elvész.</span>`,
+    mods: r => ({ turelem: r, msp: -4 * r })
+  },
+  gerilla: {
+    cls: 'loves', nev: 'Út: Gerillaharcos', ikon: '🌿', tipus: 'passziv', ut: 'B', req: 6, max: 3,
+    desc: r => `Kitérés után 2 mp-ig a lövéseid +${15 * r}%-ot sebeznek és átütnek egy ellenfelet. Tökéletes kitérésnél minden képesség újratöltése ${r} mp-cel csökken. A Fókusz célpontváltáskor csak feleződik.<br><span class="ar">Ára: −${10 * r}% kritikus sebzés.</span>`,
+    mods: r => ({ gerilla: r, critd: -10 * r })
+  },
+  // ---- Mérnök ----
+  gepesz: {
+    cls: 'mernok', nev: 'Út: Gépész', ikon: '🔩', tipus: 'passziv', ut: 'A', req: 6, max: 3,
+    desc: r => `A gépek ${15 * r}%-kal tovább élnek, a Hálózat-bónusz +${50 * r}%. ${r >= 2 ? '+1 lövegtorony egyszerre. ' : '(2. rangtól +1 lövegtorony.) '}<br><span class="ar">Ára: a saját lövéseid −${10 * r}% sebzést okoznak.</span>`,
+    mods: r => ({ gepesz: r, rangedp: -10 * r })
+  },
+  tuzer: {
+    cls: 'mernok', nev: 'Út: Tüzér', ikon: '💥', tipus: 'passziv', ut: 'B', req: 6, max: 3,
+    desc: r => `A Rakétazápor +${r} rakétát lő, a robbanások +${10 * r}%-ot sebeznek és 2 mp-re meggyújtanak.<br><span class="ar">Ára: eggyel kevesebb drón lehet egyszerre (legalább egy).</span>`,
+    mods: r => ({ tuzer: r, splashp: 10 * r })
+  },
+});
+
+// Útválasztás: egy kaszton belül csak az egyik út tanulható
+const Skills2 = {
+  other(id) { const sk = SKILLS[id]; if (!sk || !sk.ut) return null; return Object.keys(SKILLS).find(k => SKILLS[k].cls === sk.cls && SKILLS[k].ut && SKILLS[k].ut !== sk.ut); },
+  canLearn(S, id) { const o = this.other(id); return !o || !S.skills[o]; },
+};
+
+// ---------------- Elemi reakciók (minden elemi sebzésre élnek, az Elementalista útjai erősítik) ----------------
+const Reactions = {
+  // visszaadja a módosított sebzést; a mellékhatásokat itt intézi
+  apply(e, amt, dt, o) {
+    if (o.noReact || amt <= 0) return amt;
+    const P = G.P, st = P.st, boost = 1 + (st.reakcio || 0) / 100;
+    let hit = null;
+    if (dt === 'tuz' && e.freeze > 0) { // Hősokk: a fagyott célpont szétpattan a hőtől
+      amt *= 1.7 * boost; e.freeze = 0; hit = ['HŐSOKK', '#ffb070'];
+      G.burst(e.x, e.y, '#dff4ff', 16, 160, 0.5); G.hitArea(e.x, e.y, 60, { a: amt * 0.3, c: false }, 'fiz', 'p', { noReact: true, fx: 'nova2' });
+    } else if (dt === 'villam' && e.burn) { // Túlvezetés: a villám szétteríti a lángot
+      amt *= 1.25 * boost; hit = ['TÚLVEZETÉS', '#f4f06a']; const r = 90 + 30 * (st.langelme || 0);
+      for (const x of G.near(e.x, e.y, r)) if (x !== e && !x.burn) { x.burn = { dps: e.burn.dps * 0.8, t: 3 }; G.parts.push({ bolt: true, x1: e.x, y1: e.y, x2: x.x, y2: x.y, t: 0, life: 0.2, c: '#ffb347' }); }
+    } else if (dt === 'fagy' && e.shock > 0) { // Ridegség: a sokkolt test könnyebben dermed
+      amt *= 1.3 * boost; e.brittle = 1.5; hit = ['RIDEGSÉG', '#9fe8ff'];
+    }
+    if (hit) {
+      if (!e.reactT || G.t - e.reactT > 0.6) { G.text(e.x, e.y - e.r - 20, hit[0], hit[1], 12, { life: 0.8 }); e.reactT = G.t; }
+      if (st.fagyelme) P.shieldV = Math.min(P.mhp * 0.3, P.shieldV + P.mhp * 0.03 * st.fagyelme);
+      G.S.stats.reactions = (G.S.stats.reactions || 0) + 1; G.emit('reaction', hit[0]);
+    }
+    if (dt === 'tuz' && st.fagyelme) amt *= 1 - 0.1 * st.fagyelme;
+    return amt;
+  },
+};
+
+// ---------------- Erőforrás-állapotok (kasztonként) ----------------
+const ResState = {
+  // Düh-küszöbök: 50 fölött Felbőszült, teli dühnél a következő képesség ingyenes és erősebb
+  tick(P, dt) {
+    const S = G.S, C = CLASSES[S.cls], st = P.st;
+    if (C.rage) {
+      const tier = P.mp >= P.mmp - 0.5 ? 2 : P.mp >= 50 ? 1 : 0;
+      if (tier !== P.rageTier) {
+        if (tier >= 1 && !(P.rageTier >= 1)) G.buff(P, 'felboszult', 9999, { aspd: 12, msp: 6 });
+        if (tier === 0) { P.buffs = P.buffs.filter(b => b.id !== 'felboszult'); recalc(P); }
+        if (tier === 2) { G.text(P.x, P.y - 36, 'TOMBOLÓ', '#ff4433', 13); G.fxRing(P.x, P.y, 40, '#ff4433', 0.4, 3); }
+        P.rageTier = tier;
+      }
+    }
+    // Mana-túltöltés: teli manánál a töltődés egy túltöltő tartályba folyik (max. 30%)
+    if (S.cls === 'elem') {
+      if (P.mp >= P.mmp - 0.01) P.over = Math.min(P.mmp * 0.3, (P.over || 0) + st.mregen * dt * 0.6);
+      else if (P.over > 0) P.over = Math.max(0, P.over - P.mmp * 0.02 * dt);
+    }
+    if (P.empowerT > 0) P.empowerT -= dt;
+    if (P.gerillaT > 0) P.gerillaT -= dt;
+  },
+  // képesség használata előtt: költség módosítása és erősítés
+  beforeCast(P, sk, cost) {
+    const S = G.S, C = CLASSES[S.cls];
+    if (C.rage && P.rageTier === 2 && !sk.spendAll && !FORBIDDEN[sk.id]) { P.empowerT = 0.8; P.empowerMul = 1.3; G.text(P.x, P.y - 40, 'ingyenes!', '#ff7a5a', 12); return 0; }
+    if (S.cls === 'elem' && P.over > 0 && cost > 0) { const use = Math.min(P.over, cost); P.over -= use; P.empowerT = 0.8; P.empowerMul = 1.25; if (use >= cost * 0.99) G.text(P.x, P.y - 40, 'túltöltve', '#9fc8ff', 11); return cost - use; }
+    return cost;
+  },
+};
+
+// ---------------- Fókusz (Mesterlövész) ----------------
+const Focus = {
+  max(P) { return 5 + (P.st.turelem || 0); },
+  onHit(P, e) {
+    if (P.focusE === e) P.focus = Math.min(this.max(P), (P.focus || 0) + (P.bulletTime ? 2 : 1));
+    else { P.focus = P.st.gerilla ? Math.floor((P.focus || 0) / 2) + 1 : 1; P.focusE = e; }
+    P.focusT = 3;
+  },
+  tick(P, dt) { if (P.focus > 0) { P.focusT -= dt; if (P.focusT <= 0) { P.focus = 0; P.focusE = null; } } },
+  spend(P) { const f = P.focus || 0; P.focus = 0; return f; },
+};
+
+// ---------------- Gép-hálózat (Mérnök) ----------------
+const Machines = {
+  isM: a => a.kind === 'dron' || a.kind === 'torony',
+  // a közeli gépek összekapcsolódnak: kapcsolatonként +8% gépsebzés (max. 4)
+  links(a) { let n = 0; for (const b of G.allies) if (b !== a && b.life > 0 && this.isM(b) && b.owner === a.owner && dist2(a.x, a.y, b.x, b.y) < 260 * 260) n++; return Math.min(4, n); },
+  mul(a) { const P = G.P; return 1 + 0.08 * (a.links || 0) * (1 + 0.5 * (P.st.gepesz || 0)); },
+  // a torony megjelöli a célpontját; a drónok és rakéták azt választják
+  target(x, y, range) { let best = null, bd = range * range; for (const e of G.enemies) { if (e.dead || e.invisNow || !(e.tmark > 0)) continue; const d = dist2(x, y, e.x, e.y); if (d < bd && los(G.map, x, y, e.x, e.y)) { bd = d; best = e; } } return best || G.nearestEnemy(x, y, range); },
+  expire(a) { const P = G.P; if (a.grey || a.refunded || !this.isM(a) || a.owner !== P) return; a.refunded = true; P.mp = Math.min(P.mmp, P.mp + (a.kind === 'dron' ? 22 : 26) * 0.25); },
+};
 
 // ============================================================
 //  TÉRKÉP: generálás, ütközés, statikus réteg, minitérkép
@@ -1038,54 +1192,56 @@ const ENEMIES = {
 // minták: radial, spiral, aimed, charge, slam, rain, summon, ring, beam
 const BOSSES = {
   leltarhiany: {
-    nev: 'A Leltárhiány', cim: 'Ami nincs meg, az is van valahol', hp: 520, dmg: 12, spd: 70, r: 34, look: { s: 'leltar', c: '#2a3a52', c2: '#ff3355' },
+    p2Pat: { k: 'ring', n: 22, spd: 210, kind: 'box', cd: 6, nev: 'Leltárzárás' }, nev: 'A Leltárhiány', cim: 'Ami nincs meg, az is van valahol', hp: 520, dmg: 12, spd: 70, r: 34, look: { s: 'leltar', c: '#2a3a52', c2: '#ff3355' },
     patterns: [{ k: 'aimed', n: 5, spread: 0.5, spd: 300, kind: 'box', cd: 2.2 }, { k: 'charge', cd: 5, spd: 520 }, { k: 'summon', type: 'raklapbogar', n: 4, cd: 9 }, { k: 'rain', n: 6, r: 60, cd: 7 }],
     p2: 'A hiány nő! Minden polc üres lesz…',
     lines: ['Leltárhiány: 1 db. Te.', 'Ami nincs a rendszerben, az nem létezik!', 'Kétezer tétel, nyolcszázkilencven hely. Valakinek mennie kell.'],
   },
   kiralyno: {
-    nev: 'A Darázskirálynő', cim: 'Mézország bitorlója', hp: 620, dmg: 14, spd: 95, r: 30, look: { s: 'queen', c: '#ffcc00', c2: '#1a1a1a' },
+    p2Pat: { k: 'summon', type: 'rablomeh', n: 5, cd: 9, nev: 'A Raj hívása' }, nev: 'A Darázskirálynő', cim: 'Mézország bitorlója', hp: 620, dmg: 14, spd: 95, r: 30, look: { s: 'queen', c: '#ffcc00', c2: '#1a1a1a' },
     patterns: [{ k: 'summon', type: 'darazs', n: 6, cd: 7 }, { k: 'spiral', n: 18, spd: 260, kind: 'stinger', cd: 5 }, { k: 'charge', cd: 6, spd: 560 }, { k: 'ring', n: 24, spd: 240, kind: 'stinger', cd: 6, slowHaz: true }],
     p2: 'Az egész raj felém repül!',
     lines: ['Zzzz… a Csillagméhes az enyém!', 'Az akác májusban háromszor édesebb. A vér is.', 'A Kárpátokig mind az enyém!'],
   },
   sziv: {
-    nev: 'Az Égtorony Szíve', cim: '„Ne az Urat üsd, a láncot nézd.” – Bodor', hp: 760, dmg: 16, spd: 0, r: 36, look: { s: 'heart', c: '#c23a5a', c2: '#ffd27a' }, chains: 4,
+    p2Pat: { k: 'spiral', n: 20, spd: 230, kind: 'feather', cd: 6, nev: 'Szélörvény' }, nev: 'Az Égtorony Szíve', cim: '„Ne az Urat üsd, a láncot nézd.” – Bodor', hp: 760, dmg: 16, spd: 0, r: 36, look: { s: 'heart', c: '#c23a5a', c2: '#ffd27a' }, chains: 4,
     patterns: [{ k: 'radial', n: 16, spd: 250, kind: 'feather', cd: 3 }, { k: 'slam', r: 170, cd: 6 }, { k: 'rain', n: 8, r: 65, cd: 6 }, { k: 'summon', type: 'szelszellem', n: 4, cd: 10 }],
     p2: 'A láncok megfeszülnek – a torony a völgy vizét issza!',
     lines: ['Nem én akartam… fentről húznak.', 'Három éve nem esett a völgyben.', 'Állj a helyemre, és mindenki szabad lesz.'],
   },
   magorzo: {
-    nev: 'A Mag Őre', cim: '6371 km – ahol a g nulla', hp: 900, dmg: 18, spd: 60, r: 36, look: { s: 'core', c: '#ff7a2a', c2: '#fff0a0' },
+    p2Pat: { k: 'rain', n: 14, r: 70, cd: 7, ground: true, nev: 'Magmaeső' }, nev: 'A Mag Őre', cim: '6371 km – ahol a g nulla', hp: 900, dmg: 18, spd: 60, r: 36, look: { s: 'core', c: '#ff7a2a', c2: '#fff0a0' },
     patterns: [{ k: 'ring', n: 20, spd: 220, kind: 'rock', cd: 4 }, { k: 'rain', n: 10, r: 70, cd: 6, ground: true }, { k: 'slam', r: 190, cd: 7 }, { k: 'summon', type: 'hoszellem', n: 4, cd: 9 }],
     p2: '5150 km: a belső mag szilárd, mert a nyomás préseli – és most téged is.',
     lines: ['Kéreg, köpeny, mag. Te csak egy ásvány vagy.', '330 gigapascal. Bírod még?', 'Itt nincs lent és fent.'],
   },
   szamallomas: {
-    nev: 'A Számállomás', cim: '29999 kHz', hp: 1000, dmg: 19, spd: 50, r: 32, look: { s: 'radiohead', c: '#2a2e25', c2: '#4dffb0' }, antennas: 3,
+    p2Pat: { k: 'beam', cd: 7, dur: 3, nev: 'Végtelen adás' }, nev: 'A Számállomás', cim: '29999 kHz', hp: 1000, dmg: 19, spd: 50, r: 32, look: { s: 'radiohead', c: '#2a2e25', c2: '#4dffb0' }, antennas: 3,
     patterns: [{ k: 'beam', cd: 6, dur: 2.2 }, { k: 'radial', n: 20, spd: 230, kind: 'wave', cd: 3.5 }, { k: 'rain', n: 8, r: 70, cd: 5 }, { k: 'summon', type: 'zajleny', n: 5, cd: 9 }],
     p2: 'Nulla-egy. Nulla-négy. Egy-kilenc. Öt-hét…',
     lines: ['Figyelem. Figyelem. Öt-egy, egy-egy, nulla-egy.', 'A HOLD NEM MESSZE.', 'NEM VAGY EGYEDÜL.'],
   },
   n1: {
-    nev: 'Az N-1 Szörnyeteg', cim: 'A Holdrakéta, ami sosem jutott el a Holdra', hp: 1150, dmg: 21, spd: 55, r: 38, look: { s: 'mech', c: '#b8b8b8', c2: '#ff4422' },
+    p2Pat: { k: 'charge', cd: 5, spd: 560, nev: 'Második fokozat' }, nev: 'Az N-1 Szörnyeteg', cim: 'A Holdrakéta, ami sosem jutott el a Holdra', hp: 1150, dmg: 21, spd: 55, r: 38, look: { s: 'mech', c: '#b8b8b8', c2: '#ff4422' },
     patterns: [{ k: 'summon', type: 'elszabadultraketa', n: 4, cd: 7 }, { k: 'aimed', n: 7, spread: 0.6, spd: 420, kind: 'fireball', cd: 2.5 }, { k: 'rain', n: 12, r: 75, cd: 6 }, { k: 'charge', cd: 7, spd: 480 }],
     p2: 'Második fokozat: GYÚJTÁS!',
     lines: ['Visszaszámlálás: 3… 2… 1…', '6800 kilonewton. Te hány vagy?', 'A Keleti Unió 9000 kilométerre van. Te kettőre.'],
   },
   onmagad: {
-    nev: 'Te magad', cim: 'Az idővisszhang a tesszeraktban', hp: 1300, dmg: 22, spd: 140, r: 16, look: { s: 'self', c: '#c48cff', c2: '#ffffff' }, mirror: true,
+    p2Pat: { k: 'mirror', cd: 1, nev: 'Te, még egyszer' }, nev: 'Te magad', cim: 'Az idővisszhang a tesszeraktban', hp: 1300, dmg: 22, spd: 140, r: 16, look: { s: 'self', c: '#c48cff', c2: '#ffffff' }, mirror: true,
     patterns: [{ k: 'mirror', cd: 1.2 }, { k: 'charge', cd: 4, spd: 600 }, { k: 'spiral', n: 16, spd: 300, kind: 'bolt', cd: 5 }, { k: 'summon', type: 'idovisszhang', n: 2, cd: 10 }],
     p2: 'Látod magad hátulról? Ez mindig is így volt.',
-    lines: ['Aki elküldi, az kapja meg.', 'Ne add fel. Megéri.', 'Ugyanazt mondtam én is, amikor te voltam.'],
+    lines: ['Aki elküldi, az kapja meg.', 'Ne add fel. Megéri.', 'Ugyanazt mondtam én is, amikor te voltam.', '{halal}-szor haltál meg idáig. Én is. Pontosan ennyiszer.', '{szint}. szint? Emlékszem, én is ennyi voltam. Most.'],
   },
   szingularitas: {
-    nev: 'A Szingularitás', cim: 'A Zaj, amely minden világot elnyel', hp: 1900, dmg: 24, spd: 0, r: 44, look: { s: 'singularity', c: '#000000', c2: '#ffb347' }, gravity: 140,
+    p2Pat: { k: 'ring', n: 36, spd: 180, kind: 'wave', cd: 6, nev: 'Planck-gyűrű' }, nev: 'A Szingularitás', cim: 'A Zaj, amely minden világot elnyel', hp: 1900, dmg: 24, spd: 0, r: 44, look: { s: 'singularity', c: '#000000', c2: '#ffb347' }, gravity: 140,
     patterns: [{ k: 'spiral', n: 28, spd: 220, kind: 'bolt', cd: 4 }, { k: 'rain', n: 14, r: 70, cd: 5 }, { k: 'ring', n: 32, spd: 200, kind: 'wave', cd: 5 }, { k: 'summon', type: 'spagetti', n: 6, cd: 8 }, { k: 'beam', cd: 8, dur: 2.5 }],
     p2: 'Planck-tartomány. Itt már a tér és az idő sem az, aminek látszik.',
-    lines: ['MINDEN BEESIK.', 'A horizont mindenre emlékszik. Rád is.', 'Nincs kifelé.'],
+    lines: ['MINDEN BEESIK.', 'A horizont mindenre emlékszik. Rád is.', 'Nincs kifelé.', '{oles} ÖLÉS. A HORIZONT MINDET MEGJEGYEZTE.'],
   },
 };
+// a boss-támadások neve a bejelentéshez
+const BOSS_MOVE = { radial: 'Sugárzás', spiral: 'Spirál', aimed: 'Célzott sorozat', charge: 'Roham!', slam: 'Döngölés', rain: 'Zápor', summon: 'Hívás', ring: 'Kettős gyűrű', beam: 'Sugárnyaláb', mirror: 'Tükör' };
 // Mini-bossok (névvel ellátott elitek)
 const NAMED = {
   'lidérc_kiraly': { base: 'lidérc', nev: 'A pohármosó Lidérce', hpM: 6, dmgM: 1.6, mods: ['gyors', 'fagyos'], c: '#bfe9ff' },
@@ -1115,17 +1271,17 @@ const ANCIENTS = {
 
 // ---------------- ÉLELEM (éhség, szomjúság, fáradtság) ----------------
 const FOODS = {
-  pogacsa: { nev: 'Nagyi tepertős pogácsája', ikon: '🥐', kaja: 35, ar: 12, desc: 'Ropogós. Nagyi szerint „csak egyet”, de senki sem eszik egyet.' },
-  langos: { nev: 'Lángos', ikon: '🫓', kaja: 55, hp: 0.15, ar: 25, desc: 'Fokhagymás tejföllel. Egy egész napra elég.' },
-  mezescsupor: { nev: 'Akácmézes csupor', ikon: '🍯', kaja: 18, ital: 6, hp: 0.3, ar: 30, desc: 'Mézország májusi akácmézéből.' },
-  konzerv: { nev: 'Lőtéri hadtápkonzerv', ikon: '🥫', kaja: 45, ar: 18, desc: 'Gyártási év: 1957. Még ehető. Talán.' },
-  tubus: { nev: 'Űrhajós-tubus', ikon: '🧴', kaja: 30, ital: 25, ar: 40, desc: 'Gulyás tubusban. Súlytalanságban is.' },
-  gomba: { nev: 'Barlangi gomba', ikon: '🍄', kaja: 22, ar: 6, desc: 'A Mélység melegében nőtt. Világít.' },
+  pogacsa: { nev: 'Nagyi tepertős pogácsája', ikon: '🥐', kaja: 35, fb: { t: 180, mods: { aspd: 5 }, d: '+5% támadási sebesség 3 percig' },  ar: 12, desc: 'Ropogós. Nagyi szerint „csak egyet”, de senki sem eszik egyet.' },
+  langos: { nev: 'Lángos', ikon: '🫓', kaja: 55, hp: 0.15, fb: { t: 300, mods: { hpp: 8 }, d: '+8% életerő 5 percig' },  ar: 25, desc: 'Fokhagymás tejföllel. Egy egész napra elég.' },
+  mezescsupor: { nev: 'Akácmézes csupor', ikon: '🍯', kaja: 18, ital: 6, hp: 0.3, fb: { t: 240, mods: { regenMul: 40 }, d: '+40% életerő-töltődés 4 percig' },  ar: 30, desc: 'Mézország májusi akácmézéből.' },
+  konzerv: { nev: 'Lőtéri hadtápkonzerv', ikon: '🥫', kaja: 45, fb: { t: 300, mods: { armp: 15 }, d: '+15% páncél 5 percig' },  ar: 18, desc: 'Gyártási év: 1957. Még ehető. Talán.' },
+  tubus: { nev: 'Űrhajós-tubus', ikon: '🧴', kaja: 30, ital: 25, fb: { t: 300, mods: { resall: 8 }, d: '+8% minden állóság 5 percig' },  ar: 40, desc: 'Gulyás tubusban. Súlytalanságban is.' },
+  gomba: { nev: 'Barlangi gomba', ikon: '🍄', kaja: 22, fb: { t: 180, mods: { dmgp: 5 }, d: '+5% sebzés 3 percig' },  ar: 6, desc: 'A Mélység melegében nőtt. Világít.' },
   viz: { nev: 'Kulacs víz', ikon: '💧', ital: 45, ar: 8, desc: 'Egyszerű, és mégis ez kell a legjobban.' },
   kola: { nev: 'Kóla', ikon: '🥤', ital: 30, alvas: 12, ar: 10, desc: 'Kurta kedvence. +14% gáz.' },
-  bika: { nev: 'Bika energiaital', ikon: '🐂', ital: 22, alvas: 35, ar: 18, desc: 'Szárnyakat nem ad, de ébren tart. +22% gáz.' },
+  bika: { nev: 'Bika energiaital', ikon: '🐂', ital: 22, alvas: 35, fb: { t: 90, mods: { aspd: 8, msp: 5 }, d: '+8% támadási, +5% mozgási sebesség 90 mp-ig' },  ar: 18, desc: 'Szárnyakat nem ad, de ébren tart. +22% gáz.' },
   sprite: { nev: 'Spréjt', ikon: '🍋', ital: 38, ar: 10, desc: 'Az egyetlen, ami elveszi a gázt.' },
-  kave: { nev: 'Raktári automatás kávé', ikon: '☕', ital: 10, alvas: 45, ar: 9, desc: 'A hajnali műszak üzemanyaga.' },
+  kave: { nev: 'Raktári automatás kávé', ikon: '☕', ital: 10, alvas: 45, fb: { t: 120, mods: { cdr: 8 }, d: '−8% újratöltés 2 percig' },  ar: 9, desc: 'A hajnali műszak üzemanyaga.' },
   satorlap: { nev: 'Sátor', ikon: '⛺', ar: 60, tent: true, desc: 'Egy kitakarított teremben felverve kialszod magad (N gomb).' },
 };
 // melyik világban mi esik
@@ -1171,7 +1327,10 @@ function genItem(ilvl, rng = RNG, o = {}) {
     it.nev = relic.nev;
   } else {
     const [a0, a1] = RARITY[rar].aff; const n = a0 + Math.floor(rng() * (a1 - a0 + 1));
-    const pool = AFFIX.filter(a => (!a.slots || a.slots.includes(B.slot)) && (a.minL || 0) <= ilvl);
+    const pool = AFFIX.filter(a => (!a.slots || a.slots.includes(B.slot)) && (a.minL || 0) <= ilvl && !a.trade);
+    // ritka és legendás tárgyon 35% eséllyel egy áldozat-affix: döntés, nem csak nagyobb szám
+    const tp = AFFIX.filter(a => a.trade && a.slots.includes(B.slot));
+    if (rar >= 2 && tp.length && rng() < 0.35) { const A = rng.pick(tp); it.aff.push({ id: A.id, v: A.v(ilvl, rng) }); }
     const used = new Set();
     for (let i = 0; i < n && pool.length; i++) {
       let A; let tries = 0;
@@ -1202,6 +1361,17 @@ function itemArm(it) { return Math.round((it.arm || 0) * upgMul(it)); }
 function affVal(it, a) { return a.id === 'skill' ? a.v : Math.round(a.v * (1 + 0.05 * (it.upg || 0)) * 10) / 10; }
 function itemValue(it) { return Math.round((8 + it.ilvl * 4) * [1, 2.2, 5, 12, 20][it.rar] * (1 + 0.15 * (it.upg || 0))); }
 function salvageYield(it) { return Math.max(1, Math.round([1, 2, 5, 12, 20][it.rar] * (1 + it.ilvl / 15))); }
+// átkovácsolás: a leggyengébb affix újrasorsolása; készített tárgyon korlátlanul, dobotton egyszer
+function reforgeCost(it) { return { szilank: Math.round((4 + it.ilvl / 4) * (1 + 0.5 * (it.reforged || 0))), arany: Math.round(30 + it.ilvl * 8) }; }
+function canReforge(it) { return it.aff.length && !it.relic && (it.crafted || !it.reforged); }
+function reforge(it) {
+  const B = BASES[it.base], pool = AFFIX.filter(a => (!a.slots || a.slots.includes(B.slot)) && (a.minL || 0) <= it.ilvl && !a.trade && !it.aff.some(x => x.id === a.id));
+  if (!pool.length) return null;
+  // a leggyengébb: a saját dobási tartományához képest legkisebb érték
+  let wi = 0, wv = 1e9; it.aff.forEach((a, i) => { const A = AFFIX.find(x => x.id === a.id); if (A.trade) return; const ref = A.v(it.ilvl, makeRng(1)) || 1; const q = a.v / ref; if (q < wv) { wv = q; wi = i; } });
+  const A = RNG.pick(pool); let v = A.v(it.ilvl, RNG); if (it.rar === 3) v = Math.round(v * 1.35 * 10) / 10;
+  const old = it.aff[wi]; it.aff[wi] = { id: A.id, v }; it.reforged = (it.reforged || 0) + 1; return [old, it.aff[wi]];
+}
 function upgradeCost(it) { const u = it.upg || 0; return { arany: Math.round((20 + it.ilvl * 6) * Math.pow(1.6, u)), szilank: Math.round((2 + it.ilvl / 6) * (u + 1)), esely: Math.max(0.35, 1 - u * 0.07) }; }
 
 function itemTooltip(it, cmp) {
@@ -1213,7 +1383,15 @@ function itemTooltip(it, cmp) {
     if (cmp && cmp.min) { const d = ((a + b) / 2 * B.spd) - ((itemDmg(cmp)[0] + itemDmg(cmp)[1]) / 2 * BASES[cmp.base].spd); h += `<div class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(1)} sebzés/mp a viselthez képest</div>`; }
   }
   if (it.arm) { h += `<div class="tt-b">${itemArm(it)} páncél</div>`; if (cmp && cmp.arm != null) { const d = itemArm(it) - itemArm(cmp); if (d) h += `<div class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d)} páncél</div>`; } }
-  it.aff.forEach(a => { const A = AFFIX.find(x => x.id === a.id); h += `<div class="tt-a">${A.nev(affVal(it, a))}</div>`; });
+  it.aff.forEach(a => { const A = AFFIX.find(x => x.id === a.id); h += `<div class="tt-a" ${A.trade ? 'style="color:#ffb070"' : ''}>${A.trade ? '⚖ ' : ''}${A.nev(affVal(it, a))}${it.mesterjegy === a.id ? ' ✦' : ''}</div>`; });
+  if (cmp && cmp !== it) {
+    const sum = x => { const o = {}; x.aff.forEach(a => { const A = AFFIX.find(y => y.id === a.id); if (A.trade) A.trade(affVal(x, a), (k, v) => o[k] = (o[k] || 0) + v); else o[a.id] = (o[a.id] || 0) + affVal(x, a); }); return o; };
+    const A1 = sum(it), A0 = sum(cmp), keys = [...new Set([...Object.keys(A1), ...Object.keys(A0)])].filter(k => k !== 'skill');
+    const NM = { dmgp: '% sebzés', hpp: '% életerő', armp: '% páncél', msp: '% mozgás', regenMul: '% töltődés', resall: '% állóság', resmax: ' erőforrás', gf: '% arany' };
+    const lines = keys.map(k => { const d = Math.round(((A1[k] || 0) - (A0[k] || 0)) * 10) / 10; if (!d) return ''; const A = AFFIX.find(y => y.id === k); const t = A ? A.nev(Math.abs(d)).replace(/^[+−-]?\s?/, '') : Math.abs(d) + (NM[k] || ' ' + k); return `<span class="${d > 0 ? 'up' : 'down'}">${d > 0 ? '+' : '−'}${t.replace(/^\d+(\.\d)?/, Math.abs(d))}</span>`; }).filter(Boolean);
+    if (lines.length) h += `<div class="tt-g" style="margin-top:4px">A viselthez képest:<br>${lines.join('<br>')}</div>`;
+  }
+  if (it.crafted) h += `<div class="tt-g">Készített tárgy: korlátlanul átkovácsolható.</div>`; else if (it.reforged) h += `<div class="tt-g">Már átkovácsolták.</div>`;
   if (it.relic) { const RL = RELICS.find(r => r.id === it.relic); h += `<div class="tt-r">✦ ${esc(RL.txt)}</div>`; }
   const P = G.P;
   h += `<div class="tt-req ${P && P.lvl < it.req ? 'down' : ''}">Szükséges szint: ${it.req}</div>`;
@@ -1245,14 +1423,18 @@ function canCraft(base, tier, extra) {
   if (extra && (S.mats.szilank || 0) < 6) return false;
   return true;
 }
-function craftItem(base, tier, extra) {
+const CRAFT_FOCUS = ['dmgp', 'crit', 'critd', 'aspd', 'hp', 'arm', 'resgen', 'cdr', 'res_tuz', 'res_fagy', 'res_villam', 'ms'];
+function craftItem(base, tier, extra, focus) {
   const S = G.S; if (!canCraft(base, tier, extra)) return null;
   const c = craftCost(base, tier);
   S.gold -= c.gold; for (const k in c.mats) S.mats[k] -= c.mats[k]; if (extra) S.mats.szilank -= 6;
-  const R = REGIONS[tier]; const ilvl = R.lvl + 4 + [0, 30, 55][S.prog.diffMax ? Math.min(S.prog.diff, S.prog.diffMax) : 0];
+  const R = REGIONS[tier]; const ilvl = R.lvl + 4 + diffLevel(S.prog.diffMax ? Math.min(S.prog.diff, S.prog.diffMax) : 0);
   let rar = 1; const r = RNG(); if (extra) rar = r < 0.12 ? 3 : 2; else rar = r < 0.04 ? 3 : r < 0.3 ? 2 : 1;
   const it = genItem(Math.min(ilvl, S.lvl + 6), RNG, { base, rar });
   it.crafted = true; if (rar === 3) it.nev = it.nev.replace(' – ', ' – mesterremek, ');
+  // mesterjegy: a választott tulajdonság garantáltan rákerül, erős dobással – ezt a zsákmány nem tudja
+  const F = focus && AFFIX.find(a => a.id === focus);
+  if (F && (!F.slots || F.slots.includes(BASES[base].slot))) { const v = Math.round(F.v(it.ilvl, RNG) * 1.25 * 10) / 10; const i = it.aff.findIndex(a => a.id === focus); if (i >= 0) it.aff[i].v = Math.max(it.aff[i].v, v); else if (it.aff.length) it.aff[it.aff.length - 1] = { id: focus, v }; else it.aff.push({ id: focus, v }); it.mesterjegy = focus; }
   G.emit('craft', it); return it;
 }
 
@@ -1298,10 +1480,11 @@ function recalc(P) {
   for (const sl in S.eq) {
     const it = S.eq[sl]; if (!it) continue; if (it.req > S.lvl) continue;
     if (it.arm) arm += itemArm(it);
-    it.aff.forEach(a => add(a.id, affVal(it, a)));
+    it.aff.forEach(a => { const A = AFFIX.find(x => x.id === a.id); if (A && A.trade) A.trade(affVal(it, a), add); else add(a.id, affVal(it, a)); });
     if (it.relic) P.fx[RELICS.find(r => r.id === it.relic).fx] = true;
   }
   add('skill', 0);
+  if (P.fx.leltar) add('hpp', -15);
   for (const id in S.skills) { const sk = SKILLS[id]; if (sk && sk.tipus === 'passziv') { const r = S.skills[id] + (m.skill || 0); const mm = sk.mods(r); for (const k in mm) add(k, mm[k]); } }
   if (typeof Home !== 'undefined') Home.mods(S, add);
   if (S.forbidden.includes('osforma')) for (const k in OSFORMA.mods) add(k, OSFORMA.mods[k]);
@@ -1321,7 +1504,7 @@ function recalc(P) {
   st.staInf = m.staInf || 0;
   st.resgen = (m.resgen || 0) + at.allo * 1.5;
   st.arm = Math.round((arm + at.kit * 1.5) * (1 + (m.armp || 0) / 100));
-  st.res = {}; for (const k of ['tuz', 'fagy', 'villam', 'ter']) st.res[k] = Math.min(75, (m['res_' + k] || 0) + (m.resall || 0) + (k === 'tuz' && P.fx.mag ? 30 : 0) - S.prog.diff * 15);
+  st.res = {}; for (const k of ['tuz', 'fagy', 'villam', 'ter']) st.res[k] = Math.min(75, (m['res_' + k] || 0) + (m.resall || 0) + (k === 'tuz' && P.fx.mag ? 30 : 0) - Math.min(45, S.prog.diff * 15));
   st.crit = Math.min(75, 5 + at.ugy * 0.08 + (m.crit || 0)); st.critd = 50 + (m.critd || 0);
   st.aspd = Math.max(0.3, 1 + (m.aspd || 0) / 100);
   st.msp = Math.max(0.4, 1 + ((m.ms || 0) + (m.msp || 0)) / 100) * (P.fx.hold ? 1.15 : 1);
@@ -1334,7 +1517,7 @@ function recalc(P) {
   st.ls = (m.ls || 0); st.block = Math.min(40, m.block || 0); st.riposte = m.riposte || 0;
   st.gf = (m.gf || 0) + (P.fx.leltar ? 40 : 0); st.mf = (m.mf || 0) + (P.fx.leltar ? 25 : 0);
   st.skill = m.skill || 0; st.mark = m.mark || 0; st.thorns = m.thorns || 0; st.potion = m.potion || 0;
-  st.dmg = { all: (m.dmgp || 0), melee: at.ero * 1.1 + (m.meleep || 0), ranged: at.ugy * 1.1 + (m.rangedp || 0), spell: at.akarat * 1.3 + (m.spellp || 0), summon: (at.akarat + at.ugy) * 0.6 + (m.summonp || 0) + (P.fx.fokonst ? 30 : 0) };
+  st.dmg = { all: (m.dmgp || 0), melee: at.ero * 1.4 + (m.meleep || 0), ranged: at.ugy * 1.1 + (m.rangedp || 0), spell: at.akarat * 1.3 + (m.spellp || 0), summon: (at.akarat + at.ugy) * 0.6 + (m.summonp || 0) + (P.fx.fokonst ? 30 : 0) };
   st.flat = m.flat || 0; st.add = { tuz: m.add_tuz || 0, fagy: m.add_fagy || 0, villam: m.add_villam || 0 };
   st.splashp = m.splashp || 0; st.splashr = m.splashr || 0; st.burnp = m.burnp || 0; st.spellcrit = m.spellcrit || 0; st.farp = m.farp || 0;
   st.killMp = m.killMp || 0; st.shieldPct = m.shield || 0; st.sumaspd = m.sumaspd || 0;
@@ -1357,16 +1540,19 @@ function rollDmg(P, mult, kind, extraCrit = 0) {
   const w = P.S.eq.fegyver, C = CLASSES[P.S.cls];
   if (w && ((C.kedvenc === 'melee' && BASES[w.base].kind === 'melee') || (C.kedvenc === 'spell' && BASES[w.base].kind === 'spell') || (C.kedvenc === 'ranged' && BASES[w.base].kind === 'ranged'))) bonus += 15;
   if (kind === 'spell' && w && BASES[w.base].kind !== 'spell') base *= 0.85; // varázslat nem varázsfegyverrel
+  if (st.verszomj && CLASSES[P.S.cls].rage) bonus += Math.floor(P.mp / 10) * st.verszomj;
   let amt = base * mult * (1 + bonus / 100);
+  if (P.empowerT > 0) amt *= P.empowerMul || 1;
+  if (kind === 'ranged' && P.focus) extraCrit += P.focus * 5;
   let crit = Math.random() * 100 < st.crit + extraCrit + (kind === 'spell' ? st.spellcrit : 0) || st.critForce > 0;
   if (crit) amt *= 1 + st.critd / 100;
   return { a: amt, c: crit, k: kind };
 }
 
 // ---------------- túlélés ----------------
-const SURV_RATE = { kaja: 100 / 1300, ital: 100 / 850, ebren: 100 / 2200 };
+const SURV_RATE = { kaja: 100 / 1400, ital: 100 / 1050, ebren: 100 / 2400 };
 function survivalTick(P, dt, inTown) {
-  const sv = P.S.surv; const mul = (inTown ? 0.4 : 1) / (1 + P.st.at.allo * 0.006);
+  const sv = P.S.surv; const mul = (inTown ? 0.4 : Exped.hungerMul()) / (1 + P.st.at.allo * 0.006);
   const before = [sv.kaja < 30, sv.ital < 30, sv.ebren < 30, sv.kaja <= 0, sv.ital <= 0, sv.ebren <= 0].join();
   sv.kaja = Math.max(0, sv.kaja - SURV_RATE.kaja * dt * mul * (P.combatT > 0 ? 1.3 : 1));
   sv.ital = Math.max(0, sv.ital - SURV_RATE.ital * dt * mul * (P.combatT > 0 ? 1.4 : 1) * (G.map && G.map.region === 'melyseg' ? 1.6 : 1));
@@ -1382,9 +1568,11 @@ function eatFood(id) {
   S.food[id]--; if (!S.food[id]) delete S.food[id];
   const sv = S.surv; if (F.kaja) sv.kaja = Math.min(100, sv.kaja + F.kaja); if (F.ital) sv.ital = Math.min(100, sv.ital + F.ital); if (F.alvas) sv.ebren = Math.min(100, sv.ebren + F.alvas);
   if (F.hp) G.P.hp = Math.min(G.P.mhp, G.P.hp + G.P.mhp * F.hp);
+  // egyszerre egy falat hatása él; a házi koszt külön, erősebb és hosszabb
+  if (F.fb) G.buff(G.P, 'falat', F.fb.t * (G.S.spouse === 'bence' ? 1.25 : 1), F.fb.mods);
   if (id === 'kola' || id === 'bika') { G.P.gas = Math.min(100, (G.P.gas || 0) + (id === 'kola' ? 14 : 22)); }
   if (id === 'sprite') G.P.gas = Math.max(0, (G.P.gas || 0) - 25);
-  recalc(G.P); Audio2.play('potion'); UI.toast(`${F.ikon} ${F.nev}`, '#e8d7b0'); G.emit('eat', id);
+  recalc(G.P); Audio2.play('potion'); UI.toast(`${F.ikon} ${F.nev}${F.fb ? ' – ' + F.fb.d : ''}`, '#e8d7b0'); G.emit('eat', id);
   return true;
 }
 function autoEat(kind) { // H: étel, G: ital
@@ -1427,13 +1615,15 @@ const G = {
   // ---------- segédek ----------
   later(t, fn) { this.timers.push({ t, fn }); },
   shake(a) { this.cam.shake = Math.max(this.cam.shake, a); },
+  // hitstop: a világ egy pillanatra megáll a találat súlyától (felülről korlátozva, hogy ne akadjon)
+  hitStop(t) { if (this.t - (this.lastStop || -1) < 0.12 && t < 0.06) return; this.lastStop = this.t; this.hitstop = Math.min(0.12, Math.max(this.hitstop || 0, t)); },
   text(x, y, s, c = '#fff', size = 13, o = {}) { this.texts.push({ x: x + RNG.range(-6, 6), y, s: String(s), c, size, t: 0, life: o.life || 0.9, vy: o.vy || -38 }); if (this.texts.length > 120) this.texts.shift(); },
   burst(x, y, c, n = 10, spd = 120, life = 0.5, size = 3, o = {}) { for (let i = 0; i < n; i++) { if (this.parts.length > 900) this.parts.shift(); const a = RNG() * 6.283, s = spd * (0.3 + RNG() * 0.7); this.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, life: life * (0.6 + RNG() * 0.6), c, size: size * (0.6 + RNG() * 0.8), drag: o.drag || 2.5, glow: o.glow, grav: o.grav || 0 }); } },
   fxRing(x, y, r, c, life = 0.4, w = 3) { this.parts.push({ ring: true, x, y, r, c, t: 0, life, w }); },
   emit(ev, d) { if (typeof Quests !== 'undefined') Quests.on(ev, d); },
   mapIs(id) { return this.map && this.map.region === id; },
   inTown() { return this.map && (this.map.region === 'varos' || this.map.region === 'otthon'); },
-  diffLvl() { return [0, 30, 55][this.S.prog.diff] || 0; },
+  diffLvl() { return diffLevel(this.S.prog.diff); },
 
   // ---------- térbeli rács az ellenfelekhez ----------
   rebuildGrid() {
@@ -1463,9 +1653,10 @@ const G = {
     if (own === 'e' || own === 'env') { const P = this.P; if (dist2(x, y, P.x, P.y) < (r + P.r) ** 2) this.hurtPlayer(dmg && dmg.a != null ? dmg.a : dmg, dt, o.src, o); }
   },
   arc(x, y, a, arc, range, dmg, dt, o = {}) {
-    if (o.fx) this.fxArc(x, y, a, arc, range, o.fx);
-    for (const e of this.near(x, y, range)) { const d = angDiff(a, Math.atan2(e.y - y, e.x - x)); if (Math.abs(d) <= arc / 2 + Math.atan2(e.r, Math.max(1, Math.hypot(e.x - x, e.y - y)))) this.hurtEnemy(e, dmg, dt, { ...o, kx: x, ky: y }); }
+    if (o.fx) this.fxArc(x, y, a, arc, range, o.fx); let n = 0;
+    for (const e of this.near(x, y, range)) { const d = angDiff(a, Math.atan2(e.y - y, e.x - x)); if (Math.abs(d) <= arc / 2 + Math.atan2(e.r, Math.max(1, Math.hypot(e.x - x, e.y - y)))) { this.hurtEnemy(e, dmg, dt, { ...o, kx: x, ky: y }); n++; } }
     for (const b of this.breakables(x, y, range)) { const d = angDiff(a, Math.atan2(b.y - y, b.x - x)); if (Math.abs(d) <= arc / 2 + 0.3) this.hitObj(b, dmg); }
+    return n;
   },
   screenHit(dmg, dt, o = {}) {
     const P = this.P, hw = this.W / 2 + 60, hh = this.H / 2 + 60;
@@ -1499,7 +1690,7 @@ const G = {
     this.burst(ent.x, ent.y, '#dfefff', 14, 160); ent.x = tx; ent.y = ty; this.burst(tx, ty, '#dfefff', 14, 160);
   },
   buff(ent, id, t, mods) { const ex = ent.buffs.find(b => b.id === id); if (ex) { ex.t = t; ex.mods = mods; } else ent.buffs.push({ id, t, mods }); if (ent === this.P) recalc(ent); },
-  ally(o) { o.t = 0; if (o.x == null) { o.x = o.owner.x + RNG.range(-20, 20); o.y = o.owner.y + RNG.range(-20, 20); } o.cd = RNG() * 0.4; o.r = o.r || 8; this.allies.push(o); },
+  ally(o) { o.t = 0; if ((o.kind === 'dron' || o.kind === 'torony') && !o.grey && this.P.st.gepesz) o.life *= 1 + 0.15 * this.P.st.gepesz; if (o.x == null) { o.x = o.owner.x + RNG.range(-20, 20); o.y = o.owner.y + RNG.range(-20, 20); } o.cd = RNG() * 0.4; o.r = o.r || 8; this.allies.push(o); },
   allyCap(kind, max) { const mine = this.allies.filter(a => a.kind === kind && !a.grey); while (mine.length >= max) { const a = mine.shift(); a.life = 0; } },
   freeSpot(x, y, from) { const m = this.map; let tx = x, ty = y; for (let i = 0; i < 20 && solidAt(m, tx, ty); i++) { tx = lerp(tx, from.x, 0.1); ty = lerp(ty, from.y, 0.1); } return { x: tx, y: ty }; },
 
@@ -1512,6 +1703,10 @@ const G = {
     if (amt <= 0 && !o.fear && !o.stun && !o.freeze) return;
     if (e.immune) { if (amt > 0 && RNG() < 0.3) this.text(e.x, e.y - e.r, 'SEBEZHETETLEN', '#aaa', 12); amt = 0; }
     if (e.shieldMul) amt *= e.shieldMul;
+    amt = Reactions.apply(e, amt, dt, o);
+    if (o.ccBonus && (e.stun > 0 || e.fear > 0)) amt *= o.ccBonus;
+    if (o.rage && CLASSES[this.S.cls].rage) P.mp = Math.min(P.mmp, P.mp + o.rage);
+    if (o.machine && e.tmark > 0) amt *= 1.15;
     let res = (e.res[dt] || 0) - (e.shock > 0 ? 20 : 0); amt *= 1 - clamp(res, -100, 90) / 100;
     if (dt === 'fiz' && !P.fx.furo) amt *= 100 / (100 + e.armor);
     if (P.fx.furo && RNG() < 0.25) { amt *= 2; crit = true; }
@@ -1519,23 +1714,32 @@ const G = {
     if (P.fx.viragpor && e.slow > 0) amt *= 1.2;
     if (o.far && Math.hypot(e.x - P.x, e.y - P.y) > 250) amt *= 1 + P.st.farp / 100;
     if (amt > 0) {
-      e.hp -= amt; e.flash = 0.1; e.hurtT = 0.3; P.combatT = 4;
-      if (e.state !== 'chase') this.aggro(e);
+      e.hp -= amt; e.flash = 0.1; e.hurtT = 0.3; e.hitT = 0.14; P.combatT = 4;
+      // a találat súlya: közelharcban megáll a világ, kritikusnál jobban
+      if (o.melee && !o.noStop) { this.hitStop((o.stop || 0.035) + (crit ? 0.03 : 0)); if (crit) Audio2.play('crit'); }
+      else if (crit && (o.basic || o.ranged)) { this.hitStop(0.018); Audio2.play('crit'); }
+      if (e.state !== 'chase' && !(e.ancient && (e.state === 'wander' || e.state === 'alert'))) this.aggro(e);
       this.text(e.x, e.y - e.r - 6, Math.round(amt), crit ? '#ffe14d' : DT[dt].c, crit ? 17 : 12, { vy: crit ? -55 : -38 });
-      if (P.st.ls && o.basic) P.hp = Math.min(P.mhp, P.hp + amt * P.st.ls / 100);
+      { const ls = P.st.ls + (P.st.verszomj && P.hp < P.mhp / 2 ? 2 * P.st.verszomj : 0); if (ls && o.basic) P.hp = Math.min(P.mhp, P.hp + amt * ls / 100); }
+      if (o.basic && o.ranged) Focus.onHit(P, e);
       if (P.fx.sziv && o.melee) P.hp = Math.min(P.mhp, P.hp + amt * 0.04);
       if (e.vamp) e.hp = Math.min(e.mhp, e.hp + 0);
       if (e.mods.includes('villamos') && RNG() < 0.12 && !o.noReflect) for (let i = 0; i < 4; i++) this.proj({ x: e.x, y: e.y, a: i * 1.57 + RNG(), spd: 280, r: 4, dmg: e.dmg * 0.6, dt: 'villam', own: 'e', kind: 'spark', life: 1.4, src: e });
     }
     if (o.burn) e.burn = { dps: amt * 0.18 * (1 + P.st.burnp / 100), t: o.burn };
-    if (o.freeze) e.freeze = Math.max(e.freeze, e.boss ? o.freeze * 0.3 : o.freeze);
+    if (o.freeze) { const f = o.freeze * (1 + (P.st.freezeMul || 0) / 100) * (e.brittle > 0 ? 1.5 : 1); e.freeze = Math.max(e.freeze, e.boss ? f * 0.3 : f); }
+    if (o.tmark) e.tmark = 2.5;
     if (o.slow) e.slow = Math.max(e.slow, o.slow);
     if (o.shock) e.shock = o.shock;
     if (o.stun) e.stun = Math.max(e.stun, e.boss || e.ancient ? Math.min(1, o.stun * 0.35) : o.stun);
     if (o.fear && !e.boss) e.fear = o.fear;
     if (P.st.mark && (o.ranged || o.k === 'ranged')) e.mark = 4;
-    if (o.knock && !e.boss && !e.ancient && e.def.ai !== 'turret') { const a = Math.atan2(e.y - (o.ky ?? P.y), e.x - (o.kx ?? P.x)); const k = o.knock / (e.heavy ? 3 : 1); e.kbx = Math.cos(a) * k * 3; e.kby = Math.sin(a) * k * 3; }
-    if (e.hp <= 0) this.killEnemy(e, o);
+    if (o.knock && !e.boss && !e.ancient && e.def.ai !== 'turret') {
+      // tömeg: a nagy test, az elit és a „nehéz” kevésbé repül
+      const a = Math.atan2(e.y - (o.ky ?? P.y), e.x - (o.kx ?? P.x)), mass = Math.max(0.8, e.r / 12) * (e.heavy ? 3 : 1) * (e.elite || e.champion ? 1.4 : 1);
+      const k = o.knock / mass; e.kbx = Math.cos(a) * k * 3; e.kby = Math.sin(a) * k * 3; if (o.knock >= 150 && e.wind > 0) { e.wind = 0; e.cd = Math.max(e.cd, 0.6); this.text(e.x, e.y - e.r - 14, 'megtört', '#ffd27a', 11); }
+    }
+    if (e.hp <= 0) { if (o.melee) this.hitStop(0.05); this.killEnemy(e, o); }
   },
   aggro(e) {
     e.state = 'chase';
@@ -1547,9 +1751,11 @@ const G = {
     this.burst(e.x, e.y, e.look.c2 || '#fff', 6, 90, 0.5, 2);
     // tapasztalat
     const diffL = e.lvl - P.lvl; let xm = diffL < -6 ? Math.max(0.15, 1 + (diffL + 6) * 0.12) : diffL > 0 ? 1 + diffL * 0.1 : 1;
-    const xp = Math.round(e.xp * xm); this.gainXp(xp);
+    const xp = Math.round(e.xp * xm); this.gainXp(xp); Exped.onKill(e, xp);
     S.stats.kills++; if (e.elite || e.named) S.stats.elites++;
     if (P.st.killMp) P.mp = Math.min(P.mmp, P.mp + P.st.killMp);
+    if (P.st.fagyelme && e.freeze > 0) P.mp = Math.min(P.mmp, P.mp + 4 * P.st.fagyelme);
+    if (P.bulletTime) P.mp = Math.min(P.mmp, P.mp + 6); // Golyóidő: az ölés visszaad a belső időből
     if (P.fx.bika) { const b = P.buffs.find(b => b.id === 'bika'); const n = Math.min(3, (b ? b.n : 0) + 1); this.buff(P, 'bika', 2, { aspd: 25 * n }); P.buffs.find(b => b.id === 'bika').n = n; }
     if (P.fx.mehraj && RNG() < 0.3) this.ally({ kind: 'meh', owner: P, x: e.x, y: e.y, life: 10, dmgMul: 0.35, rate: 0.6, range: 260 });
     if (P.fx.penrose) { P.mp = Math.min(P.mmp, P.mp + 4); if (RNG() < 0.1) for (const k in P.cds) P.cds[k] = Math.max(0, P.cds[k] - 1); }
@@ -1576,11 +1782,14 @@ const G = {
   hurtPlayer(amt, dt, src, o = {}) {
     const P = this.P; if (!P || P.dead || this.scene !== 'play') return;
     if (!o.pure) {
-      if (P.invul > 0 || this.godmode) return;
-      if (P.st.block && RNG() * 100 < P.st.block) { this.text(P.x, P.y - 24, 'Kivédve', '#9fd8ff', 13); if (src && P.st.riposte && !src.dead) this.hurtEnemy(src, P.roll(P.st.riposte, 'melee'), P.wdt(), { melee: true }); return; }
+      if (P.invul > 0 || this.godmode) { if (P.dash && P.perfectT > 0 && (src || o.fx)) this.perfectDodge(src); return; }
+      if (P.st.block && RNG() * 100 < P.st.block) { this.text(P.x, P.y - 24, 'Kivédve', '#9fd8ff', 13); const rp = P.st.riposte || (P.st.bastya ? 0.8 : 0); if (src && rp && !src.dead) this.hurtEnemy(src, P.roll(rp, 'melee'), P.wdt(), { melee: true }); if (CLASSES[this.S.cls].rage) P.mp = Math.min(P.mmp, P.mp + 4); return; }
       const sl = src ? src.lvl : this.S.lvl;
       if (dt === 'fiz') amt *= 1 - P.st.arm / (P.st.arm + 60 + 14 * sl); else amt *= 1 - (P.st.res[dt] || 0) / 100;
-      if (this.S.prog.diff === 2) amt *= 1.2;
+      if (this.S.prog.diff >= 2) amt *= 1.2 + 0.05 * (this.S.prog.diff - 2);
+      if (P.st.bastya && P.mp >= 50) amt *= 1 - 0.05 * P.st.bastya;
+      // a Pengelovag a kapott ütésből is dühöt merít (a Bástya úton jóval többet)
+      if (CLASSES[this.S.cls].rage && src) P.mp = Math.min(P.mmp, P.mp + Math.min(15, amt / P.mhp * 60) * (1 + 0.5 * (P.st.bastya || 0)));
       if (P.shieldV > 0) { const ab = Math.min(P.shieldV, amt); P.shieldV -= ab; amt -= ab; this.fxRing(P.x, P.y, 20, '#9fe8ff', 0.2, 2); }
       P.shieldT = 0; P.combatT = 4;
       if (src && P.st.thorns && !src.dead && dist(src, P) < 120) this.hurtEnemy(src, { a: P.st.thorns, c: false }, 'fiz', { noReflect: true });
@@ -1590,21 +1799,31 @@ const G = {
     }
     if (amt <= 0) return;
     P.hp -= amt;
-    if (!o.silent) { this.text(P.x, P.y - 22, Math.round(amt), '#ff5555', 13); P.hurtT = 0.25; Audio2.play('hurt'); this.shake(Math.min(6, 2 + amt / P.mhp * 30)); }
+    if (!o.silent) { this.text(P.x, P.y - 22, Math.round(amt), '#ff5555', 13); P.hurtT = 0.25; this.hurtFlash = Math.min(0.5, 0.15 + amt / P.mhp * 2); Audio2.play('hurt'); this.shake(Math.min(7, 2 + amt / P.mhp * 30)); if (amt > P.mhp * 0.12) this.hitStop(0.05); }
     if (P.fx.mag && P.hp < P.mhp * 0.3 && !(P.magT > 0)) { P.magT = 30; P.shieldV += P.mhp * 0.25; this.buff(P, 'magma', 5, { armp: 50 }); UI.toast('Magmapajzs!', '#ff7a2a'); }
     if (P.hp <= 0) this.playerDie(src);
+  },
+  perfectDodge(src) {
+    const P = this.P, C = CLASSES[this.S.cls]; if (P.perfectUsed) return; P.perfectUsed = true;
+    // jutalom a jó időzítésért: állóképesség vissza, rövid lassítás, erőforrás, és a következő 1,5 mp ütései erősebbek
+    P.sta = Math.min(P.msta, P.sta + DODGE_COST * 0.8); this.slowmo = 0.35;
+    if (P.st.gerilla) for (const k in P.cds) P.cds[k] = Math.max(0, P.cds[k] - P.st.gerilla);
+    if (C.rage) P.mp = Math.min(P.mmp, P.mp + 18); else P.mp = Math.min(P.mmp, P.mp + P.mmp * 0.08);
+    this.buff(P, 'tokeletes', 1.5, { dmgp: 35, crit: 25 });
+    this.text(P.x, P.y - 34, 'TÖKÉLETES KITÉRÉS', '#dff8ff', 13, { life: 1.1 }); this.fxRing(P.x, P.y, 46, '#dff8ff', 0.4, 3); Audio2.play('perfect');
+    this.S.stats.perfect = (this.S.stats.perfect || 0) + 1; this.emit('perfect');
   },
   playerDie(src) {
     const P = this.P, S = this.S; if (P.dead) return; P.dead = true; P.hp = 0;
     S.stats.deaths++; Audio2.play('die'); this.burst(P.x, P.y, '#ff3355', 50, 240, 1.2, 4);
-    const lost = Math.floor(S.gold * 0.08); S.gold -= lost;
+    const lost = Math.floor(S.gold * 0.08); S.gold -= lost; { const X = Exped.st(); X.lost = X.bank; X.bank = 0; }
     this.retPortal = null;
     setTimeout(() => UI.deathScreen(src ? (src.nameTxt || src.def.nev) : 'a kimerülés', lost), 900);
   },
 
   // ---------- zsákmány ----------
   dropLoot(e) {
-    const P = this.P, S = this.S, mf = P.st.mf + this.S.prog.diff * 40;
+    const P = this.P, S = this.S, mf = P.st.mf + this.S.prog.diff * 40 + Exped.mf();
     const ilvl = Math.min(90, e.lvl);
     const drop = (k, v, it) => { const a = RNG() * 6.283, d = RNG() * 30; this.pickups.push({ kind: k, v, it, x: e.x + Math.cos(a) * d, y: e.y + Math.sin(a) * d, t: 0, vy: -120 - RNG() * 80, z: 0 }); };
     let itemN = 0, minRar = 0;
@@ -1676,7 +1895,7 @@ const G = {
     return best;
   },
 };
-const INV_MAX = 40, STASH_MAX = 120;
+const INV_MAX = 40, STASH_MAX = 120, DODGE_COST = 30;
 
 // ============================================================
 //  ELLENFELEK, BOSSOK, SZÖVETSÉGESEK, LÖVEDÉKEK
@@ -1689,7 +1908,7 @@ Object.assign(G, {
       type, def: o.bossDef ? { ai: 'boss', nev: D.nev } : D, look: { ...(D.look) }, x, y, r: o.r || D.r, lvl: dl,
       mhp: D.hp * monHp(dl), dmg: D.dmg * monDmg(dl), spd: D.spd, armor: (D.armor || 0) * (1 + dl * 0.12), res: { ...(D.res || {}) },
       state: 'idle', t: RNG() * 2, cd: RNG() * 1.5, wind: 0, stun: 0, freeze: 0, slow: 0, shock: 0, mark: 0, fear: 0, burn: null, kbx: 0, kby: 0,
-      mods: o.mods || [], xp: (D.xp || 2) * 10 * (1 + 0.22 * (dl - 1)), flash: 0, hurtT: 0, strafe: RNG() < 0.5 ? 1 : -1, losT: 0, seeP: false, w: 0, summoned: 0, tick: 0,
+      mods: o.mods || [], xp: (D.xp || 2) * 10 * (1 + 0.26 * (dl - 1)), flash: 0, hurtT: 0, strafe: RNG() < 0.5 ? 1 : -1, losT: 0, seeP: false, w: 0, summoned: 0, tick: 0,
     };
     if (o.elite) { e.elite = true; e.mhp *= 2.4; e.dmg *= 1.35; e.xp *= 3; e.r *= 1.15; e.look.glow = ELITE_MODS[e.mods[0]] ? ELITE_MODS[e.mods[0]].c : '#6fa8ff'; }
     if (o.champion) { e.champion = true; e.mhp *= 4; e.dmg *= 1.5; e.xp *= 6; e.r *= 1.3; e.look.glow = '#ffd34d'; }
@@ -1711,7 +1930,7 @@ Object.assign(G, {
       if (e.dead) continue;
       const dx = P.x - e.x, dy = P.y - e.y, dP = Math.hypot(dx, dy);
       if (dP > 1500 && !e.boss) continue; // alszik
-      e.t += dt; e.flash -= dt; e.hurtT -= dt; e.mark -= dt; e.shock -= dt;
+      e.t += dt; e.flash -= dt; e.hurtT -= dt; e.mark -= dt; e.shock -= dt; if (e.tmark > 0) e.tmark -= dt; if (e.brittle > 0) e.brittle -= dt;
       if (e.burn) { e.burn.t -= dt; e.tick -= dt; if (e.tick <= 0) { e.tick = 0.5; this.hurtEnemy(e, { a: e.burn.dps * 0.5, c: false }, 'tuz', { noReflect: true }); if (RNG() < 0.5) this.burst(e.x, e.y - 6, '#ff7a2e', 2, 40, 0.4); } if (e.burn && e.burn.t <= 0) e.burn = null; if (e.dead) continue; }
       if (e.freeze > 0) { e.freeze -= dt; continue; }
       if (e.stun > 0) { e.stun -= dt; e.wind = 0; e.charging = 0; continue; }
@@ -1720,16 +1939,21 @@ Object.assign(G, {
       // hátralökés
       if (e.kbx || e.kby) { moveCircle(m, e, e.kbx * dt, e.kby * dt); e.kbx *= Math.pow(0.002, dt); e.kby *= Math.pow(0.002, dt); if (Math.abs(e.kbx) + Math.abs(e.kby) < 5) e.kbx = e.kby = 0; }
       e.losT -= dt; if (e.losT <= 0) { e.losT = 0.25 + RNG() * 0.1; e.seeP = dP < 900 && los(m, e.x, e.y, P.x, P.y); }
-      if (e.state === 'idle') { if ((dP < 400 && e.seeP) || e.hurtT > 0) this.aggro(e); else continue; }
+      if (e.state === 'idle') { if ((dP < (this.darkBoost > 0 ? 140 : 400) && e.seeP) || e.hurtT > 0) this.aggro(e); else continue; }
       if (e.state === 'wander') { // Ősök: kóborolnak, csak közelről vagy ütésre támadnak
-        if ((dP < 230 && e.seeP) || e.hurtT > 0) { e.state = 'chase'; UI.toast(`⚠ ${e.nameTxt} felfigyelt rád! (${e.lvl}. szint)`, '#ff3355', 4); Audio2.play('bossroar'); }
+        if (dP < 420 && !e.warned) { e.warned = true; UI.toast(`⚠ Ős a közelben: ${e.nameTxt} (${e.lvl}. szint). Kerüld el – vagy ne.`, '#ff7a7a', 3); }
+        // felfigyelés: 1,5 mp, amíg dönthetsz – harc vagy menekülés
+        if ((dP < 230 && e.seeP) || e.hurtT > 0) { e.state = 'alert'; e.alertT = 1.5; UI.toast(`⚠ ${e.nameTxt} felfigyelt rád! (${e.lvl}. szint) – most még elfuthatsz.`, '#ff3355', 4); Audio2.play('bossroar'); this.text(e.x, e.y - e.r - 24, '!', '#ff3355', 26, { life: 1.5, vy: -6 }); continue; }
         else { e.wa = (e.wa || RNG() * 6.28) + RNG.range(-1, 1) * dt; if (moveCircle(m, e, Math.cos(e.wa) * 40 * dt, Math.sin(e.wa) * 40 * dt)) e.wa += 2; continue; }
       }
+      if (e.state === 'alert') { e.alertT -= dt; e.wind = 0; if (e.alertT <= 0) e.state = 'chase'; continue; }
       if (e.boss) { this.bossAI(e, dt, dP); continue; }
+      // Ős-póráz: aki elég messzire fut, azt elengedi – erős, de nem csapda
+      if (e.ancient && e.state === 'chase') { if (dP > 620) { e.leashT = (e.leashT || 0) + dt; if (e.leashT > 2.5) { e.state = 'wander'; e.leashT = 0; e.hp = Math.min(e.mhp, e.hp + e.mhp * 0.25); UI.toast(`${e.nameTxt} elvesztette a nyomodat.`, '#e6c47a', 2.5); continue; } } else e.leashT = 0; }
       let spd = e.spd * (e.slow > 0 ? 0.5 : 1); if (e.slow > 0) e.slow -= dt;
       if (e.mods.includes('fagyos') && dP < 130) { P.chill = 0.3; }
       if (e.mods.includes('tuzes')) { e.trailT = (e.trailT || 0) - dt; if (e.trailT <= 0) { e.trailT = 0.6; this.ground(e.x, e.y, 26, 3, e.dmg * 0.6, 'tuz', 'e'); } }
-      if (e.mods.includes('teleport')) { e.tpT = (e.tpT || 4) - dt; if (e.tpT <= 0 && dP < 600) { e.tpT = 5 + RNG() * 3; const a = RNG() * 6.28; const nx = P.x + Math.cos(a) * 90, ny = P.y + Math.sin(a) * 90; if (!solidAt(m, nx, ny)) { this.burst(e.x, e.y, '#c48cff', 10, 120); e.x = nx; e.y = ny; this.burst(e.x, e.y, '#c48cff', 10, 120); } } }
+      if (e.mods.includes('teleport')) { e.tpT = (e.tpT || 4) - dt; if (e.tpT <= 0 && dP < (e.ancient ? 380 : 600)) { e.tpT = 5 + RNG() * 3; const a = RNG() * 6.28; const nx = P.x + Math.cos(a) * 90, ny = P.y + Math.sin(a) * 90; if (!solidAt(m, nx, ny)) { this.burst(e.x, e.y, '#c48cff', 10, 120); e.x = nx; e.y = ny; this.burst(e.x, e.y, '#c48cff', 10, 120); } } }
       e.cd -= dt;
       const ai = e.def.ai;
       let mv = null; // irány, amerre menne
@@ -1738,8 +1962,9 @@ Object.assign(G, {
       if (e.fear > 0) { e.fear -= dt; mv = toP + Math.PI; }
       else if (ai === 'melee' || ai === 'tank' || ai === 'phase') {
         const reach = e.r + P.r + (ai === 'tank' ? 22 : 14);
-        if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { if (dP < reach + 16) this.hurtPlayer(e.dmg * (ai === 'tank' ? 1.5 : 1), e.def.dt || 'fiz', e); this.fxArc(e.x, e.y, toP, 1.4, reach, 'claw'); if (ai === 'tank') { this.shake(3); if (dP < reach + 16) { P.kbx = Math.cos(toP) * 300; P.kby = Math.sin(toP) * 300; } } e.cd = ai === 'tank' ? 1.8 : 1.2; } }
-        else if (dP < reach && e.cd <= 0) { e.wind = ai === 'tank' ? 0.6 : 0.35; }
+        // a lendítés iránya a felhúzáskor rögzül: oldalra lépve vagy kitérve el lehet kerülni
+        if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { const arcW = ai === 'tank' ? 1.25 : 0.95, inArc = Math.abs(angDiff(e.windA, toP)) < arcW + 0.15; if (dP < reach + 16 && inArc) this.hurtPlayer(e.dmg * (ai === 'tank' ? 1.5 : 1), e.def.dt || 'fiz', e, { fx: 'claw' }); this.fxArc(e.x, e.y, e.windA, arcW * 2, reach + 16, 'claw'); if (ai === 'tank') { this.shake(3); if (dP < reach + 16 && inArc) { P.kbx = Math.cos(toP) * 300; P.kby = Math.sin(toP) * 300; } } e.cd = ai === 'tank' ? 1.8 : 1.2; } }
+        else if (dP < reach && e.cd <= 0) { e.wind = e.windMax = (ai === 'tank' ? 0.7 : 0.45) * (e.mods.includes('gyors') ? 0.8 : 1); e.windA = toP; e.windR = reach + 16; e.windW = ai === 'tank' ? 1.25 : 0.95; }
         else mv = chaseDir();
         if (ai === 'phase' && e.cd <= -2 && dP < 300 && e.seeP) { e.cd = 1; const a = toP + Math.PI + RNG.range(-0.8, 0.8); const nx = P.x + Math.cos(a) * 50, ny = P.y + Math.sin(a) * 50; if (!solidAt(m, nx, ny)) { this.burst(e.x, e.y, e.look.c2, 8, 100); e.x = nx; e.y = ny; } }
       } else if (ai === 'swarm') {
@@ -1753,29 +1978,31 @@ Object.assign(G, {
         else if (dP < pref - 70) mv = toP + Math.PI;
         else { mv = toP + e.strafe * Math.PI / 2; if (RNG() < dt * 0.6) e.strafe *= -1; spd *= 0.6; }
         if (e.seeP && e.cd <= 0 && dP < 620) {
-          if (ai === 'ranged') this.enemyShoot(e, toP);
-          else if (ai === 'caster') { const C = e.def.cast; for (let i = 0; i < (C.n || 1); i++) { const ox = i ? RNG.range(-90, 90) : 0, oy = i ? RNG.range(-90, 90) : 0; this.tele(P.x + ox + P.vx * 0.4, P.y + oy + P.vy * 0.4, C.r, C.delay, e.dmg * 1.4, e.def.dt || 'fiz', 'e', { src: e, fx: e.def.dt === 'fagy' ? 'nova' : 'bolt', freezeP: e.def.dt === 'fagy' }); } e.cd = C.cd; }
+          if (ai === 'ranged') { if (!(e.aimT > 0)) e.aimT = 0.32; }
+          else if (ai === 'caster') { const C = e.def.cast; for (let i = 0; i < (C.n || 1); i++) { const ox = i ? RNG.range(-90, 90) : 0, oy = i ? RNG.range(-90, 90) : 0; this.tele(P.x + ox + P.vx * 0.4, P.y + oy + P.vy * 0.4, C.r, C.delay, e.dmg * 1.4, e.def.dt || 'fiz', 'e', { src: e, fx: e.def.dt === 'fagy' ? 'nova' : 'bolt', freezeP: e.def.dt === 'fagy' }); } e.cd = C.cd * (e.ancient ? 1.5 : 1); }
           else if (ai === 'summoner') { const Sm = e.def.summon; if (e.summoned < 8) for (let i = 0; i < Sm.n; i++) { const c = this.spawnEnemy(Sm.type, e.x + RNG.range(-30, 30), e.y + RNG.range(-30, 30), e.lvl, {}); c.state = 'chase'; c.xp *= 0.3; e.summoned++; c.parent = e; } e.cd = Sm.cd; this.fxRing(e.x, e.y, 40, e.look.c, 0.4); }
         }
+        if (e.aimT > 0) { e.aimT -= dt; spd *= 0.35; if (e.aimT <= 0) { if (!e.dead && e.seeP) this.enemyShoot(e, toP); else e.cd = 0.5; } }
       } else if (ai === 'charger') {
         if (e.charging > 0) { e.charging -= dt; const hit = moveCircle(m, e, e.cvx * dt, e.cvy * dt); if (!e.chHit && dist(e, P) < e.r + P.r + 4) { e.chHit = true; this.hurtPlayer(e.dmg * 1.6, e.def.dt || 'fiz', e); P.kbx = e.cvx * 0.6; P.kby = e.cvy * 0.6; } if (hit) { e.charging = 0; e.stun = 0.9; this.shake(3); this.burst(e.x, e.y, '#ccc', 8, 100); } if (RNG() < 0.5) this.burst(e.x, e.y, '#aaa', 1, 30, 0.3); continue; }
-        if (e.wind > 0) { e.wind -= dt; e.windA = toP; if (e.wind <= 0) { const s = 520 + e.spd * 2; e.cvx = Math.cos(e.windA) * s; e.cvy = Math.sin(e.windA) * s; e.charging = 0.55; e.chHit = false; e.cd = 3; } continue; }
-        if (e.seeP && dP < 330 && dP > 70 && e.cd <= 0) { e.wind = 0.6; continue; }
+        if (e.wind > 0) { e.wind -= dt; if (e.wind > 0.22) e.windA = toP; if (e.wind <= 0) { const s = 520 + e.spd * 2; e.cvx = Math.cos(e.windA) * s; e.cvy = Math.sin(e.windA) * s; e.charging = 0.55; e.chHit = false; e.cd = 3; } continue; }
+        if (e.seeP && dP < 330 && dP > 70 && e.cd <= 0) { e.wind = 0.65; e.windA = toP; this.teles.push({ line: true, follow: e, x: e.x, y: e.y, a: toP, len: (520 + e.spd * 2) * 0.55, w: e.r * 2, t: 0, delay: 0.65, own: 'none' }); continue; }
         if (dP < e.r + P.r + 10 && e.cd <= 0) { this.hurtPlayer(e.dmg, e.def.dt || 'fiz', e); e.cd = 1.2; }
         mv = chaseDir();
       } else if (ai === 'exploder') {
         if (e.fuse > 0) { e.fuse -= dt; if (e.fuse <= 0) { this.hitArea(e.x, e.y, 80, e.dmg, e.def.dt || 'tuz', 'e', { fx: 'boom', src: e }); Audio2.play('boom'); e.xp *= 0.5; this.killEnemy(e); } continue; }
         mv = chaseDir(); spd *= 1.1;
-        if (dP < e.r + P.r + 20) { e.fuse = 0.45; }
+        if (dP < e.r + P.r + 20) { e.fuse = e.fuseMax = 0.6; }
       } else if (ai === 'turret') {
-        if (!e.def.noShot && e.seeP && dP < 600 && e.cd <= 0) this.enemyShoot(e, toP);
+        if (!e.def.noShot && e.seeP && dP < 600 && e.cd <= 0 && !(e.aimT > 0)) e.aimT = 0.4;
+        if (e.aimT > 0) { e.aimT -= dt; if (e.aimT <= 0) this.enemyShoot(e, toP); }
       }
       if (mv != null && !isNaN(mv)) {
         // szétválás a szomszédoktól
         let sx = 0, sy = 0;
         for (const o of this.near(e.x, e.y, e.r + 14)) { if (o === e) continue; const dd = Math.hypot(e.x - o.x, e.y - o.y) || 1; sx += (e.x - o.x) / dd; sy += (e.y - o.y) / dd; }
         let vx = Math.cos(mv) * spd + sx * 40, vy = Math.sin(mv) * spd + sy * 40;
-        if (this.gust) { vx += this.gust.x * 0.6; vy += this.gust.y * 0.6; }
+        if (this.gust && !this.sheltered(e)) { vx += this.gust.x * 0.6; vy += this.gust.y * 0.6; }
         const t = tileAt(m, Math.floor(e.x / TILE), Math.floor(e.y / TILE)); if (t === T_HAZ) { const fx = REGION[m.region] && REGION[m.region].haz.fx; if (fx === 'slow') { vx *= 0.55; vy *= 0.55; } }
         moveCircle(m, e, vx * dt, vy * dt);
         e.face = mv;
@@ -1797,16 +2024,20 @@ Object.assign(G, {
   // ---------- BOSS MI ----------
   bossAI(e, dt, dP) {
     const P = this.P, m = this.map, D = e.bossDef, toP = Math.atan2(P.y - e.y, P.x - e.x);
-    if (!e.intro) { e.intro = true; UI.bossBar(e); Audio2.play('bossroar'); this.text(e.x, e.y - e.r - 20, RNG.pick(D.lines), '#ffd0d0', 14, { life: 3, vy: -10 }); }
+    if (!e.intro) { e.intro = true; UI.bossBar(e); Audio2.play('bossroar'); this.text(e.x, e.y - e.r - 20, Dialog.fill(RNG.pick(D.lines)), '#ffd0d0', 14, { life: 3, vy: -10 }); if (STORY[e.bossId] && !this.map.hasadek) UI.scene(`${D.nev} – ${D.cim}`, STORY[e.bossId].be, 5); }
     // fázisváltás
     if (e.phase === 1 && e.hp < e.mhp * 0.5) {
       e.phase = 2; UI.toast(D.p2, '#ff7a7a', 4); this.text(e.x, e.y - e.r - 20, D.p2, '#ff9999', 14, { life: 3, vy: -10 }); this.shake(10); Audio2.play('bossroar');
       e.pat.forEach(p => p.cd *= 0.7); e.spd *= 1.25;
+      if (D.p2Pat) { e.pat.push({ ...D.p2Pat, t: 0, sig: true }); e.seqI = e.pat.length - 1; } // a 2. fázis saját támadással nyit
+      e.tellP = null; e.gap = 1.6; this.hitArea(e.x, e.y, 200, 0, 'fiz', 'p', { fx: 'nova3' }); { const P2 = this.P, a = Math.atan2(P2.y - e.y, P2.x - e.x); if (dist(e, P2) < 260) { P2.kbx = Math.cos(a) * 420; P2.kby = Math.sin(a) * 420; } }
       if (D.chains) this.spawnChains(e, 3); if (D.antennas) this.spawnAntennas(e, 3);
     }
     // láncok/antennák: sebezhetetlenség / pajzs
     if (e.links) { const alive = e.links.filter(l => !l.dead).length; if (D.chains) e.immune = alive > 0; if (D.antennas) e.shieldMul = alive > 0 ? 0.2 : 1; }
-    if (D.gravity && dP < 900) { const f = D.gravity * (1 - dP / 900) + 30; P.ext = P.ext || { x: 0, y: 0 }; P.ext.x -= Math.cos(toP) * f; P.ext.y -= Math.sin(toP) * f; if (dP < e.r + 40) this.hurtPlayer(e.dmg * dt * 2, 'ter', e, { silent: true }); }
+    // a gravitáció lüktet: 4 mp beszívás, 3 mp csend – a szünet a közelharc ablaka
+    if (D.gravity) { e.gravT = (e.gravT || 0) + dt; const cyc = e.phase === 2 ? 6 : 7, on = (e.gravT % cyc) < 4; if (on !== e.gravOn) { e.gravOn = on; this.text(e.x, e.y - e.r - 30, on ? 'BESZÍVÁS' : 'csend…', on ? '#ffb347' : '#c48cff', 13, { life: 1 }); this.fxRing(e.x, e.y, on ? 300 : 120, on ? '#ffb347' : '#c48cff', 0.6, 4); }
+      if (on && dP < 900) { const f = D.gravity * (1 - dP / 900) + 30; P.ext = P.ext || { x: 0, y: 0 }; P.ext.x -= Math.cos(toP) * f; P.ext.y -= Math.sin(toP) * f; if (dP < e.r + 30) this.hurtPlayer(e.dmg * dt * 1.5, 'ter', e, { silent: true }); } }
     if (e.stun > 0) { e.stun -= dt; return; }
     // mozgás
     if (e.charging > 0) {
@@ -1823,11 +2054,11 @@ Object.assign(G, {
       if (mv != null) moveCircle(m, e, Math.cos(mv) * e.spd * dt, Math.sin(mv) * e.spd * dt);
     }
     if (e.beam) this.updateBeam(e, dt);
-    // minták
-    for (const p of e.pat) p.t -= dt;
-    e.gap -= dt; if (e.gap > 0 || e.beam) return;
-    const ready = e.pat.filter(p => p.t <= 0); if (!ready.length) return;
-    const p = RNG.pick(ready); p.t = p.cd * (0.8 + RNG() * 0.4); e.gap = e.phase === 2 ? 0.6 : 1.0;
+    // minták: rögzített sorrend (megtanulható), minden támadás előtt bejelentés
+    e.gap -= dt; if (e.beam) return;
+    if (e.tellP) { e.tellT -= dt; if (e.tellT > 0) return; }
+    else { if (e.gap > 0) return; if (D.gravity && !e.gravOn) return; const nx = e.pat[(e.seqI || 0) % e.pat.length]; e.tellP = nx; e.tellT = e.phase === 2 ? 0.45 : 0.65; e.tellMax = e.tellT; this.text(e.x, e.y - e.r - 26, nx.nev || BOSS_MOVE[nx.k] || '', nx.sig ? '#ff7a7a' : '#ffd0a0', nx.sig ? 15 : 12, { life: 1, vy: -14 }); return; }
+    const p = e.tellP; e.tellP = null; e.seqI = (e.seqI || 0) + 1; e.gap = clamp(p.cd * 0.5, 1.1, 3.2) * (e.phase === 2 ? 0.75 : 1);
     const dmg = e.dmg, dt2 = D.look.s === 'radiohead' || D.look.s === 'heart' ? 'villam' : D.look.s === 'core' || D.look.s === 'mech' ? 'tuz' : D.look.s === 'self' || D.look.s === 'singularity' ? 'ter' : 'fiz';
     const kind = p.kind || 'bolt', col = D.look.c2;
     switch (p.k) {
@@ -1866,13 +2097,14 @@ Object.assign(G, {
     for (const a of this.allies) {
       a.t += dt; a.life -= dt; if (a.life <= 0) continue;
       a.cd -= dt * (1 + P.st.sumaspd / 100);
+      if (Machines.isM(a)) { a.linkT = (a.linkT || 0) - dt; if (a.linkT <= 0) { a.linkT = 0.5; a.links = Machines.links(a); } }
       if (a.kind === 'dron') {
         const i = this.allies.filter(x => x.kind === 'dron').indexOf(a); const ang = this.t * 1.4 + i * 1.3;
         const tx = a.owner.x + Math.cos(ang) * (46 + (i % 3) * 14), ty = a.owner.y + Math.sin(ang) * (46 + (i % 3) * 14) - 8;
         a.x = lerp(a.x, tx, Math.min(1, dt * 6)); a.y = lerp(a.y, ty, Math.min(1, dt * 6));
-        if (a.cd <= 0) { const e = this.nearestEnemy(a.x, a.y, a.range); if (e) { a.cd = a.rate; this.proj({ x: a.x, y: a.y, a: Math.atan2(e.y - a.y, e.x - a.x), spd: 700, r: 3, dmg: P.roll(a.dmgMul, 'summon'), dt: a.grey ? 'ter' : 'villam', own: 'p', kind: 'laser', col: a.grey ? '#c0c0c0' : '#7fd8ff', life: 1 }); Audio2.play('shoot'); } }
+        if (a.cd <= 0) { const e = Machines.target(a.x, a.y, a.range); if (e) { a.cd = a.rate; this.proj({ x: a.x, y: a.y, a: Math.atan2(e.y - a.y, e.x - a.x), spd: 700, r: 3, dmg: P.roll(a.dmgMul * Machines.mul(a), 'summon'), dt: a.grey ? 'ter' : 'villam', own: 'p', kind: 'laser', col: a.grey ? '#c0c0c0' : '#7fd8ff', life: 1, machine: true }); Audio2.play('shoot'); } }
       } else if (a.kind === 'torony') {
-        if (a.cd <= 0) { const e = this.nearestEnemy(a.x, a.y, a.range); if (e) { a.cd = a.rate; a.aim = Math.atan2(e.y - a.y, e.x - a.x); this.proj({ x: a.x, y: a.y, a: a.aim + RNG.range(-0.05, 0.05), spd: 800, r: 3, dmg: P.roll(a.dmgMul, 'summon'), dt: 'fiz', own: 'p', kind: 'bullet', col: '#ffd27a', life: 1 }); Audio2.play('shoot'); } }
+        if (a.cd <= 0) { const e = this.nearestEnemy(a.x, a.y, a.range); if (e) { a.cd = a.rate; a.aim = Math.atan2(e.y - a.y, e.x - a.x); this.proj({ x: a.x, y: a.y, a: a.aim + RNG.range(-0.05, 0.05), spd: 800, r: 3, dmg: P.roll(a.dmgMul * Machines.mul(a), 'summon'), dt: 'fiz', own: 'p', kind: 'bullet', col: '#ffd27a', life: 1, machine: true, tmark: true }); Audio2.play('shoot'); } }
       } else if (a.kind === 'meh') {
         const e = this.nearestEnemy(a.x, a.y, a.range, false);
         const tx = e ? e.x : P.x + Math.cos(a.t * 3) * 40, ty = e ? e.y : P.y + Math.sin(a.t * 3) * 40;
@@ -1881,7 +2113,7 @@ Object.assign(G, {
       } else if (a.kind === 'orbit') {
         a.ang += dt * 3.2; a.x = a.owner.x + Math.cos(a.ang) * a.rad; a.y = a.owner.y + Math.sin(a.ang) * a.rad;
         a.hitT = a.hitT || new Map();
-        for (const e of this.near(a.x, a.y, 16)) { const lt = a.hitT.get(e) || 0; if (this.t - lt > 0.4) { a.hitT.set(e, this.t); this.hurtEnemy(e, P.roll(a.dmgMul, a.dk), P.wdt(), { melee: true }); } }
+        for (const e of this.near(a.x, a.y, 16)) { const lt = a.hitT.get(e) || 0; if (this.t - lt > 0.4) { a.hitT.set(e, this.t); this.hurtEnemy(e, P.roll(a.dmgMul, a.dk), P.wdt(), { melee: true, noStop: true }); } }
       } else if (a.kind === 'mine') {
         const e = this.near(a.x, a.y, a.trig * 0.6)[0];
         if (e || a.life < 0.1) { this.hitArea(a.x, a.y, a.trig, a.dmg, a.dt, 'p', { fx: 'boom', isSplash: true }); Audio2.play('boom'); a.life = 0; }
@@ -1891,7 +2123,7 @@ Object.assign(G, {
         if (RNG() < 0.6) { const an = RNG() * 6.28, d = a.rad * 0.6; this.parts.push({ x: a.x + Math.cos(an) * d, y: a.y + Math.sin(an) * d, vx: -Math.cos(an) * 200, vy: -Math.sin(an) * 200, t: 0, life: 0.6, c: '#c48cff', size: 2, drag: 0 }); }
       }
     }
-    if (this.allies.some(a => a.life <= 0)) this.allies = this.allies.filter(a => a.life > 0);
+    if (this.allies.some(a => a.life <= 0)) { for (const a of this.allies) if (a.life <= 0 && a.t > 1) Machines.expire(a); this.allies = this.allies.filter(a => a.life > 0); }
   },
 
   // ---------- lövedékek ----------
@@ -1900,7 +2132,8 @@ Object.assign(G, {
     for (const p of this.projs) {
       const dt = p.own === 'e' ? (this.wdt != null ? this.wdt : dt0) : dt0;
       p.t += dt; if (p.t > p.life) { p.dead = true; if (p.splash && p.own === 'p') this.explode(p); continue; }
-      if (p.homing && p.own === 'p') { const e = this.nearestEnemy(p.x, p.y, 380, false); if (e) { const a = Math.atan2(p.vy, p.vx), ta = Math.atan2(e.y - p.y, e.x - p.x); const na = a + clamp(angDiff(a, ta), -p.homing * dt, p.homing * dt); const s = Math.hypot(p.vx, p.vy); p.vx = Math.cos(na) * s; p.vy = Math.sin(na) * s; } }
+      if (p.homing && p.own === 'p') { const e = p.machine ? Machines.target(p.x, p.y, 380) : this.nearestEnemy(p.x, p.y, 380, false); if (e) { const a = Math.atan2(p.vy, p.vx), ta = Math.atan2(e.y - p.y, e.x - p.x); const na = a + clamp(angDiff(a, ta), -p.homing * dt, p.homing * dt); const s = Math.hypot(p.vx, p.vy); p.vx = Math.cos(na) * s; p.vy = Math.sin(na) * s; } }
+      if (this.gust && p.own === 'e') { p.vx += this.gust.x * 1.4 * dt; p.vy += this.gust.y * 1.4 * dt; } // a szél elsodorja az ellenséges lövedékeket
       if (p.homingP && p.own === 'e') { const a = Math.atan2(p.vy, p.vx), ta = Math.atan2(P.y - p.y, P.x - p.x); const na = a + clamp(angDiff(a, ta), -p.homingP * dt, p.homingP * dt); const s = Math.hypot(p.vx, p.vy); p.vx = Math.cos(na) * s; p.vy = Math.sin(na) * s; }
       const steps = Math.max(1, Math.ceil(Math.hypot(p.vx, p.vy) * dt / 10));
       for (let s = 0; s < steps && !p.dead; s++) {
@@ -1915,7 +2148,7 @@ Object.assign(G, {
             if (p.hit.has(e) || (e.wphase && this.mapIs('eh') && e.w !== P.w)) continue;
             p.hit.add(e);
             if (p.splash) { this.explode(p); p.dead = true; break; }
-            this.hurtEnemy(e, p.dmg, p.dt, { burn: p.burn, slow: p.slow, stun: p.stun, knock: p.knock || (p.kind === 'bullet' ? 15 : 30), kx: p.x - p.vx, ky: p.y - p.vy, basic: p.basic, ranged: p.ranged, far: true, k: p.k });
+            this.hurtEnemy(e, p.dmg, p.dt, { burn: p.burn, slow: p.slow, stun: p.stun, knock: p.knock || (p.kind === 'bullet' ? 15 : 30), kx: p.x - p.vx, ky: p.y - p.vy, basic: p.basic, ranged: p.ranged, far: true, k: p.k, machine: p.machine, tmark: p.tmark });
             if (p.add) for (const k in p.add) if (p.add[k]) this.hurtEnemy(e, { a: p.add[k], c: false }, k, {});
             this.burst(p.x, p.y, p.col || DT[p.dt].c, 4, 80, 0.3, 2);
             if (p.pierce-- <= 0) { p.dead = true; break; }
@@ -1932,13 +2165,13 @@ Object.assign(G, {
   },
   explode(p) {
     const r = p.splash * (1 + this.P.st.splashr / 100);
-    this.hitArea(p.x, p.y, r, { a: p.dmg.a * (1 + this.P.st.splashp / 100), c: p.dmg.c }, p.dt, 'p', { fx: 'boom', burn: p.burn, isSplash: true });
+    this.hitArea(p.x, p.y, r, { a: p.dmg.a * (1 + this.P.st.splashp / 100), c: p.dmg.c }, p.dt, 'p', { fx: 'boom', burn: p.burn || (this.P.st.tuzer ? 2 : 0), isSplash: true, machine: p.machine });
     if (p.kind === 'rocket' || p.kind === 'fireball' || p.kind === 'orb') Audio2.play('boom');
     if (this.P.fx.szonda && p.kind === 'rocket' && !p.child) this.later(0.25, () => this.proj({ x: p.x, y: p.y, a: RNG() * 6.28, spd: 300, r: 4, dmg: { a: p.dmg.a * 0.5, c: false }, dt: 'tuz', own: 'p', kind: 'rocket', homing: 6, splash: 40, life: 1.5, child: true, trail: '#ffb070' }));
   },
   updateTeles(dt) {
     for (const t of this.teles) {
-      t.t += dt;
+      t.t += dt; if (t.follow) { if (t.follow.dead || t.follow.stun > 0) { t.dead = true; continue; } t.x = t.follow.x; t.y = t.follow.y; t.a = t.follow.windA; }
       if (t.t >= t.delay) {
         t.dead = true; if (t.line || t.own === 'none') continue;
         this.hitArea(t.x, t.y, t.r, t.dmg, t.dt, t.own, { ...t.o, fx: t.o.fx || 'boom', src: t.o.src, isSplash: t.own === 'p' });
@@ -1968,7 +2201,7 @@ Object.assign(G, {
     else if (fx === 'radio') { this.fxRing(x, y, r * 0.6, c, 0.6, 3); this.fxRing(x, y, r * 0.3, c, 0.8, 2); }
     else this.burst(x, y, c, 12, r * 2, 0.35, 2);
   },
-  fxArc(x, y, a, arc, range, fx) { this.parts.push({ arc: true, x, y, a, arc, range, t: 0, life: fx === 'burp' ? 0.5 : 0.18, c: fx === 'burp' ? '#ff9be0' : fx === 'quake' ? '#d9a441' : fx === 'claw' ? 'rgba(255,90,90,.8)' : '#fff3d0' }); },
+  fxArc(x, y, a, arc, range, fx) { this.parts.push({ arc: true, x, y, a, arc, range, t: 0, life: fx === 'burp' ? 0.5 : fx === 'swing3' ? 0.26 : 0.18, heavy: fx === 'swing3', c: fx === 'burp' ? '#ff9be0' : fx === 'quake' ? '#d9a441' : fx === 'claw' ? 'rgba(255,90,90,.8)' : fx === 'swing3' ? '#ffe2a0' : '#fff3d0' }); },
   lightFlash(x, y, r) { this.flashes = this.flashes || []; this.flashes.push({ x, y, r, t: 0, life: 0.25 }); },
 });
 
@@ -1982,7 +2215,7 @@ Object.assign(G, {
     if (!S.flags.intro) { S.flags.intro = 1; this.enterTown(); UI.intro(); } else this.enterTown();
     Quests.ensureStart();
   },
-  clearWorld() { this.enemies = []; this.projs = []; this.allies = []; this.teles = []; this.grounds = []; this.pickups = []; this.parts = []; this.texts = []; this.timers = []; this.lobs = []; this.boss = null; this.gust = null; UI.bossBar(null); this.flashes = []; },
+  clearWorld() { this.gustWarn = null; this.enemies = []; this.projs = []; this.allies = []; this.teles = []; this.grounds = []; this.pickups = []; this.parts = []; this.texts = []; this.timers = []; this.lobs = []; this.boss = null; this.gust = null; UI.bossBar(null); this.flashes = []; },
   setMap(m, pal) {
     this.map = m; this.pal = pal; this.staticLayer = renderStatic(m, pal);
     const P = this.P; P.x = m.start.x; P.y = m.start.y; P.dash = null; P.vx = P.vy = 0; P.kbx = P.kby = 0; P.history = []; P.w = 0; P.bulletTime = 0;
@@ -1990,7 +2223,7 @@ Object.assign(G, {
     UI.minimapDirty = true;
   },
   enterTown(fromDeath) {
-    this.saveDungeon = null;
+    this.saveDungeon = null; if (this.S) Exped.home(fromDeath);
     this.clearWorld(); const m = genTown(); m.lvl = 1;
     Town.populate(m);
     for (const o of m.objs) { const tx = Math.floor(o.x / TILE), ty = Math.floor(o.y / TILE); for (let y = ty - 1; y <= ty + 1; y++) for (let x = tx - 1; x <= tx + 1; x++) if (m.t[y * m.w + x] === T_OBST && !(m.houses.some(h => x >= h[0] && x < h[0] + h[2] && y >= h[1] && y < h[1] + h[3])) && Math.hypot(x - 30, y - 25) > 8) m.t[y * m.w + x] = T_FLOOR; }
@@ -2001,21 +2234,21 @@ Object.assign(G, {
     Audio2.play('portal');
   },
   regionLvl(rid, floor) { const R = REGION[rid]; return R.lvl + (floor - 1) + this.diffLvl(); },
-  enterDungeon(rid, floor) {
-    const R = REGION[rid], S = this.S; this.clearWorld(); this.retPortal = null;
+  enterDungeon(rid, floor, viaExit) {
+    const R = REGION[rid], S = this.S; this.clearWorld(); this.retPortal = null; Exped.enter(rid, viaExit);
     const boss = floor === R.floors;
     const seed = hashStr(rid + ':' + floor + ':' + S.created + ':' + (S.stats.kills >> 4) + ':' + Date.now());
     const m = genDungeon(seed, R, floor, { boss });
     m.lvl = this.regionLvl(rid, floor); m.rid = rid;
     this.setMap(m, R.pal); this.populate(m, R, boss, makeRng(seed ^ 0xabc));
     S.prog.wp[rid] = Math.max(S.prog.wp[rid] || 1, floor);
-    UI.setRegion(R.nev, `${floor}. szint${boss ? ' – a mélység ura' : ''} · ${m.lvl}. szintű ellenfelek${S.prog.diff ? ' · ' + DIFFS[S.prog.diff] : ''}`);
+    UI.setRegion(R.nev, `${floor}. szint${boss ? ' – a mélység ura' : ''} · ${m.lvl}. szintű ellenfelek${S.prog.diff ? ' · ' + diffName(S.prog.diff) : ''}`);
     if (floor === 1 && !S.flags['intro_' + rid]) { S.flags['intro_' + rid] = 1; UI.toast(R.intro, '#e8dcc0', 6); }
     this.emit('enter', { rid, floor }); this.autosave();
     Audio2.play('portal');
   },
-  enterHasadek(n, weekly) {
-    const S = this.S; this.clearWorld(); this.retPortal = null;
+  enterHasadek(n, weekly, viaExit) {
+    const S = this.S; this.clearWorld(); this.retPortal = null; Exped.enter('hasadek', viaExit);
     const wk = Univ.week();
     const seed = weekly ? hashStr('hasadek:' + wk + ':' + n) : hashStr('h' + n + ':' + Date.now());
     const rng = makeRng(seed);
@@ -2032,11 +2265,12 @@ Object.assign(G, {
 
   // ---------- benépesítés ----------
   populate(m, R, boss, rng, hasadek) {
-    const L = m.lvl, S = this.S;
-    const packs = [];
+    const L0 = m.lvl, S = this.S;
+    const packs = []; m.maxDist = Math.max(1, ...m.rooms.map(r => r.dist > 0 && r.dist < 1e4 ? r.dist : 0));
     m.rooms.forEach(r => {
       if (r.start) return;
       if (r.boss) return;
+      const L = L0 + Exped.roomBonus(m, r);
       const area = r.w * r.h, n = Math.round(area / 30 * (0.8 + rng() * 0.5) * (1 + S.prog.diff * 0.15));
       const champ = rng() < 0.12, elite = !champ && rng() < 0.22;
       const types = R.enemies;
@@ -2047,13 +2281,14 @@ Object.assign(G, {
         const o = {};
         if (champ && i === 0) { o.champion = true; o.mods = [rng.pick(Object.keys(ELITE_MODS)), rng.pick(Object.keys(ELITE_MODS))]; }
         else if (elite && i < 3) { o.elite = true; o.mods = [elite && i === 0 ? rng.pick(Object.keys(ELITE_MODS)) : (packs.lastMod || rng.pick(Object.keys(ELITE_MODS)))]; packs.lastMod = o.mods[0]; }
-        this.spawnEnemy(t, p.x, p.y, L, o);
+        this.spawnEnemy(t, p.x, p.y, L, o).distF = r.distF;
       }
       // ládák, hordók, szentélyek, gyűjtőhelyek
       if (rng() < 0.35) { const p = roomSpot(m, r, rng, 2); m.objs.push(this.makeChest(p.x, p.y, rng() < 0.15)); }
       const nb = rng.int(0, 3); for (let i = 0; i < nb; i++) { const p = roomSpot(m, r, rng, 1); m.objs.push({ type: 'barrel', x: p.x, y: p.y, r: 11, hp: 20 * monHp(L) * 0.3, boom: m.style === 'machine' || rng() < 0.12 }); }
       if (rng() < 0.08) { const p = roomSpot(m, r, rng, 2); m.objs.push(this.makeShrine(p.x, p.y, rng)); }
       if (rng() < 0.55) { const pool = REGION_NODES[hasadek ? 'hasadek' : m.region] || REGION_NODES.hasadek; const k = rng.pick(pool); const p = roomSpot(m, r, rng, 1); m.objs.push(this.makeNode(p.x, p.y, k)); }
+      if (!r.exit && !boss && !m.probaDone && rng() < 0.12) { m.probaDone = true; const p = roomSpot(m, r, rng, 3); m.objs.push(Proba.make(p.x, p.y, rng)); }
       if (m.style === 'comb' && rng() < 0.3) { const p = roomSpot(m, r, rng, 2); m.objs.push({ type: 'hive', x: p.x, y: p.y, r: 16, hp: 60 * monHp(L) * 0.4, spawnT: 4 }); }
     });
     // kijárat
@@ -2064,7 +2299,7 @@ Object.assign(G, {
       const br = m.rooms.find(r => r.boss);
       const bid = hasadek ? R.boss : (R.id === 'eh' && this.S.prog.bosses.onmagad ? 'szingularitas' : R.boss);
       const D = BOSSES[bid];
-      const e = this.spawnEnemy(bid, (br.cx + 0.5) * TILE, (br.cy + 0.5) * TILE, L + 2, { boss: true, bossDef: D, r: D.r });
+      const e = this.spawnEnemy(bid, (br.cx + 0.5) * TILE, (br.cy + 0.5) * TILE, L0 + 2, { boss: true, bossDef: D, r: D.r });
       e.bossId = bid; this.boss = e; e.state = 'idle';
       if (D.chains) this.spawnChains(e, D.chains);
       if (D.antennas) this.spawnAntennas(e, D.antennas);
@@ -2075,10 +2310,10 @@ Object.assign(G, {
     if (!hasadek && A && !boss && m.floor === (A.floor || (m.floor >= 2 ? m.floor : 0))) {
       if (m.floor === 2 || m.floor === 3) {
         const r = m.rooms.filter(r => !r.start && !r.exit).sort((a, b) => b.w * b.h - a.w * a.h)[0];
-        if (r && rng() < 0.75) { const p = roomSpot(m, r, rng, 2); const e = this.spawnEnemy(A.base, p.x, p.y, L + A.lvlPlus, { ancient: A, mods: A.mods }); e.r = A.r; }
+        if (r && rng() < 0.75) { const p = roomSpot(m, r, rng, 2); const e = this.spawnEnemy(A.base, p.x, p.y, L0 + A.lvlPlus, { ancient: A, mods: A.mods }); e.r = A.r; }
       }
     }
-    if (hasadek && m.hasadek % 7 === 0) { const keys = Object.keys(ANCIENTS); const A2 = ANCIENTS[keys[rng.int(0, keys.length - 1)]]; const r = m.rooms.find(r => !r.start); const p = roomSpot(m, r, rng, 2); this.spawnEnemy(A2.base, p.x, p.y, L + 20, { ancient: A2, mods: A2.mods }).r = A2.r; }
+    if (hasadek && m.hasadek % 7 === 0) { const keys = Object.keys(ANCIENTS); const A2 = ANCIENTS[keys[rng.int(0, keys.length - 1)]]; const r = m.rooms.find(r => !r.start); const p = roomSpot(m, r, rng, 2); this.spawnEnemy(A2.base, p.x, p.y, L0 + 20, { ancient: A2, mods: A2.mods }).r = A2.r; }
     // világ-mechanikák
     const mech = R.mech || (REGION[m.region] && REGION[m.region].mech);
     m.mech = mech;
@@ -2113,8 +2348,8 @@ Object.assign(G, {
       const m = this.map;
       if (m.mech === 'eh' && this.P.w !== m.exitW) { UI.toast(`A fázisfal zárva. Rossz W-n vagy (most: ${this.P.w > 0 ? '+' : ''}${this.P.w}). Keresd a jeladót.`, '#c48cff', 4); return; }
       if (o.locked === 'radio') { UI.toast('A lejáratot rádiós zár védi. Fejtsd meg az adót mellette.', '#4dffb0', 4); return; }
-      if (m.hasadek) { this.S.prog.hasadek = Math.max(this.S.prog.hasadek, m.hasadek); if (m.weekly) Univ.weeklyProgress(m.hasadek); this.enterHasadek(m.hasadek + 1, m.weekly); return; }
-      this.enterDungeon(m.rid, m.floor + 1);
+      if (m.hasadek) { this.S.prog.hasadek = Math.max(this.S.prog.hasadek, m.hasadek); if (m.weekly) Univ.weeklyProgress(m.hasadek); this.enterHasadek(m.hasadek + 1, m.weekly, true); return; }
+      this.enterDungeon(m.rid, m.floor + 1, true);
     } };
   },
   makeReturnPortal() { const rp = this.retPortal; return { type: 'portal', x: 30.5 * TILE, y: 29.5 * TILE, r: 20, label: `Vissza: ${rp.label}`, c: '#6fa8ff', inter: () => this.useReturnPortal() }; },
@@ -2129,7 +2364,7 @@ Object.assign(G, {
   // ---------- városi kapu ----------
   townPortal() {
     if (this.inTown()) return; const P = this.P;
-    this.startChannel(2.5, 'Kapunyitás Kapuvárosba…', () => {
+    this.startChannel(Exped.portalTime(), 'Kapunyitás Kapuvárosba…', () => {
       const m = this.map;
       this.retPortal = { label: m.hasadek ? `Hasadék ${m.hasadek}` : `${REGION[m.rid].nev}, ${m.floor}. szint`, state: { map: m, pal: this.pal, layer: this.staticLayer, enemies: this.enemies, pickups: this.pickups, grounds: [], boss: this.boss, x: P.x, y: P.y } };
       this.enterTown();
@@ -2140,7 +2375,7 @@ Object.assign(G, {
     this.clearWorld(); this.map = st.map; this.pal = st.pal; this.staticLayer = st.layer; this.enemies = st.enemies; this.pickups = st.pickups; this.boss = st.boss;
     if (this.boss && !this.boss.dead && this.boss.intro) UI.bossBar(this.boss);
     const P = this.P; P.x = st.x; P.y = st.y; P.dash = null; P.history = []; this.cam.x = P.x; this.cam.y = P.y;
-    this.retPortal = null; UI.minimapDirty = true;
+    this.retPortal = null; UI.minimapDirty = true; Exped.st().n = Math.max(1, Exped.st().n);
     const m = this.map; UI.setRegion(m.hasadek ? `Hasadék – ${m.hasadek}. mélység` : REGION[m.rid].nev, m.hasadek ? '' : `${m.floor}. szint`); Audio2.play('portal');
   },
   startChannel(t, label, fn, c = '#ffd34d') { const P = this.P; if (P.chan) return; P.chan = { t: 0, dur: t, label, fn, c, x: P.x, y: P.y }; },
@@ -2162,6 +2397,7 @@ Object.assign(G, {
     this.enemies.forEach(x => { if (!x.dead && (x.parent || x.xp < 50) && dist(x, e) < 700) { x.xp = 0; this.killEnemy(x); } });
     if (m.hasadek) { S.prog.hasadek = Math.max(S.prog.hasadek, m.hasadek); m.objs.push({ type: 'exit', x: e.x, y: e.y + 80, r: 22, label: 'Tovább a Hasadékba', inter: () => { if (m.weekly) Univ.weeklyProgress(m.hasadek); this.enterHasadek(m.hasadek + 1, m.weekly); } }); m.objs.push({ type: 'portal', x: e.x - 70, y: e.y + 80, r: 20, label: 'Haza, Kapuvárosba', c: '#6fa8ff', inter: () => this.enterTown() }); return; }
     const R = REGION[m.rid]; const first = !S.prog.bosses[bid];
+    if (STORY[bid]) this.later(1.4, () => UI.scene(first ? 'Fejezet vége' : 'Ismét', STORY[bid].ki, 7));
     S.prog.bosses[bid] = (S.prog.bosses[bid] || 0) + 1;
     if (first) {
       UI.toast(`${e.bossDef.nev} legyőzve!`, '#ffd34d', 5);
@@ -2189,16 +2425,18 @@ Object.assign(G, {
     const P = this.P, S = this.S, m = this.map, st = P.st, C = CLASSES[S.cls];
     if (P.dead) return;
     // időzítők, buffok
-    P.invul -= dt; P.potCd -= dt; P.dashCd -= dt; P.hurtT -= dt; P.wCd -= dt; P.combatT -= dt; P.magT -= dt; P.artiCd -= dt;
+    P.invul -= dt; P.potCd -= dt; P.dashCd -= dt; P.perfectT -= dt; P.staDelay -= dt; P.comboT -= dt; P.hurtT -= dt; P.wCd -= dt; P.combatT -= dt; P.magT -= dt; P.artiCd -= dt;
     for (const k in P.cds) P.cds[k] -= dt;
     let changed = false;
     for (const b of P.buffs) { b.t -= dt; if (b.mods && b.mods.hot) P.hp = Math.min(P.mhp, P.hp + b.mods.hot * dt); if (b.t <= 0) changed = true; }
     if (changed) { P.buffs = P.buffs.filter(b => b.t > 0); recalc(P); }
     // regeneráció
     if (P.combatT <= 0 || st.regen > 0) P.hp = Math.min(P.mhp, P.hp + st.regen * dt * (P.combatT > 0 ? 0.5 : 2));
-    if (C.rage) { if (P.combatT <= 0) P.mp = Math.max(0, P.mp - 6 * dt); if (st.arti) P.mp = Math.min(P.mmp, P.mp + 1.2 * st.arti * dt); }
+    ResState.tick(P, dt); Focus.tick(P, dt);
+    if (C.rage) { if (P.combatT <= -(st.verszomj ? 2 + st.verszomj : 0)) P.mp = Math.max(0, P.mp - 6 * dt); if (st.arti) P.mp = Math.min(P.mmp, P.mp + 1.2 * st.arti * dt); }
     else P.mp = Math.min(P.mmp, P.mp + st.mregen * dt);
-    if (!(P.sprinting) && !(P.dash)) P.sta = Math.min(P.msta, P.sta + st.staRegen * dt * (S.surv.ebren < 30 ? 0.5 : 1));
+    // az állóképesség kitérés/sprint után rövid ideig nem töltődik: a kitérés költségvetés, nem pánikgomb
+    if (!(P.sprinting) && !(P.dash) && !(P.staDelay > 0)) P.sta = Math.min(P.msta, P.sta + st.staRegen * dt * (S.surv.ebren < 30 ? 0.5 : 1));
     if (st.shieldPct) { P.shieldT += dt; if (P.shieldT > 8) P.shieldV = Math.min(P.mhp * st.shieldPct / 100, P.shieldV + P.mhp * st.shieldPct / 100 * dt * 0.5); }
     // Golyóidő
     if (P.bulletTime) { P.mp -= (22 - P.bulletTime * 2) * dt; if (P.mp <= 0) { P.mp = 0; P.bulletTime = 0; UI.toast('Elfogyott a belső időd.', '#f2d36b'); } }
@@ -2220,7 +2458,7 @@ Object.assign(G, {
     if (Input.keys.has('a') || Input.keys.has('ArrowLeft')) mx -= 1; if (Input.keys.has('d') || Input.keys.has('ArrowRight')) mx += 1;
     const ml = Math.hypot(mx, my); if (ml) { mx /= ml; my /= ml; }
     P.sprinting = Input.keys.has('Shift') && ml && P.sta > 1 && !this.inTown();
-    if (P.sprinting && !st.staInf) P.sta = Math.max(0, P.sta - 28 * dt);
+    if (P.sprinting && !st.staInf) { P.sta = Math.max(0, P.sta - 28 * dt); P.staDelay = 0.5; }
     let spd = 185 * st.msp * (P.sprinting || (this.inTown() && Input.keys.has('Shift')) ? 1.5 : 1);
     if (P.chill > 0) { spd *= 0.6; P.chill -= dt; }
     const ti = tileAt(m, Math.floor(P.x / TILE), Math.floor(P.y / TILE));
@@ -2231,12 +2469,12 @@ Object.assign(G, {
     P.vx = lerp(P.vx, mx * spd, Math.min(1, dt * acc)); P.vy = lerp(P.vy, my * spd, Math.min(1, dt * acc));
     if (P.dash) {
       const d = P.dash; d.t -= dt; moveCircle(m, P, d.vx * dt, d.vy * dt);
-      if (d.o.dmg) for (const e of this.near(P.x, P.y, P.r + 14)) if (!d.hit.has(e)) { d.hit.add(e); this.hurtEnemy(e, d.o.dmg, d.o.dt || 'fiz', { stun: d.o.stun, knock: 120, melee: true }); }
+      if (d.o.dmg) for (const e of this.near(P.x, P.y, P.r + 14)) if (!d.hit.has(e)) { d.hit.add(e); this.hurtEnemy(e, d.o.dmg, d.o.dt || 'fiz', { stun: d.o.stun, knock: 120, melee: true, rage: d.o.rage }); }
       if (RNG() < 0.8) this.parts.push({ x: P.x, y: P.y, vx: 0, vy: 0, t: 0, life: 0.25, c: CLASSES[S.cls].szin, size: 7, drag: 0 });
       if (d.t <= 0) P.dash = null;
     } else {
       let vx = P.vx + (P.kbx || 0), vy = P.vy + (P.kby || 0);
-      if (this.gust) { vx += this.gust.x; vy += this.gust.y; }
+      if (this.gust && !this.sheltered(P)) { vx += this.gust.x; vy += this.gust.y; }
       if (haz === 'wind') { vx += m.windX || 60; vy += m.windY || 0; }
       if (P.ext) { vx += P.ext.x; vy += P.ext.y; P.ext.x = P.ext.y = 0; }
       moveCircle(m, P, vx * dt, vy * dt);
@@ -2250,10 +2488,11 @@ Object.assign(G, {
     if (this.inTown()) { if (typeof Home !== 'undefined') Home.update(); return; }
     // kitérés
     if ((Input.hit(' ')) && P.dashCd <= 0 && !P.dash) {
-      const cost = 25; if (P.sta >= cost || st.staInf) {
-        if (!st.staInf) P.sta -= cost;
-        const a = ml ? Math.atan2(my, mx) : P.aim; G.dash(P, a, P.fx.hold ? 260 : 140, 0.16, { invul: true }); P.dashCd = P.fx.felho ? 0.45 : 0.9; if (P.fx.felho) P.invul = 1.1; Audio2.play('dash');
-      } else UI.toast('Kifulladtál (állóképesség).', '#9fe07a', 1.2);
+      const cost = DODGE_COST; if (P.sta >= cost || st.staInf) {
+        if (!st.staInf) { P.sta -= cost; P.staDelay = 0.7; }
+        // az első 0,14 mp a „tökéletes” ablak: ha ekkor érne a csapás, jutalom jár
+        const a = ml ? Math.atan2(my, mx) : P.aim; G.dash(P, a, P.fx.hold ? 260 : 140, 0.16, { invul: true }); P.perfectT = 0.14; P.perfectUsed = false; if (st.gerilla) P.gerillaT = 2; P.dashCd = P.fx.felho ? 0.3 : 0.55; if (P.fx.felho) P.invul = 1.1; Audio2.play('dash');
+      } else { if (!P.staWarn || this.t - P.staWarn > 1.5) { UI.toast('Kifulladtál (állóképesség).', '#9fe07a', 1.2); P.staWarn = this.t; } Audio2.play('stamina'); }
     }
     // alaptámadás
     P.atkT -= dt;
@@ -2265,6 +2504,8 @@ Object.assign(G, {
     // W-tengely
     if (m.mech === 'eh' && P.wCd <= 0) { if (Input.hit('z')) { P.w = Math.max(-4, P.w - 1); P.wCd = 0.25; this.wShift(); } if (Input.hit('x')) { P.w = Math.min(4, P.w + 1); P.wCd = 0.25; this.wShift(); } }
   },
+  // szélárnyék: ha a szél felőli oldalon fal vagy akadály van, nem sodor
+  sheltered(ent) { const g = this.gust; if (!g) return false; const l = Math.hypot(g.x, g.y) || 1; for (const d of [20, 40]) if (solidAt(this.map, ent.x - g.x / l * d, ent.y - g.y / l * d)) return true; return false; },
   wShift() { const P = this.P; Audio2.play('portal'); this.fxRing(P.x, P.y, 50, '#c48cff', 0.4, 3); this.text(P.x, P.y - 30, `W = ${P.w > 0 ? '+' : ''}${P.w}`, '#c48cff', 15); },
   townClick() { },
   basicAttack() {
@@ -2274,11 +2515,14 @@ Object.assign(G, {
     const add = st.add, dt = B.dtype;
     P.combatT = Math.max(P.combatT, 2);
     if (B.kind === 'melee') {
-      const dmg = P.roll(1, 'melee');
-      this.arc(P.x, P.y, P.aim, B.arc, B.range + P.r, dmg, dt, { basic: true, melee: true, knock: B.knock || 40, fx: 'swing' });
+      // háromütéses kombó: a harmadik csapás nehéz – nagyobb ív, erősebb lökés, hosszabb megállás
+      P.combo = P.comboT > 0 ? (P.combo % 3) + 1 : 1; P.comboT = 1.1 / st.aspd + 0.4;
+      const heavy = P.combo === 3 && B.spd < 4;
+      const dmg = P.roll(heavy ? 1.6 : 1, 'melee');
+      var hitN = this.arc(P.x, P.y, P.aim, B.arc * (heavy ? 1.2 : 1), B.range + P.r + (heavy ? 10 : 0), dmg, dt, { basic: true, melee: true, knock: (B.knock || 40) * (heavy ? 2.2 : 1), stop: (B.stop || 0.035) * (heavy ? 2 : 1), fx: heavy ? 'swing3' : 'swing' });
       for (const k in add) if (add[k]) this.arc(P.x, P.y, P.aim, B.arc, B.range + P.r, { a: add[k], c: false }, k, { noReflect: true });
-      Audio2.play('swing'); P.swing = 0.18; P.swingCount++;
-      this.onBasicHit('melee');
+      Audio2.play(heavy ? 'heavy' : 'swing'); P.swing = 0.18; P.swingCount++; if (heavy) { P.atkT *= 1.35; this.shake(3); }
+      this.onBasicHit('melee', hitN);
       if (P.fx.sziv && P.swingCount % 4 === 0) this.proj({ x: P.x, y: P.y, a: P.aim, spd: 500, r: 16, dmg: P.roll(1.2, 'melee'), dt: 'villam', own: 'p', kind: 'wave', col: '#dfefff', pierce: 99, life: 0.6 });
     } else if (B.kind === 'spell') {
       if (!CLASSES[S.cls].rage && P.mp < (B.mp || 0)) { P.atkT = 0.2; return; }
@@ -2288,20 +2532,25 @@ Object.assign(G, {
       if (P.fx.tesszerakt && RNG() < 0.2) this.later(1, () => this.proj({ ...o, x: P.x, y: P.y, a: P.aim, hit: new Set() }));
       this.onBasicHit('spell');
     } else {
-      const n = (B.pellets || 1) * (st.triple ? 3 : 1);
+      const n = (B.pellets || 1) * (st.triple ? 3 : 1), ger = P.gerillaT > 0 ? 1 + 0.15 * st.gerilla : 1;
       P.shotCount++;
       const morse = P.fx.morse && P.shotCount % 6 === 0;
       for (let i = 0; i < n; i++) {
         const sp = (B.spread || 0) + (st.triple ? 0.12 : 0);
-        this.proj({ x: P.x + Math.cos(P.aim) * 16, y: P.y + Math.sin(P.aim) * 16, a: P.aim + RNG.range(-sp, sp) + (st.triple && !B.pellets ? (i - 1) * 0.12 : 0), spd: B.pspd, r: B.prad, dmg: P.roll(B.pellets ? 1 : 1, 'ranged'), dt: morse ? 'villam' : dt, own: 'p', kind: B.splash ? 'rocket' : 'bullet', col: morse ? '#f4f06a' : '#ffe9b0', splash: B.splash, pierce: st.pierceAll ? 99 : (B.pierce || 0), basic: true, ranged: true, add, stun: morse ? 1.2 : 0, homing: B.splash && P.fx.szonda ? 4 : 0, foton: P.fx.foton, life: 1.3, trail: B.splash ? '#ffb070' : null });
+        this.proj({ x: P.x + Math.cos(P.aim) * 16, y: P.y + Math.sin(P.aim) * 16, a: P.aim + RNG.range(-sp, sp) + (st.triple && !B.pellets ? (i - 1) * 0.12 : 0), spd: B.pspd, r: B.prad, dmg: (d => (d.a *= ger, d))(P.roll(1, 'ranged')), dt: morse ? 'villam' : dt, own: 'p', kind: B.splash ? 'rocket' : 'bullet', col: morse ? '#f4f06a' : '#ffe9b0', splash: B.splash, pierce: st.pierceAll ? 99 : (B.pierce || 0) + (P.gerillaT > 0 ? 1 : 0), basic: true, ranged: true, add, stun: morse ? 1.2 : 0, homing: B.splash && P.fx.szonda ? 4 : 0, foton: P.fx.foton, life: 1.3, trail: B.splash ? '#ffb070' : null });
       }
       Audio2.play(B.splash ? 'boom' : B.pspd > 1000 ? 'rifle' : 'shoot'); P.recoil = 0.1;
+      // torkolattűz és hüvely
+      const mx2 = P.x + Math.cos(P.aim) * 24, my2 = P.y + Math.sin(P.aim) * 24 - 4; this.parts.push({ x: mx2, y: my2, vx: 0, vy: 0, t: 0, life: 0.06, c: '#fff2b0', size: B.splash ? 12 : 7, drag: 0, glow: true });
+      if (!B.splash) this.parts.push({ x: P.x, y: P.y - 4, vx: Math.cos(P.aim + 1.8) * 90, vy: Math.sin(P.aim + 1.8) * 90 - 40, t: 0, life: 0.5, c: '#d9a441', size: 2, drag: 3, grav: 400 });
+      if (B.pspd > 1000 || B.splash || B.pellets) this.shake(B.splash ? 3 : 1.5);
       this.onBasicHit('ranged');
     }
   },
-  onBasicHit(kind) {
+  onBasicHit(kind, hitN) {
     const P = this.P, C = CLASSES[this.S.cls];
-    if (C.rage) { const near = this.near(P.x, P.y, kind === 'melee' ? 120 : 600).length; if (near) P.mp = Math.min(P.mmp, P.mp + P.st.rageGain); }
+    // a düh csak valódi találatból gyűlik (közelharcban legfeljebb két célpontig)
+    if (C.rage) { if (kind === 'melee' ? hitN > 0 : this.near(P.x, P.y, 600).length) P.mp = Math.min(P.mmp, P.mp + P.st.rageGain * (kind === 'melee' ? Math.min(2, hitN) * (P.combo === 3 ? 1.5 : 1) : 0.5)); }
     else if (C.onHitMp) P.mp = Math.min(P.mmp, P.mp + C.onHitMp);
     if (P.fx.croptop) { P.hitCount++; if (P.hitCount % 10 === 0) { this.arc(P.x, P.y, P.aim, 1.2, 160, P.roll(1.2, 'best'), 'fiz', { knock: 200, fx: 'burp' }); Audio2.play('burp'); this.text(P.x, P.y - 30, 'BÖFF', '#ff9be0', 14); } }
   },
@@ -2316,8 +2565,9 @@ Object.assign(G, {
     let cost = typeof sk.cost === 'function' ? sk.cost(r) : sk.cost || 0;
     let spent = 0;
     if (sk.spendPct) cost = Math.round(P.mmp * sk.spendPct);
+    if (!forb && P.mp + (P.over || 0) >= cost) { const c2 = ResState.beforeCast(P, sk, cost); if (c2 !== cost) { if (sk.spendPct) spent = cost - c2; cost = c2; } }
     if (P.mp < cost) { if (!P.noResT || this.t - P.noResT > 1) { UI.toast(`Kevés a ${resName(S.cls).toLowerCase()} (${Math.floor(P.mp)}/${cost})`, RESOURCES[S.cls].c, 1.2); P.noResT = this.t; } return; }
-    if (sk.spendAll) { spent = P.mp; P.mp = 0; } else { P.mp -= cost; spent = cost; }
+    if (sk.spendAll) { spent = P.mp; P.mp = 0; } else { P.mp -= cost; spent += cost; }
     const cd = (typeof sk.cd === 'function' ? sk.cd(r) : sk.cd) * (1 - P.st.cdr);
     P.cds[id] = cd; P.cdMax = P.cdMax || {}; P.cdMax[id] = cd;
     P.combatT = Math.max(P.combatT, 2);
@@ -2338,6 +2588,10 @@ Object.assign(G, {
   update(dt) {
     if (this.scene !== 'play' || !this.map) return;
     const P = this.P, m = this.map;
+    // hitstop: a valós idő telik, a játékidő szinte áll
+    if (this.hitstop > 0) { this.hitstop -= dt; dt *= 0.08; }
+    if (this.slowmo > 0) this.slowmo -= dt;
+    if (this.hurtFlash > 0) this.hurtFlash -= dt;
     this.t += dt; this.S.playtime += dt;
     // időzítők
     for (const t of this.timers) { t.t -= dt; if (t.t <= 0) { t.done = true; try { t.fn(); } catch (e) { console.error(e); } } }
@@ -2345,7 +2599,7 @@ Object.assign(G, {
     Input.wx = this.cam.x + Input.mx / this.zoom - this.W / 2; Input.wy = this.cam.y + Input.my / this.zoom - this.H / 2;
     this.updatePlayer(dt);
     // a világ ideje (Golyóidő lassítja)
-    const wdt = P.bulletTime ? dt * (1 - (0.6 + P.bulletTime * 0.04)) : dt;
+    const wdt = (P.bulletTime ? dt * (1 - (0.6 + P.bulletTime * 0.04)) : dt) * (this.slowmo > 0 ? 0.35 : 1);
     this.fieldT -= dt;
     if (this.fieldT <= 0) { this.fieldT = 0.35; flowField(m, Math.floor(P.x / TILE), Math.floor(P.y / TILE), 45); }
     this.rebuildGrid();
@@ -2393,10 +2647,12 @@ Object.assign(G, {
     }
   },
   regionMech(dt) {
-    const m = this.map, P = this.P;
+    const m = this.map, P = this.P; Proba.tick();
     if (m.mech === 'egtorony') {
       this.envT -= dt;
-      if (!this.gust && this.envT <= 0) { const a = RNG() * 6.28; this.gust = { x: Math.cos(a) * 130, y: Math.sin(a) * 130, t: 2.5 }; UI.toast('Széllökés!', '#dfefff', 1.2); }
+      // a széllökés előre szól: van idő fal vagy oszlop mögé állni (szélárnyék)
+      if (!this.gust && !this.gustWarn && this.envT <= 0) { const a = RNG() * 6.28; this.gustWarn = { a, t: 1.3 }; const dir = ['→', '↘', '↓', '↙', '←', '↖', '↑', '↗'][Math.round(((a % 6.283) + 6.283) % 6.283 / 0.785) % 8]; UI.toast(`Széllökés készül ${dir} – állj szélárnyékba!`, '#dfefff', 1.4); }
+      if (this.gustWarn) { const w = this.gustWarn; w.t -= dt; if (RNG() < 0.5) this.parts.push({ x: P.x + RNG.range(-this.W / 2, this.W / 2), y: P.y + RNG.range(-this.H / 2, this.H / 2), vx: Math.cos(w.a) * 160, vy: Math.sin(w.a) * 160, t: 0, life: 0.5, c: 'rgba(230,240,255,.35)', size: 2, drag: 0, streak: true }); if (w.t <= 0) { this.gust = { x: Math.cos(w.a) * 150, y: Math.sin(w.a) * 150, t: 2.5 }; this.gustWarn = null; } }
       if (this.gust) { this.gust.t -= dt; for (let i = 0; i < 3; i++) this.parts.push({ x: P.x + RNG.range(-this.W / 2, this.W / 2), y: P.y + RNG.range(-this.H / 2, this.H / 2), vx: this.gust.x * 4, vy: this.gust.y * 4, t: 0, life: 0.4, c: 'rgba(230,240,255,.5)', size: 2, drag: 0, streak: true }); if (this.gust.t <= 0) { this.gust = null; this.envT = 8 + RNG() * 6; } }
       if (m.windX == null) { const a = RNG() * 6.28; m.windX = Math.cos(a) * 70; m.windY = Math.sin(a) * 70; }
     }
@@ -2405,7 +2661,7 @@ Object.assign(G, {
       if (this.envT <= 0 && this.enemies.some(e => !e.dead && e.state === 'chase')) { this.envT = 6 + RNG() * 5; const n = 3; for (let i = 0; i < n; i++) this.tele(P.x + RNG.range(-160, 160), P.y + RNG.range(-160, 160), 70, 1.4, 22 * monDmg(m.lvl), 'tuz', 'env', { fx: 'meteor' }); UI.toast('Rakéta-becsapódás!', '#ff9b5a', 1); }
     }
     if (m.mech === 'raktar') { // áramszünet
-      this.envT -= dt; if (this.envT <= 0) { this.envT = 50 + RNG() * 40; if (RNG() < 0.5) { this.darkBoost = 12; UI.toast('Áramszünet a raktárban!', '#ffe9b0', 2); } }
+      this.envT -= dt; if (this.envT <= 0) { this.envT = 50 + RNG() * 40; if (RNG() < 0.5) { this.darkBoost = 12; UI.toast('Áramszünet! A szörnyek sem látnak – közelről vesznek csak észre. Most lehet osonni.', '#ffe9b0', 3); } }
     }
     if (this.darkBoost > 0) this.darkBoost -= dt;
   },
@@ -2415,6 +2671,121 @@ const DIFFS = ['Normál', 'Rémálom', 'Pokol'];
 const MORSE = { A: '·–', B: '–···', C: '–·–·', D: '–··', E: '·', F: '··–·', G: '––·', H: '····', I: '··', J: '·–––', K: '–·–', L: '·–··', M: '––', N: '–·', O: '–––', P: '·––·', Q: '––·–', R: '·–·', S: '···', T: '–', U: '··–', V: '···–', W: '·––', X: '–··–', Y: '–·––', Z: '––··' };
 const MORSE_WORDS = ['HALLO', 'KAPU', 'MAJD', 'TUKOR', 'HUROK', 'NE', 'ADD', 'FEL', 'MEG', 'HOLD', 'JEL', 'SOS'];
 const toMorse = w => w.split('').map(c => MORSE[c] || '').join('  ');
+
+// ============================================================
+//  EXPEDÍCIÓ – minél messzebb a Kaputól, annál veszélyesebb és annál többet ér
+//  - szintenként, amit hazatérés nélkül teszel meg, nő a mélység (n)
+//  - a pályán belül a bejárattól távolabbi termek ellenfelei erősebbek
+//  - a többlet-tapasztalat az útinaplóba kerül: csak élve hazaérve íródik jóvá,
+//    halálkor elvész. Ez köti össze a harcot és a hazatérést.
+// ============================================================
+const Exped = {
+  st() { const S = G.S; if (!S.exp) S.exp = { n: 0, bank: 0, rid: null, best: 0 }; return S.exp; },
+  // belépés egy szintre: lejáraton át folytatás, a Kapun át új kezdet
+  enter(rid, viaExit) { const X = this.st(); X.n = viaExit ? X.n + 1 : 1; X.rid = rid; X.best = Math.max(X.best, X.n); if (X.n >= 3 && viaExit) UI.toast(`Mélység a Kaputól: ${X.n}. szint – erősebb ellenfelek, több tapasztalat. Az útinapló csak hazaérve számít.`, '#e6c47a', 4); },
+  // a terem ellenfeleinek szintbónusza: távolság a bejárattól (0..1) és a mélység
+  roomBonus(m, r) { const X = this.st(); const maxD = m.maxDist || 1, d = clamp((r.dist || 0) / maxD, 0, 1); r.distF = d; return Math.min(5, Math.round(d * 2 + (X.n - 1) * 0.75)); },
+  // ölés: a többlet az útinaplóba megy
+  onKill(e, xp) { const X = this.st(); const f = 0.12 * Math.max(0, X.n - 1) + 0.35 * (e.distF || 0); if (f > 0 && xp > 0) X.bank += Math.round(xp * f); },
+  mf() { return 10 * Math.max(0, this.st().n - 1); },
+  hungerMul() { return 1 + 0.08 * Math.max(0, this.st().n - 1); },
+  portalTime() { return Math.min(4.5, 2.5 + 0.4 * Math.max(0, this.st().n - 1)); },
+  // hazaérés: élve jóváírjuk, halálkor elveszik
+  home(fromDeath) {
+    const X = this.st(); const bank = X.bank, n = X.n, rid = X.rid;
+    let bonus = 0; if (!fromDeath && bank > 0 && G.S.home && G.S.home.owned && typeof Home !== 'undefined') bonus = Math.round(bank * Math.min(0.25, Home.comfort() / 200));
+    if (bonus) setTimeout(() => UI.toast(`🏡 Az otthon melege: +${fmt(bonus)} TP (kényelem)`, '#9fe07a', 4), 900);
+    if (!fromDeath && bank > 0) { G.gainXp(bank + bonus); UI.toast(`📓 Hazahoztad az útinaplót: +${fmt(bank)} TP (${n}. szint mélyről)`, '#ffd34d', 5); }
+    if (!fromDeath && n > 0) { G.emit('hazaert', { n, bank, rid }); X.bestHome = Math.max(X.bestHome || 0, n); }
+    X.lost = fromDeath ? bank : 0; X.bank = 0; X.n = 0;
+  },
+  hud() { const X = this.st(); if (!G.map || G.inTown() || !X.n) return ''; return `Mélység a Kaputól: ${X.n}${X.bank ? ` · útinapló: ${fmt(X.bank)} TP` : ''}`; },
+};
+
+// ============================================================
+//  KALAND: Próbakövek, Kihívás-létra és vég nélküli nehézség
+//  „Ne add fel. Megéri.” – mindig van egy következő lépcső.
+// ============================================================
+
+// ---------------- nehézség: Normál, Rémálom, Pokol, majd Ciklusok a végtelenig ----------------
+const diffLevel = i => i <= 2 ? [0, 30, 55][i] : 55 + 18 * (i - 2);
+const diffName = i => i <= 2 ? DIFFS[i] : `${i - 2}. Ciklus`;
+
+// ---------------- Próbakő: önként vállalt, nehezebb harc jobb jutalomért ----------------
+const Proba = {
+  make(x, y, rng) {
+    return { type: 'proba', x, y, r: 16, label: 'Próbakő – érintsd meg, ha mered', inter: (o) => this.start(o) };
+  },
+  start(o) {
+    if (o.active || o.done) return;
+    o.active = true; o.wave = 0; o.inter = null; o.label = 'Próba folyamatban…';
+    UI.toast('⚔ Próba! Három hullám jön, mindegyik erősebb. A végén díszes láda és útinapló vár.', '#ffb347', 4); Audio2.play('bossroar');
+    this.next(o);
+  },
+  next(o) {
+    const m = G.map, R = REGION[m.region] || REGION.raktar, L = m.lvl + 1 + o.wave; o.wave++; o.mobs = [];
+    const n = 3 + o.wave * 2, mods = Object.keys(ELITE_MODS);
+    for (let i = 0; i < n; i++) {
+      const a = i / n * 6.283, x = o.x + Math.cos(a) * 150, y = o.y + Math.sin(a) * 150; if (solidAt(m, x, y)) continue;
+      const opt = o.wave === 3 && i === 0 ? { champion: true, mods: [RNG.pick(mods), RNG.pick(mods)] } : o.wave >= 2 && i < 2 ? { elite: true, mods: [RNG.pick(mods)] } : {};
+      const e = G.spawnEnemy(RNG.pick(R.enemies), x, y, L, opt); e.state = 'chase'; e.proba = o; o.mobs.push(e);
+      G.burst(x, y, '#ffb347', 10, 120);
+    }
+    G.fxRing(o.x, o.y, 170, '#ffb347', 0.6, 5); G.text(o.x, o.y - 30, `${o.wave}. hullám`, '#ffb347', 16, { life: 1.4 });
+  },
+  tick() {
+    const m = G.map; if (!m) return;
+    for (const o of m.objs) {
+      if (o.type !== 'proba' || !o.active) continue;
+      if (G.P.dead) continue;
+      if (o.mobs.every(e => e.dead)) {
+        if (o.wave < 3) this.next(o);
+        else this.finish(o);
+      }
+    }
+  },
+  finish(o) {
+    const S = G.S; o.active = false; o.done = true; o.label = 'Teljesített próba';
+    S.stats.probak = (S.stats.probak || 0) + 1;
+    const c = G.makeChest(o.x, o.y + 40, true); c.label = 'A próba ládája'; c.proba = true; G.map.objs.push(c);
+    const bonus = Math.round(xpNeed(S.lvl) * 0.06); Exped.st().bank += bonus;
+    if (RNG() < 0.15) { const pool = RELICS.filter(r => r.minL <= G.map.lvl + 2); if (pool.length) G.spawnPickup(o.x, o.y, 'item', 0, genItem(G.map.lvl, RNG, { relic: RNG.pick(pool).id })); }
+    UI.toast(`✔ Próba teljesítve! Díszes láda, +${fmt(bonus)} TP az útinaplóba.`, '#ffd34d', 4); Audio2.play('legend'); G.emit('proba');
+  },
+};
+
+// ---------------- Kihívás-létra: minden lépcső után jön a következő ----------------
+const LADDER = {
+  mely: { nev: n => `Juss le ${n} szintet egyhuzamban a Kaputól (és érj haza)`, goal: t => 3 + t, have: S => (S.exp && S.exp.bestHome) || 0 },
+  proba: { nev: n => `Teljesíts összesen ${n} próbát`, goal: t => [1, 3, 6, 10, 15][t] || 15 + (t - 4) * 6, have: S => S.stats.probak || 0 },
+  elit: { nev: n => `Győzz le összesen ${n} elit, bajnok vagy névvel bíró ellenfelet`, goal: t => Math.round(25 * Math.pow(1.8, t)), have: S => S.stats.elites || 0 },
+  os: { nev: n => `Dönts le ${n} különböző Őst`, goal: t => t + 1, have: S => Object.keys(S.prog.ancients || {}).length, max: 7 },
+  hasadek: { nev: n => `Érd el a Végtelen Hasadék ${n}. mélységét`, goal: t => 5 * (t + 1), have: S => S.prog.hasadek || 0, req: S => S.prog.bosses.szingularitas },
+  ciklus: { nev: n => `Győzd le a Szingularitást ${diffName(n)} nehézségen`, goal: t => t + 1, have: S => S.prog.diffMax - 1, req: S => S.prog.bosses.szingularitas },
+};
+const Ladder = {
+  st() { const S = G.S; S.ladder = S.ladder || {}; return S.ladder; },
+  rows() {
+    const S = G.S, L = this.st(), out = [];
+    for (const k in LADDER) {
+      const D = LADDER[k]; if (D.req && !D.req(S)) continue; const t = L[k] || 0; if (D.max && t >= D.max) continue;
+      const goal = D.goal(t), have = D.have(S);
+      out.push({ k, t, goal, have, nev: D.nev(goal), ok: have >= goal, rw: this.reward(t) });
+    }
+    return out;
+  },
+  reward(t) { const S = G.S; return { gold: Math.round((60 + S.lvl * 25) * (1 + t * 0.5)), szilank: 4 + t * 3, xp: Math.round(xpNeed(S.lvl) * 0.12), relic: t % 3 === 2 }; },
+  claim(k) {
+    const S = G.S, r = this.rows().find(x => x.k === k); if (!r || !r.ok) return;
+    this.st()[k] = r.t + 1; const w = r.rw; S.gold += w.gold; S.mats.szilank = (S.mats.szilank || 0) + w.szilank; G.gainXp(w.xp);
+    if (w.relic) { const pool = RELICS.filter(x => x.minL <= S.lvl + 3); const it = genItem(Math.max(S.lvl, 1), RNG, { relic: RNG.pick(pool).id }); (S.inv.length < INV_MAX ? S.inv : S.stash).push(it); UI.toast(`Ereklye a létráról: ${it.nev}`, RARITY[4].c, 4); }
+    Audio2.play('legend'); UI.toast(`🪜 Lépcső teljesítve: +${fmt(w.gold)} arany, +${w.szilank} szilánk, +${fmt(w.xp)} TP. Jön a következő…`, '#ffd34d', 4);
+  },
+  html() {
+    const rows = this.rows();
+    return `<div class="h" style="margin-top:10px">Kihívás-létra <span class="small">– mindig van következő lépcső</span></div>` + rows.map(r => `<div class="row"><span class="small">${r.ok ? '✔' : '·'} ${r.t + 1}. lépcső: ${r.nev} <span style="color:var(--dim)">(${Math.min(r.have, r.goal)}/${r.goal})</span><br><span style="color:var(--dim)">Jutalom: ${fmt(r.rw.gold)} arany, ${r.rw.szilank} szilánk, ${fmt(r.rw.xp)} TP${r.rw.relic ? ', ereklye' : ''}</span></span>${r.ok ? `<button class="sm pri" data-a="ladder" data-k="${r.k}">Átveszem</button>` : ''}</div>`).join('');
+  },
+};
 
 // ============================================================
 //  LORE: NPC-k, küldetések, multiverzum-napló, mentés
@@ -2571,6 +2942,11 @@ const QUESTS = [
   { id: 's_bemondo', giver: 'kezelo', req: 'm4', nev: 'Az 1957-es Bemondó', desc: '„Öt-egy. Egy-egy. Nulla-egy.” A Jeltörő-állomás 2. szintjén kísért.', goal: { t: 'named', id: 'lidérc2', where: { jeltoro: [2] } }, rw: { xp: 9000, gold: 1500, relic: 'fejhallgato' } },
   { id: 's_holdkomp', giver: 'fokonstruktor', req: 'm5', nev: 'Holdkomp-alkatrészek', desc: 'A holdkomp 15 tonna. A Lőtér csarnokaiban négy alkatrész hiányzik hozzá.', goal: { t: 'collect', id: 'alkatresz', n: 4, where: { loter: [1, 2, 3] }, per: 2 }, rw: { xp: 14000, gold: 2500, relic: 'holdsisak' } },
   { id: 's_gep', giver: 'fokonstruktor', req: 'm5', nev: 'A megbolondult gép', desc: 'Az egyik szerelőrobotom azt hiszi, ő a Főkonstruktőr. A 3. csarnokban van.', goal: { t: 'named', id: 'fokonst', where: { loter: [3] } }, rw: { xp: 15000, gold: 2500, relic: 'hegeszto' } },
+  // túlélő szál: messzire menni könnyű, visszajönni a művészet
+  { id: 's_exped', giver: 'leltaros', req: 'm1', nev: 'Leltár a mélyből', desc: '„Ami lent van, az csak akkor van meg, ha fel is hozod. Különben az is hiány.” Menj le három szintet egyhuzamban, hazatérés nélkül – és érj vissza élve. Minden szinttel erősebbek odalent, de az útinaplód is vastagszik.', goal: { t: 'exped', n: 3 }, rw: { xp: 900, gold: 250, food: { satorlap: 1, konzerv: 2 } } },
+  { id: 's_vacsora', giver: 'nagyi', req: 'm2', nev: 'Vacsorára itthon', desc: 'Nagyi szerint az a tapasztalat, amit hazahozol, nem az, amit lent hagysz. Hozz haza egyszerre legalább 2500 TP-t az útinaplódban. „És ne késs, kihűl a gulyás.”', goal: { t: 'bank', n: 2500 }, rw: { xp: 1500, elix: { ero: 2, vasbor: 2 }, food: { langos: 3 } } },
+  { id: 's_kulacs', giver: 'furomester', req: 'm3', nev: 'Az utolsó kulacs', desc: '„Odalent a víz drágább az aranynál, és huszonöt fokkal melegebb kilométerenként.” Juss el a Mélység 4. szintjéig a Kaputól egyhuzamban, és gyere vissza. A boss is számít.', goal: { t: 'exped', n: 4, rid: 'melyseg' }, rw: { xp: 7000, gold: 1200, item: { rar: 3, base: 'csizma' } } },
+  { id: 's_horizontrol', giver: 'pilota', req: 'm6', nev: 'Vissza a horizont alól', desc: 'Az Eseményhorizont mögül még senki sem hozott haza tízezer TP-nyi emléket. Az idő ott lassabban telik – a hazaút annál hosszabb.', goal: { t: 'bank', n: 10000 }, rw: { xp: 20000, skill: 1, food: { tubus: 3 } } },
   { id: 's_buborek', giver: 'pilota', req: 'm6', nev: 'Bébi-univerzumok', desc: 'Smolin, 1992: minden fekete lyuk mögött új világ születik. Találj meg hármat a W-tengely mentén (Z/X: W-eltolás, ±4).', goal: { t: 'buborek', n: 3 }, rw: { xp: 24000, gold: 4000, relic: 'fotongyuru' } },
 ];
 const QUEST = Object.fromEntries(QUESTS.map(q => [q.id, q]));
@@ -2604,6 +2980,8 @@ const Quests = {
       else if (ev === 'hive' && g.t === 'hive') this.progress(q);
       else if (ev === 'gate' && g.t === 'gate' && d === g.id) this.progress(q);
       else if (ev === 'buborek' && g.t === 'buborek') this.progress(q);
+      else if (ev === 'hazaert' && g.t === 'exped' && d.n >= g.n && (!g.rid || d.rid === g.rid)) this.progress(q);
+      else if (ev === 'hazaert' && g.t === 'bank' && d.bank >= g.n) this.progress(q);
       else if (ev === 'kill' && g.t === 'ancient' && d.ancient) this.progress(q);
       else if (ev === 'mat' && g.t === 'mat' && d === g.id && (G.S.mats[g.id] || 0) >= g.n) { s.n = g.n; this.progress(q, 0); }
     }
@@ -2691,6 +3069,159 @@ const Bounty = {
     }
   },
   claim(i) { const S = G.S, b = S.bounties[i]; if (!b || b.done || b.p < b.n) return; b.done = true; G.gainXp(b.rw.xp); S.gold += b.rw.gold; S.mats.szilank = (S.mats.szilank || 0) + b.rw.szilank; Audio2.play('gold'); UI.toast(`Jutalom: +${fmt(b.rw.xp)} TP, +${b.rw.gold} arany, +${b.rw.szilank} kapuszilánk`, '#ffd34d', 4); UI.dirty = true; },
+};
+
+// ============================================================
+//  PÁRBESZÉDEK – három rétegben
+//  1. felszín: a lakók egymást szapulják, visszatérő poénok
+//  2. közép: reagálnak arra, amit TE csináltál (bossok, halálok, expedíciók)
+//  3. mély: a hurok. A 976. tárhely, az üzenet, „Te magad” – apró nyomok, amelyek
+//     a befejezés után mást jelentenek, mint előtte.
+//  Helyőrzők: {nev} a hős neve, {halal} halálok, {oles} ölések, {mely} expedíciós rekord,
+//  {kaszt} a kaszt neve, {szint} a szinted.
+// ============================================================
+const LoreC = {
+  b: id => S => !!S.prog.bosses[id],
+  nb: id => S => !S.prog.bosses[id],
+  halal: n => S => S.stats.deaths >= n,
+  mely: n => S => ((S.exp && S.exp.bestHome) || 0) >= n,
+  os: n => S => Object.keys(S.prog.ancients || {}).length >= n,
+  vege: S => !!S.prog.bosses.szingularitas,
+  lvl: n => S => S.lvl >= n,
+  hazas: S => !!S.spouse,
+  otthon: S => !!(S.home && S.home.owned),
+  proba: n => S => (S.stats.probak || 0) >= n,
+  ciklus: S => S.prog.diffMax >= 2,
+};
+const C_ = LoreC;
+// once: csak egyszer, első alkalommal mondja (hírként); egyébként bekerül a véletlen sorok közé
+const NPC_PROG = {
+  leltaros: [
+    { w: S => S.stats.deaths === 0 && S.lvl >= 3, l: ['Még egyszer sem haltál meg. Ezt külön rovatba írom: „gyanús”.'] },
+    { w: C_.halal(1), once: 1, l: ['Megjöttél. Az előbb elestél odalent, igaz? Nálam ez úgy szerepel, hogy „1 db hős, ideiglenesen nincs készleten”.'] },
+    { w: C_.halal(10), l: ['{halal} halál. Tudod, hányszor írtam már le a neved a „kiadva” rovatba? Ugyanennyiszer a „visszavételezve” rovatba is. A mérleg nulla, szóval minden rendben.', 'Ha még egyszer meghalsz, kapsz egy saját polcot. Közel az ajtóhoz.'] },
+    { w: C_.b('leltarhiany'), once: 1, l: ['A Leltárhiány… megszűnt. Huszonkét éve keresem. És most, hogy megvan, rájöttem, hogy a hiány volt a legérdekesebb tétel a raktárban. Na mindegy. Köszönöm. Azt hiszem.'] },
+    { w: C_.b('leltarhiany'), l: ['A 976. tárhely azóta is üres. Csak a címkéje változott meg. Nem mondom meg, mi áll rajta. Majd meglátod.', 'Az automata kávé visszaállt 90 forintra. Gondolom, ez is a te érdemed.'] },
+    { w: C_.mely(4), l: ['Négy szint mélyről hoztad haza a naplót? A tárhelyed büszke rád. Én is. De a tárhely jobban.'] },
+    { w: C_.vege, once: 1, l: ['Elolvastam a 976. tárhely címkéjét. „{nev} – visszavételezve.” A te kézírásod. Pedig a címke régebbi, mint te.'] },
+    { w: C_.vege, l: ['A hurok leltára szerint ez a te sokadik köröd. Nem mondom meg, hányadik. A szám úgysem segítene.'] },
+  ],
+  mehesz: [
+    { w: S => S.gold > 2000, l: ['Látom, csörög a zsebed. A méhek is hallják. Ugye nem akarsz alkudni? Mert én akarok.'] },
+    { w: C_.b('kiralyno'), once: 1, l: ['A Királynő elesett. A darazsak most nem tudják, kit kell utálniuk. Ideiglenesen engem utálnak. Kösz.'] },
+    { w: C_.b('kiralyno'), l: ['A méhek azóta táncolnak. A tánc szerint valaki „nagyon messzire, és vissza” ment. Szerintem rólad szól. Vagy a nektárról. Ilyenkor a kettő ugyanaz.'] },
+    { w: C_.halal(5), l: ['Egy méh egyszer csíp, és meghal. Te {halal}-szer haltál meg, és még mindig csípsz. Ez valami más rovarrend.'] },
+    { w: C_.vege, l: ['A csillagméhek a fekete lyuk felé repülnek. Most már tudom, miért: ott van az, aki egyszer majd te leszel. A méhek mindig előbb tudják.'] },
+  ],
+  nagyi: [
+    { w: S => S.surv.kaja < 40, l: ['Úristen, de sovány vagy! Ülj le. Nem, nem érdekel, hogy világot mentesz. Egy pogácsa két másodperc.'] },
+    { w: C_.halal(1), once: 1, l: ['Hallottam, hogy elestél. Gyere ide. *papucs*. Ez nem büntetés volt, hanem emlékeztető.'] },
+    { w: C_.mely(3), l: ['Nem szeretem, ha olyan mélyre mész, hogy nem hallod, amikor kiabálok vacsorához. Pedig kiabálok.'] },
+    { w: C_.hazas, once: 1, l: ['Megnősültél? Férjhez mentél? Akármelyik, nekem senki sem szólt! Na mindegy, a lakodalmon úgyis én főzök.'] },
+    { w: C_.b('magorzo'), l: ['Lementél a Föld közepéig? Kabát volt rajtad? Ott állítólag háromezer fok van, de a huzat az biztos.'] },
+    { w: S => true, l: ['Amikor kicsi voltál, mindig a harmadik pogácsát etted meg először. …Mi? Nem, nem tudom, honnan tudom. Te még sosem jártál itt kicsiként. Ugye?'], deep: 1 },
+    { w: C_.vege, l: ['Most már értem, miért emlékszem rád gyerekként. Körben jársz, fiam. A körben is enni kell.'] },
+  ],
+  fokonstruktor: [
+    { w: S => S.lvl >= 5, l: ['A kardodra tennék egy rakétahajtóművet. Nem? Egy kicsit? Egy nagyon kicsit?'] },
+    { w: C_.b('n1'), once: 1, l: ['Az N-1… Huszonnégy éven át terveztem, és te harminc perc alatt szétszedted. Nem haragszom. Mérnökként lenyűgöz. Emberként kicsit sírok.'] },
+    { w: C_.b('n1'), l: ['Az N-1 négy próbát bukott el a valóságban. Nálunk ötöt. Az ötödik te voltál.'] },
+    { w: C_.proba(3), l: ['Három próbát álltál ki önszántadból? Az ilyen embereket hívjuk tesztpilótának. Vagy a tesztpilóták özvegyének. Az első jobban hangzik.'] },
+    { w: C_.vege, l: ['Kiszámoltam: a hurok energiamérlege negatív. Valahonnan mindig jön egy kis plusz. Szerintem te vagy az. Ne nézz így rám, ez fizika.'] },
+  ],
+  furomester: [
+    { w: C_.b('magorzo'), once: 1, l: ['Lent voltál. A középen. Ahol a g nulla. Milyen volt? …Ne mondd el. Negyven évig fúrtam, hogy egyszer magam lássam.'] },
+    { w: C_.mely(4), l: ['Négy szint egyhuzamban. A fúrófej is így megy: nem áll meg, amíg nem muszáj. A fúrófej is szokott eltörni. Gondolj erre.'] },
+    { w: C_.halal(20), l: ['{halal}-szer temettek be odalent. A kőzetet ez nem zavarja, engem kicsit.'] },
+    { w: C_.vege, l: ['A Föld közepén fény árad kifelé. Most már tudom, ki kapcsolta fel. Te. Majd. Egyszer. Vagy már.'] },
+  ],
+  kezelo: [
+    { w: C_.b('szamallomas'), once: 1, l: ['A Számállomás elhallgatott. Utána még húsz percig szólt valami a 29 999 kilohertzen. A te hangod volt. Nem tudom, mit mondtál, mert egyszerre mondtad visszafelé és előre.'] },
+    { w: S => S.flags.toredek_raktar || S.flags.toredek_mez, l: ['Megvan egy töredék? Rakd össze a többit is. Az üzenet hiányos mondatokban nem működik. Ahogy én sem.'] },
+    { w: C_.halal(3), l: ['Minden halálod után recseg egyet a vonal. {halal} recsegés. Felírom őket. Lehet, hogy Morse.'] },
+    { w: S => true, l: ['Tegnap éjjel valaki a frekvencián a nevedet betűzte. Öt-egy, egy-egy, nulla-egy. Az ő hangja olyan volt, mint a tiéd, csak fáradtabb.'], deep: 1 },
+    { w: C_.vege, l: ['Az üzenet feladója: TE MAGAD. Én csak a kezelő vagyok. A kezelő nem kérdez. A kezelő ír.'] },
+  ],
+  pilota: [
+    { w: C_.b('onmagad'), once: 1, l: ['Találkoztál magaddal a tesszeraktban? Én is egyszer. Kevésbé voltam jóképű, mint hittem.'] },
+    { w: C_.mely(5), l: ['Öt szint mélyről? A hajóórád ott lassabban járt. Odafent eltelt egy kis idő. Nagyi már kétszer melegítette meg a vacsorát.'] },
+    { w: S => true, l: ['A hajóórám szerint te tegnap érkeztél. A városi óra szerint ma. A tiéd szerint… ne nézd meg. Én megnéztem a magamét, és azóta rosszul alszom.'], deep: 1 },
+    { w: C_.vege, l: ['A hurok bezárult. Ilyenkor nyílik egy következő. A fekete lyukak ezt nem reklámozzák.'] },
+  ],
+  kurta: [
+    { w: S => S.stats.burps >= 1, l: ['A böfid tegnap 66 decibel volt. Na haaali. Kezdő.'] },
+    { w: S => S.stats.burps >= 25, l: ['{szint}. szintű és már 200 decibel fölött böfögsz? Nagyi szerint rossz hatással vagyok rád. Nagyinak igaza van. De LELKES vagy!!!'] },
+    { w: C_.halal(5), l: ['{halal}-szer haltál meg? Én egyszer. A Bikától. Nem akarok róla beszélni.'] },
+    { w: C_.b('sziv'), l: ['Megrepesztetted a Szívet? Én a sörösüveget szoktam. Hasonló a hang.'] },
+    { w: C_.hazas, l: ['Megházasodtál. Most már valaki otthon is hallja a böfiket. Részvétem neki.'] },
+    { w: C_.vege, l: ['A Föld szétmegy, a hurok bezárul, te meg itt ülsz a kocsmában. Ez a helyes sorrend.'] },
+  ],
+  bodor: [
+    { w: S => S.lvl >= 6 && !Object.keys(S.skills).some(k => SKILLS[k] && SKILLS[k].ut), l: ['Hatodik szint, és még nincs utad? Két út van, gyerek. Aki mindkettőn megy, az a kettő között áll. Ott a legrosszabb.'] },
+    { w: S => Object.keys(S.skills).some(k => SKILLS[k] && SKILLS[k].ut), once: 1, l: ['Választottál utat. Jó. Most még visszafordulhatsz. Pénzbe kerül. A tévedés mindig pénzbe kerül, de a túl késői felismerés többe.'] },
+    { w: S => (S.stats.perfect || 0) >= 10, l: ['Láttam, ahogy kitérsz. Nem félsz, csak figyelsz. Ez a különbség a fürge és a halott között.'] },
+    { w: C_.b('sziv'), once: 1, l: ['A fiú szabad. A torony nem issza tovább a völgy vizét. Tegnap esett. Három év után először. Nem sírtam. A szemembe ment egy csepp eső.'] },
+    { w: C_.os(1), l: ['Legyőztél egy Őst. Most már tudod, mi van a falon túl. Nem árulom el, mi van a következő falon túl. Mert én sem tudom.'] },
+    { w: S => true, l: ['A cetlimen az áll: „Ha engem nem várt meg, téged se várjon.” Most, hogy itt állsz, kezdem gyanítani, hogy nem nekem írtam.'], deep: 1 },
+    { w: C_.vege, l: ['Ismerlek, gyerek. Láttalak már egyszer felmenni a toronyba. Akkor öreg voltál, és engem hívtak Bodornak. Lassan üss.'] },
+  ],
+  nyelvesz: [
+    { w: S => true, l: ['A „hazaérkezés” szóban három toldalék van, és egy expedíció. A toldalékokat elmagyarázom, az expedíciót te tudod jobban.'] },
+    { w: C_.halal(3), l: ['Meg-hal-t-ál. Tő, múlt idő, személyrag. És vissza-jött-él. Igekötő, tő, múlt, személy. Nyelvtanilag hibátlan, biológiailag aggályos.'] },
+    { w: C_.vege, l: ['A „te magad” két szó, de egy személy. A nyelv már akkor tudta, amikor te még nem.'] },
+  ],
+  kende: [
+    { w: C_.lvl(15), l: ['{szint}. szint. Én is voltam ennyi. Tavaly. Nem mintha számolnám.'] },
+    { w: C_.halal(10), l: ['{halal} halál, és még mindig itt vagy? …Nem tiszteletből mondom. Csak megállapítom. Hangosan.'] },
+    { w: C_.vege, l: ['Szóval te zártad be a hurkot. Akkor a következőben én leszek a hős. Ezt jegyezd fel. A Leltáros úgyis mindent feljegyez.'] },
+  ],
+};
+// pletyka: a lakók egymásról – a felszíni réteg
+const GOSSIP = [
+  ['nagyi', 'kurta', 'Az unokám azt mondja, edzeni jár a kocsmába. Böfögni jár. Én is voltam fiatal, de én titokban böfögtem.'],
+  ['kurta', 'nagyi', 'Nagyi papucsa 15%-os eséllyel visszatér. Ezt nem a játék mondja, hanem a tapasztalat.'],
+  ['leltaros', 'fokonstruktor', 'A Főkonstruktőr kért tőlem egy csavart. Nyolc éve. Azóta „kölcsönben” rovaton van. Az a rovat hosszabb, mint a raktár.'],
+  ['fokonstruktor', 'leltaros', 'A Leltáros megszámolta a csillagokat. Kettővel több lett, mint tavaly. Szerinte ez lopás.'],
+  ['mehesz', 'nagyi', 'Nagyi a mézemet „gyógyszernek” használja. A pogácsába. Ez nem gyógyszer, Nagyi. Ez boldogság.'],
+  ['furomester', 'pilota', 'A Pilóta szerint a fekete lyuk lefelé van. Szerintem minden lefelé van, ha elég mélyre ásol.'],
+  ['pilota', 'furomester', 'A Fúrómester azt hiszi, lefelé megy. Valójában a Föld közepe felé. Ott meg nincs lent. Ne mondd el neki, teljesen összetörne.'],
+  ['kezelo', 'nyelvesz', 'A Nyelvész szerint a Morse is nyelv. Igaza van. Csak nincsenek benne toldalékok. Ezért szeretem.'],
+  ['nyelvesz', 'kezelo', 'A Kezelő minden mondatot STOP-pal fejez be. Mondtam neki, hogy a pont is megteszi. Azt mondta: STOP.'],
+  ['bodor', 'kende', 'Kende minden reggel kihív. Minden reggel nem megyek ki. Így edzem a türelmét. Nem működik.'],
+  ['kende', 'bodor', 'Bodor szerint lassan kell ütni. Én gyorsan ütök. Ő tanított rá. Csak nem akarja bevallani.'],
+  ['kurta', 'kezelo', 'A Kezelő mondta, hogy a böfim 7050 kilohertzen fogható. Sztár vagyok a rádióban!'],
+  ['nagyi', 'bodor', 'Bodor húsz éve azt mondja, „holnap felmegyek a toronyba”. Húsz éve viszek neki holnapra pogácsát.'],
+  ['mehesz', 'leltaros', 'A Leltáros egyszer megszámolta a méheimet. Negyvenhétezer-kétszáztizenegy. Másnap egy hiányzott. Azóta beszélő viszonyban sincsenek.'],
+  ['leltaros', 'kurta', 'Kurta a kocsmában fizet: két Bika, egy Kóla, egy kitörölhetetlen sor a füzetemben.'],
+];
+// a fő szál jelenetei: bevezető és záró szöveg – a záró egy-egy betűt ad az üzenethez
+const STORY = {
+  leltarhiany: { be: 'A 976. tárhely előtt áll. Nincs arca, csak egy vonalkód, amelyet semmi sem olvas le.', ki: 'A Leltárhiány szétesik. A dobozai között egy cetli: „N”. A te kézírásod.' },
+  kiralyno: { be: 'A Kaptár szívében zümmögés, amelytől a fogad is rezeg. A Királynő tudja a neved.', ki: 'A raj elcsendesedik. A lépek mintázata egyetlen betűt rajzol: „E”.' },
+  sziv: { be: 'A torony csúcsán a fiú áll, láncra verve. A szél a lánc szemeit énekelteti.', ki: 'A láncok lehullanak. A fiú rád néz: „Te már voltál itt. Te kötöttél meg.” Aztán esni kezd az eső.' },
+  magorzo: { be: '6371 kilométer. Nincs lent, nincs fent. Csak a Mag Őre, és a fény, ami belőle árad kifelé.', ki: 'A fény nem kialszik, hanem irányt vált. Feléd. Mintha valaki a túloldalról visszaküldené.' },
+  szamallomas: { be: '29 999 kHz. A hang számokat olvas fel. A számok a te dátumaid.', ki: 'Az utolsó adás: „A FELADÓ: TE MAGAD.” Aztán zúgás. Aztán a saját lélegzeted, a vonal másik végéről.' },
+  n1: { be: 'Az N-1 Szörnyeteg felébred. Huszonnégy év tervezés, négy bukás, és egy harag, ami sosem jutott el a Holdig.', ki: 'A rakéta végre nyugodni tér. A roncsai között egy holdkő: valaki már járt ott. A lábnyom a te csizmádé.' },
+  onmagad: { be: 'A tesszeraktban hátulról látod magad. Ő is téged. Egyikőtök sem fordul meg elsőként.', ki: '„Ne add fel” – mondja, mielőtt eltűnik. Nem búcsúnak hangzik. Hanem útmutatásnak.' },
+  szingularitas: { be: 'A Zaj minden világot elnyel. A közepén csend van, és abban a csendben valaki vár rád: aki elküldi az üzenetet.', ki: 'Felveszed a jelet. Már tudod, kinek szól.' },
+};
+const Dialog = {
+  fill(s) { const S = G.S; return s.replace(/\{nev\}/g, S.nev).replace(/\{halal\}/g, S.stats.deaths).replace(/\{oles\}/g, fmt(S.stats.kills)).replace(/\{mely\}/g, (S.exp && S.exp.bestHome) || 0).replace(/\{kaszt\}/g, CLASSES[S.cls].nev.toLowerCase()).replace(/\{szint\}/g, S.lvl); },
+  // a következő sor: előbb az egyszeri hírek, aztán a progresszióhoz kötött sorok, néha pletyka, néha egy mély nyom
+  line(id) {
+    const S = G.S, N = NPCS[id], P = NPC_PROG[id] || []; S.seenProg = S.seenProg || {};
+    for (let i = 0; i < P.length; i++) { const p = P[i]; if (p.once && p.w(S) && !S.seenProg[id + ':' + i]) { S.seenProg[id + ':' + i] = 1; return this.fill(p.l[0]); } }
+    const r = RNG();
+    if (r < 0.18) { const g = GOSSIP.filter(x => x[0] === id); if (g.length) return this.fill(RNG.pick(g)[2]); }
+    const pool = [];
+    P.forEach((p, i) => { if (!p.once && p.w(S)) for (const l of p.l) pool.push({ l, deep: p.deep, i }); });
+    // a mély nyomok ritkák, és csak egyszer-egyszer bukkannak fel
+    const deep = pool.filter(x => x.deep && !S.seenProg[id + ':d' + x.i]);
+    if (deep.length && r < 0.3 && S.lvl >= 8) { const d = deep[0]; S.seenProg[id + ':d' + d.i] = 1; return this.fill(d.l); }
+    const normal = pool.filter(x => !x.deep);
+    if (normal.length && r < 0.65) return this.fill(RNG.pick(normal).l);
+    return this.fill(RNG.pick(N.lines));
+  },
 };
 
 // ============================================================
@@ -2834,6 +3365,8 @@ const R = {
     if (P.bulletTime) { g.fillStyle = 'rgba(242,211,107,0.08)'; g.fillRect(0, 0, cw, ch); }
     if (G.mapIs('eh') && P.w) { g.fillStyle = `rgba(150,90,255,${Math.abs(P.w) * 0.03})`; g.fillRect(0, 0, cw, ch); }
     if (G.flash > 0) { g.fillStyle = `rgba(255,255,255,${G.flash * 0.6})`; g.fillRect(0, 0, cw, ch); }
+    if (G.hurtFlash > 0) { const a = Math.min(0.45, G.hurtFlash); const gr = g.createRadialGradient(cw / 2, ch / 2, ch * 0.35, cw / 2, ch / 2, ch * 0.75); gr.addColorStop(0, 'rgba(255,0,0,0)'); gr.addColorStop(1, `rgba(220,20,20,${a})`); g.fillStyle = gr; g.fillRect(0, 0, cw, ch); }
+    if (G.slowmo > 0) { g.fillStyle = `rgba(200,240,255,${Math.min(0.12, G.slowmo * 0.35)})`; g.fillRect(0, 0, cw, ch); }
     if (UI.sleepT > 0) { g.fillStyle = `rgba(0,0,10,${Math.min(1, UI.sleepT)})`; g.fillRect(0, 0, cw, ch); }
   },
   hazAnim(g, m, ox, oy) {
@@ -2892,6 +3425,7 @@ const R = {
       case 'shrine': g.fillStyle = '#555'; g.fillRect(o.x - 10, o.y - 4, 20, 14); g.fillStyle = o.used ? '#444' : o.c; g.beginPath(); g.moveTo(o.x, o.y - 26); g.lineTo(o.x + 8, o.y - 4); g.lineTo(o.x - 8, o.y - 4); g.closePath(); g.fill(); if (!o.used) { g.fillStyle = o.c + '44'; g.beginPath(); g.arc(o.x, o.y - 10, 24 + Math.sin(t * 3) * 3, 0, 7); g.fill(); } break;
       case 'node': { const N = NODES[o.kind]; this.shadow(g, o.x, o.y, 11); g.font = '20px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(N.ikon, o.x, o.y); g.textBaseline = 'alphabetic'; g.strokeStyle = N.c; g.globalAlpha = 0.4 + 0.3 * Math.sin(t * 3); g.lineWidth = 1.5; g.beginPath(); g.arc(o.x, o.y, 16, 0, 7); g.stroke(); g.globalAlpha = 1; break; }
       case 'hive': if (o.hp <= 0) break; this.shadow(g, o.x, o.y, 14); g.fillStyle = '#c98a14'; g.beginPath(); g.ellipse(o.x, o.y - 4, 14, 18, 0, 0, 7); g.fill(); g.strokeStyle = '#7a5208'; g.lineWidth = 2; for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(o.x - 13, o.y - 4 + i * 6); g.lineTo(o.x + 13, o.y - 4 + i * 6); g.stroke(); } g.fillStyle = '#222'; g.beginPath(); g.arc(o.x, o.y + 4, 3, 0, 7); g.fill(); this.hpbar(g, o.x, o.y - 26, 26, o.hp / o.mhp, '#ffcc00'); break;
+      case 'proba': { const on = o.active, dn = o.done; this.shadow(g, o.x, o.y, 12); g.fillStyle = dn ? '#4a4038' : '#2a2420'; g.beginPath(); g.moveTo(o.x - 10, o.y + 8); g.lineTo(o.x - 6, o.y - 30); g.lineTo(o.x + 6, o.y - 30); g.lineTo(o.x + 10, o.y + 8); g.closePath(); g.fill(); g.fillStyle = dn ? '#6a5a40' : `rgba(255,${on ? 90 : 180},60,${0.6 + 0.4 * Math.sin(t * (on ? 9 : 3))})`; g.fillRect(o.x - 2, o.y - 24, 4, 20); if (!dn) { g.strokeStyle = `rgba(255,180,70,${0.25 + 0.15 * Math.sin(t * 3)})`; g.lineWidth = 2; g.beginPath(); g.arc(o.x, o.y, on ? 170 : 26, 0, 7); g.stroke(); } break; }
       case 'jelado': g.fillStyle = '#3a2a66'; g.fillRect(o.x - 4, o.y - 20, 8, 26); g.fillStyle = `rgba(196,140,255,${0.5 + 0.5 * Math.sin(t * 5)})`; g.beginPath(); g.arc(o.x, o.y - 22, 6, 0, 7); g.fill(); break;
       case 'radio': g.fillStyle = '#4b5240'; g.fillRect(o.x - 12, o.y - 10, 24, 18); g.fillStyle = '#171a14'; g.beginPath(); g.arc(o.x - 4, o.y, 5, 0, 7); g.fill(); g.strokeStyle = '#d8c48a'; g.beginPath(); g.moveTo(o.x + 8, o.y - 10); g.lineTo(o.x + 14, o.y - 28); g.stroke(); g.fillStyle = Math.sin(t * 8) > 0 ? '#4dffb0' : '#1a3a2a'; g.fillRect(o.x + 4, o.y - 6, 4, 4); break;
       case 'buborek': { const vis = G.P.w === o.w ? 1 : 0.12; g.globalAlpha = vis; const gr = g.createRadialGradient(o.x, o.y, 2, o.x, o.y, o.r * 1.5); gr.addColorStop(0, '#fff'); gr.addColorStop(0.4, 'rgba(196,140,255,.6)'); gr.addColorStop(1, 'rgba(196,140,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(o.x, o.y, o.r * 1.5 + Math.sin(t * 2) * 3, 0, 7); g.fill(); g.globalAlpha = 1; break; }
@@ -2996,11 +3530,18 @@ const R = {
     g.restore();
     P.swing = Math.max(0, (P.swing || 0) - 1 / 60); P.recoil = Math.max(0, (P.recoil || 0) - 1 / 60);
     g.globalAlpha = 1;
+    // erőforrás-állapotok a karakteren
+    if (P.rageTier >= 1) { g.strokeStyle = P.rageTier === 2 ? `rgba(255,60,40,${0.5 + 0.3 * Math.sin(t * 10)})` : 'rgba(200,50,30,.35)'; g.lineWidth = P.rageTier === 2 ? 3 : 2; g.beginPath(); g.arc(x, y - 2, 16, 0, 7); g.stroke(); }
+    if (P.over > 1) { g.fillStyle = 'rgba(160,200,255,.5)'; for (let i = 0; i < 3; i++) { const a2 = t * 3 + i * 2.1; g.beginPath(); g.arc(x + Math.cos(a2) * 15, y - 6 + Math.sin(a2) * 6, 2, 0, 7); g.fill(); } }
+    if (P.focus > 0) { const mx = Focus.max(P); for (let i = 0; i < mx; i++) { g.fillStyle = i < P.focus ? '#f2d36b' : 'rgba(242,211,107,.18)'; g.fillRect(x - mx * 3.5 + i * 7, y + 16, 5, 3); } }
+    if (P.empowerT > 0) { g.strokeStyle = 'rgba(255,220,140,.6)'; g.lineWidth = 2; g.beginPath(); g.arc(x, y - 4, 20, 0, 7); g.stroke(); }
     // csatornázás
     if (P.chan) { const f = P.chan.t / P.chan.dur; g.strokeStyle = P.chan.c; g.lineWidth = 3; g.beginPath(); g.arc(x, y - 4, 22, -Math.PI / 2, -Math.PI / 2 + f * 6.283); g.stroke(); }
   },
   ally(g, a) {
     const t = G.t;
+    // gép-hálózat: halvány fényvonal a kapcsolódó gépek között
+    if (a.links > 0 && (a.kind === 'dron' || a.kind === 'torony')) { g.strokeStyle = 'rgba(95,224,208,.22)'; g.lineWidth = 1; for (const b of G.allies) if (b !== a && b.life > 0 && (b.kind === 'dron' || b.kind === 'torony') && b.x > a.x && dist2(a.x, a.y, b.x, b.y) < 260 * 260) { g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); } }
     if (a.kind === 'dron') { g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(a.x, a.y + 14, 6, 2, 0, 0, 7); g.fill(); g.fillStyle = a.grey ? '#9a9a9a' : '#5fa0c0'; g.beginPath(); g.arc(a.x, a.y, 6, 0, 7); g.fill(); g.strokeStyle = '#ccc'; g.lineWidth = 1; g.beginPath(); g.moveTo(a.x - 9, a.y - 2 + Math.sin(t * 40)); g.lineTo(a.x + 9, a.y - 2 - Math.sin(t * 40)); g.stroke(); g.fillStyle = '#7fd8ff'; g.fillRect(a.x - 1, a.y - 1, 2, 2); }
     else if (a.kind === 'torony') { this.shadow(g, a.x, a.y, 10); g.fillStyle = '#556070'; g.fillRect(a.x - 9, a.y - 6, 18, 14); g.save(); g.translate(a.x, a.y - 4); g.rotate(a.aim || 0); g.fillStyle = '#2a2f38'; g.fillRect(0, -2, 16, 4); g.restore(); g.fillStyle = '#ffcc33'; g.beginPath(); g.arc(a.x, a.y - 4, 4, 0, 7); g.fill(); }
     else if (a.kind === 'meh') { g.fillStyle = '#ffcc00'; g.beginPath(); g.ellipse(a.x, a.y, 4, 3, 0, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.ellipse(a.x, a.y - 3, 3, 2, 0, 0, 7); g.fill(); }
@@ -3018,9 +3559,14 @@ const R = {
     const fl = e.flash > 0;
     const c = fl ? '#ffffff' : (e.freeze > 0 ? '#9fe8ff' : L.c), c2 = fl ? '#ffffff' : L.c2;
     const face = e.face != null ? e.face : 0;
+    // előjelzések a talajon: lendítés-ék, robbanó kör, célzó izzás
+    if (e.wind > 0 && e.windR && !e.boss) { const k = 1 - e.wind / (e.windMax || 0.5); g.fillStyle = `rgba(255,60,50,${0.1 + 0.28 * k})`; g.beginPath(); g.moveTo(x, y); g.arc(x, y, e.windR * (0.35 + 0.65 * k), e.windA - e.windW, e.windA + e.windW); g.closePath(); g.fill(); g.strokeStyle = `rgba(255,120,100,${0.35 + 0.5 * k})`; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, e.windR, e.windA - e.windW, e.windA + e.windW); g.stroke(); }
+    if (e.fuse > 0) { const k = 1 - e.fuse / (e.fuseMax || 0.6); g.strokeStyle = `rgba(255,120,40,${0.5 + 0.4 * k})`; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 80, 0, 7); g.stroke(); g.fillStyle = `rgba(255,90,20,${0.08 + 0.22 * k})`; g.beginPath(); g.arc(x, y, 80 * k, 0, 7); g.fill(); }
+    if (e.aimT > 0 && !e.invisNow) { const P = G.P, k = 1 - e.aimT / 0.4, a = Math.atan2(P.y - y, P.x - x); g.strokeStyle = `rgba(255,90,90,${0.12 + 0.3 * k})`; g.lineWidth = 1; g.setLineDash([4, 6]); g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * 260, y + Math.sin(a) * 260); g.stroke(); g.setLineDash([]); g.fillStyle = `rgba(255,230,150,${0.5 + 0.5 * k})`; g.beginPath(); g.arc(x + Math.cos(a) * (r + 3), y + Math.sin(a) * (r + 3), 2 + 3 * k, 0, 7); g.fill(); }
     g.save(); g.translate(x, y);
     if (e.wind > 0 || e.fuse > 0) { const k = Math.sin(t * 40) * 1.5; g.translate(k, 0); }
-    if (e.boss) this.bossShape(g, e, c, c2, t);
+    if (e.hitT > 0) { const k = e.hitT / 0.14; g.scale(1 + 0.22 * k, 1 - 0.16 * k); e.hitT -= 1 / 60; }
+    if (e.boss) { if (e.tellP) { const k = 1 - e.tellT / (e.tellMax || 0.6); g.strokeStyle = e.tellP.sig ? `rgba(255,80,80,${0.4 + 0.5 * k})` : `rgba(255,210,140,${0.3 + 0.5 * k})`; g.lineWidth = 3 + 3 * k; g.beginPath(); g.arc(0, 0, e.r * (1.6 - 0.4 * k), 0, 7); g.stroke(); } this.bossShape(g, e, c, c2, t); }
     else switch (L.s) {
       case 'bug': for (let i = -1; i <= 1; i++) { g.strokeStyle = c2; g.lineWidth = 1.5; g.beginPath(); g.moveTo(i * r * 0.5, 0); g.lineTo(i * r * 0.5 + Math.sin(t * 15 + i) * 3, r * 1.1); g.moveTo(i * r * 0.5, 0); g.lineTo(i * r * 0.5 - Math.sin(t * 15 + i) * 3, -r * 1.1); g.stroke(); } g.fillStyle = c; g.beginPath(); g.ellipse(0, 0, r, r * 0.75, face, 0, 7); g.fill(); g.fillStyle = c2; g.beginPath(); g.arc(Math.cos(face) * r * 0.7, Math.sin(face) * r * 0.7, r * 0.35, 0, 7); g.fill(); break;
       case 'box': { const op = Math.abs(Math.sin(t * 6)) * 4 * (e.wind > 0 ? 2 : 1); g.fillStyle = c; g.fillRect(-r, -r * 0.8, r * 2, r * 1.6); g.fillStyle = c2; g.fillRect(-r, -r * 0.8 - op, r * 2, 4); g.fillStyle = '#000'; g.fillRect(-r * 0.6, -r * 0.3, r * 1.2, 3); g.fillStyle = '#fff'; for (let i = 0; i < 4; i++) g.fillRect(-r * 0.55 + i * r * 0.32, -r * 0.3, 3, 4); g.fillStyle = '#ff3333'; g.fillRect(-r * 0.5, -r * 0.6, 4, 3); g.fillRect(r * 0.3, -r * 0.6, 4, 3); break; }
@@ -3050,6 +3596,8 @@ const R = {
     // állapot-ikonok
     if (e.burn) { g.fillStyle = '#ff7a2e'; g.fillRect(x - 2, y - r - 14, 4, 4); }
     if (e.stun > 0) { for (let i = 0; i < 3; i++) { const a = G.t * 5 + i * 2.1; g.fillStyle = '#ffe14d'; g.fillRect(x + Math.cos(a) * 10, y - r - 8 + Math.sin(a) * 3, 3, 3); } }
+    if (e.tmark > 0) { g.strokeStyle = 'rgba(95,224,208,.8)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - r - 5, y); g.lineTo(x + r + 5, y); g.moveTo(x, y - r - 5); g.lineTo(x, y + r + 5); g.stroke(); }
+    if (e.freeze > 0 && !e.boss) { g.fillStyle = 'rgba(160,230,255,.25)'; g.beginPath(); g.arc(x, y, r + 3, 0, 7); g.fill(); }
     if (e.mark > 0) { g.strokeStyle = '#ff4444'; g.lineWidth = 1; g.beginPath(); g.arc(x, y, r + 4, 0, 7); g.stroke(); }
     if (e.immune) { g.strokeStyle = 'rgba(255,220,120,.7)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, r + 10, 0, 7); g.stroke(); }
     if (e.shieldMul && e.shieldMul < 1) { g.strokeStyle = 'rgba(77,255,176,.6)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, r + 10, 0, 7); g.stroke(); }
@@ -3099,7 +3647,7 @@ const R = {
       const k = p.t / p.life, a = 1 - k;
       if (p.ring) { g.strokeStyle = p.c; g.globalAlpha = a; g.lineWidth = p.w * a + 0.5; g.beginPath(); g.arc(p.x, p.y, p.r * (0.3 + 0.7 * Math.sqrt(k)), 0, 7); g.stroke(); g.globalAlpha = 1; continue; }
       if (p.bolt) { g.strokeStyle = p.c; g.globalAlpha = a; g.lineWidth = 2.5; g.beginPath(); g.moveTo(p.x1, p.y1); const n = 6; for (let i = 1; i < n; i++) g.lineTo(lerp(p.x1, p.x2, i / n) + RNG.range(-10, 10), lerp(p.y1, p.y2, i / n) + RNG.range(-10, 10)); g.lineTo(p.x2, p.y2); g.stroke(); g.globalAlpha = 1; continue; }
-      if (p.arc) { g.fillStyle = p.c; g.globalAlpha = a * 0.55; g.beginPath(); g.moveTo(p.x, p.y); g.arc(p.x, p.y, p.range * (0.6 + 0.4 * k), p.a - p.arc / 2, p.a + p.arc / 2); g.closePath(); g.fill(); g.globalAlpha = 1; continue; }
+      if (p.arc) { g.fillStyle = p.c; g.globalAlpha = a * (p.heavy ? 0.8 : 0.55); g.beginPath(); g.moveTo(p.x, p.y); g.arc(p.x, p.y, p.range * (0.6 + 0.4 * k), p.a - p.arc / 2, p.a + p.arc / 2); g.closePath(); g.fill(); g.globalAlpha = 1; continue; }
       if (p.slash) { g.save(); g.translate(p.x, p.y); g.rotate(p.a); g.fillStyle = `rgba(255,255,255,${a})`; g.fillRect(-1500, -3 * a, 3000, 6 * a); g.restore(); continue; }
       if (p.papucs) { const x = lerp(p.x1, p.x2, k), y = lerp(p.y1, p.y2, k) - Math.sin(k * Math.PI) * 30; g.save(); g.translate(x, y); g.rotate(k * 12); g.fillStyle = '#ff8ac8'; g.beginPath(); g.ellipse(0, 0, 8, 4, 0, 0, 7); g.fill(); g.restore(); continue; }
       g.globalAlpha = a; g.fillStyle = p.c;
@@ -3159,15 +3707,20 @@ const UI = {
     while (box.children.length > 5) box.firstChild.remove();
     setTimeout(() => { el.style.transition = 'opacity .4s'; el.style.opacity = 0; setTimeout(() => el.remove(), 400); }, dur * 1000);
   },
+  // fő szál jelenete: filmszerű sávok és szöveg, nem állítja meg a játékot
+  scene(title, text, dur = 6) {
+    const el = $('#scene'); if (!el) return; el.innerHTML = `<div class="sc-bar"></div><div class="sc-t"><div class="h" style="font-size:24px">${esc(title)}</div><div class="sc-x">${esc(text)}</div></div><div class="sc-bar b"></div>`;
+    el.className = 'on'; clearTimeout(this._scT); this._scT = setTimeout(() => { el.className = ''; }, dur * 1000);
+  },
   setRegion(n, s) { $('#rname').textContent = n; $('#rsub').textContent = s; },
   bossBar(e) { const b = $('#boss'); this.bossE = e; if (!e) { b.style.display = 'none'; return; } b.style.display = 'block'; b.querySelector('.nm').textContent = e.nameTxt; b.querySelector('.ct').textContent = (e.bossDef && e.bossDef.cim) || ''; },
   // ---------- HUD frissítés ----------
   hud() {
     const P = G.P, S = G.S; if (!P) return; const C = CLASSES[S.cls], RS = RESOURCES[S.cls];
     const hp = $('#ohp'); hp.querySelector('.f').style.height = (P.hp / P.mhp * 100) + '%'; hp.querySelector('.t').innerHTML = `${Math.ceil(P.hp)}<small>/ ${P.mhp}${P.shieldV > 1 ? ` +${Math.round(P.shieldV)}` : ''}</small>`;
-    const mp = $('#omp'); mp.querySelector('.f').style.height = (P.mp / P.mmp * 100) + '%'; mp.querySelector('.f').style.background = `linear-gradient(${RS.c},#111)`; mp.querySelector('.t').innerHTML = `${Math.floor(P.mp)}<small>${RS.nev}</small>`;
+    const mp = $('#omp'); mp.querySelector('.f').style.height = (P.mp / P.mmp * 100) + '%'; mp.querySelector('.f').style.background = `linear-gradient(${RS.c},#111)`; mp.querySelector('.t').innerHTML = `${Math.floor(P.mp)}${P.over > 1 ? `<span style="color:#cfe4ff">+${Math.floor(P.over)}</span>` : ''}<small>${RS.nev}${P.rageTier === 2 ? ' · TOMBOLÓ' : P.rageTier === 1 ? ' · felbőszült' : P.focus ? ` · Fókusz ${P.focus}` : ''}</small>`; mp.style.boxShadow = P.over > 1 ? '0 0 16px #9fc8ff' : P.rageTier === 2 ? '0 0 18px #ff4433' : P.rageTier === 1 ? '0 0 10px #a03020' : '';
     $('#xp div').style.width = (S.lvl >= MAX_LVL ? 100 : S.xp / xpNeed(S.lvl) * 100) + '%';
-    $('#stab div').style.width = (P.sta / P.msta * 100) + '%';
+    { const sb = $('#stab div'), seg = DODGE_COST / P.msta * 100; sb.style.width = (P.sta / P.msta * 100) + '%'; const px = 420 * seg / 100, col = P.sta < DODGE_COST ? '#c8743a' : P.staDelay > 0 ? '#7fb060' : '#9fe07a'; sb.style.background = `repeating-linear-gradient(90deg, ${col} 0 ${px - 2}px, rgba(0,0,0,.85) ${px - 2}px ${px}px)`; }
     $('#gold').textContent = `${fmt(S.gold)} arany · ${S.lvl}. szint`;
     // képességsor
     const keys = ['JG', '1', '2', '3', '4'];
@@ -3192,9 +3745,10 @@ const UI = {
     const s2 = bar('🍖', 'Jóllakottság (H: evés)', sv.kaja, '#e0a050') + bar('💧', 'Szomjúság (G: ivás)', sv.ital, '#4f8dff') + bar('🌙', 'Éberség (N: sátor, kocsma: alvás)', sv.ebren, '#b08ae0');
     if (this._sv !== s2) { $('#surv').innerHTML = s2; this._sv = s2; }
     // buffok
-    const bf = P.buffs.map(b => `<span class="bf">${{ csata: '📯', tombol: '😡', ital: '❤', shrine: '✨', szokes: '🛰', javit: '🔧', bika: '🐂', vegitelet: '♾', menekul: '↶', tulfesz: '🌩', magma: '🌋' }[b.id] || (b.id.startsWith('elix_') ? '⚗' : '•')} ${Math.ceil(b.t)}</span>`).join('') + (P.bulletTime ? '<span class="bf" style="color:#f2d36b">⏱ Golyóidő</span>' : '') + (S.forbidden.includes('osforma') ? '<span class="bf" style="color:#ff3355">☠ Ősforma</span>' : '');
+    const bf = P.buffs.map(b => `<span class="bf">${{ csata: '📯', tombol: '😡', ital: '❤', tokeletes: '✧', falat: '🥐', hazikoszt: '🍲', felboszult: '😠', shrine: '✨', szokes: '🛰', javit: '🔧', bika: '🐂', vegitelet: '♾', menekul: '↶', tulfesz: '🌩', magma: '🌋' }[b.id] || (b.id.startsWith('elix_') ? '⚗' : '•')} ${b.t > 3600 ? '' : b.t > 99 ? Math.ceil(b.t / 60) + 'p' : Math.ceil(b.t)}</span>`).join('') + (P.bulletTime ? '<span class="bf" style="color:#f2d36b">⏱ Golyóidő</span>' : '') + (S.forbidden.includes('osforma') ? '<span class="bf" style="color:#ff3355">☠ Ősforma</span>' : '');
     if (this._bf !== bf) { $('#buffs').innerHTML = bf; this._bf = bf; }
     // csatorna, W
+    { const ex = Exped.hud(); if (this._ex !== ex) { $('#exped').textContent = ex; this._ex = ex; } }
     $('#chan').textContent = P.chan ? `${P.chan.label} ${Math.round(P.chan.t / P.chan.dur * 100)}%` : '';
     $('#wind').textContent = G.map && G.map.mech === 'eh' ? `W = ${P.w > 0 ? '+' : ''}${P.w}  (Z/X)` : '';
     if (this.bossE) { const e = this.bossE; $('#boss .bar div').style.width = Math.max(0, e.hp / e.mhp * 100) + '%'; if (e.dead) this.bossBar(null); }
@@ -3264,11 +3818,13 @@ const UI = {
     h += `<div class="small" style="margin-bottom:8px">Helyek: ${['Jobb gomb', '1', '2', '3', '4'].map((k, i) => `<b>${k}</b>: ${S.slots[i] ? G.skillById(S.slots[i]).nev : '–'}`).join(' · ')}</div>`;
     if (tab === 'kaszt') {
       h += '<div class="sktree">';
-      const list = Object.keys(SKILLS).filter(k => SKILLS[k].cls === S.cls).sort((a, b) => SKILLS[a].req - SKILLS[b].req);
-      for (const id of list) {
-        const sk = SKILLS[id], r = S.skills[id] || 0, lk = S.lvl < sk.req;
-        h += `<div class="skc ${lk ? 'lk' : ''}"><div class="t"><span class="ic">${sk.ikon}</span><div><div class="nm">${sk.nev}${sk.ult ? ' <span style="color:#ffd34d">★</span>' : ''}</div><div class="small">${sk.tipus === 'passziv' ? 'passzív' : 'aktív'} · ${r}/${sk.max}${P.st.skill && r ? ` (+${P.st.skill})` : ''} · ${sk.req}. szinttől</div></div></div><div class="d">${sk.desc(Math.max(1, r + (r ? P.st.skill : 0)))}</div>`;
-        h += `${!lk && r < sk.max && S.skillPts ? `<button class="sm pri" data-a="learn" data-id="${id}">${r ? 'Fejlesztés' : 'Megtanulás'}</button> ` : ''}`;
+      const list = Object.keys(SKILLS).filter(k => SKILLS[k].cls === S.cls && !SKILLS[k].ut).sort((a, b) => SKILLS[a].req - SKILLS[b].req);
+      const utak = Object.keys(SKILLS).filter(k => SKILLS[k].cls === S.cls && SKILLS[k].ut);
+      h += `<div class="small" style="grid-column:1/-1;color:#e6c47a">Kasztút (6. szinttől) – a kettő közül csak az egyik tanulható. Bodor felejtetése után válthatsz.</div>`;
+      for (const id of [...utak, ...list]) {
+        const sk = SKILLS[id], r = S.skills[id] || 0, blocked = !Skills2.canLearn(S, id), lk = S.lvl < sk.req || blocked;
+        h += `<div class="skc ${lk ? 'lk' : ''} ${sk.ut ? 'ut' : ''}" ${sk.ut && utak.indexOf(id) === 0 ? 'style="grid-column:1"' : ''}>${blocked ? '<div class="small" style="color:#ff9a7a">a másik utat választottad</div>' : ''}<div class="t"><span class="ic">${sk.ikon}</span><div><div class="nm">${sk.nev}${sk.ult ? ' <span style="color:#ffd34d">★</span>' : ''}</div><div class="small">${sk.tipus === 'passziv' ? 'passzív' : 'aktív'} · ${r}/${sk.max}${P.st.skill && r ? ` (+${P.st.skill})` : ''} · ${sk.req}. szinttől</div></div></div><div class="d">${sk.desc(Math.max(1, r + (r ? P.st.skill : 0)))}</div>`;
+        h += `${!lk && r < sk.max && S.skillPts && !blocked ? `<button class="sm pri" data-a="learn" data-id="${id}">${r ? 'Fejlesztés' : 'Megtanulás'}</button> ` : ''}`;
         if (r && sk.tipus === 'aktiv') h += ['J', '1', '2', '3', '4'].map((k, i) => `<button class="sm mbtn ${S.slots[i] === id ? 'pri' : ''}" data-a="slot" data-id="${id}" data-i="${i}">${k}</button>`).join(' ');
         h += '</div>';
       }
@@ -3316,7 +3872,7 @@ const UI = {
       case 'attr': if (S.attrPts > 0) { S.attrPts--; S.attrs[d.k]++; recalc(P); this.renderChar(); } break;
       case 'attr5': { const n = Math.min(5, S.attrPts); S.attrPts -= n; S.attrs[d.k] += n; recalc(P); this.renderChar(); break; }
       case 'skTab': this.skTab = d.t; this.renderSkills(); break;
-      case 'learn': { const sk = SKILLS[d.id]; const r = S.skills[d.id] || 0; if (S.skillPts > 0 && r < sk.max && S.lvl >= sk.req) { S.skillPts--; S.skills[d.id] = r + 1; if (!r && sk.tipus === 'aktiv') { const free = S.slots.indexOf(null); if (free >= 0) S.slots[free] = d.id; } recalc(P); Audio2.play('level'); } this.renderSkills(); break; }
+      case 'learn': { const sk = SKILLS[d.id]; const r = S.skills[d.id] || 0; if (S.skillPts > 0 && r < sk.max && S.lvl >= sk.req && Skills2.canLearn(S, d.id)) { S.skillPts--; S.skills[d.id] = r + 1; if (!r && sk.tipus === 'aktiv') { const free = S.slots.indexOf(null); if (free >= 0) S.slots[free] = d.id; } recalc(P); Audio2.play('level'); } this.renderSkills(); break; }
       case 'slot': { const i = +d.i; const j = S.slots.indexOf(d.id); if (j >= 0) S.slots[j] = S.slots[i]; S.slots[i] = d.id; this.renderSkills(); break; }
       case 'gate': S.gate = d.id; this.renderSkills(); break;
       default: if (this.acts[a]) this.acts[a].call(this, d, e);
@@ -3346,7 +3902,7 @@ const UI = {
   // ---------- dialógus ----------
   npc(id) {
     const N = NPCS[id]; const S = G.S; S.talk = S.talk || {};
-    let line = RNG.pick(N.lines);
+    let line = Dialog.line(id);
     // multiverzum-reakció (egyszer)
     for (const k in N.react || {}) if (Univ.has(k) && !S.seenKeys[id + k]) { S.seenKeys[id + k] = 1; line = N.react[k]; break; }
     if (typeof Home !== 'undefined') Home.talked(id);
@@ -3376,7 +3932,7 @@ const UI = {
     if (k === 'bolt') { h += '<div class="small">Bal klikk: vásárlás. A táskádban jobb klikk: eladás.</div><div class="grid" style="margin-top:6px">' + this.shopItems.map((it, i) => this.cell(it, 'shop', i)).join('') + '</div>'; h += `<div style="margin-top:8px"><button data-a="restock">Új áru (${50 + S.lvl * 10} arany)</button> <button data-a="sellJunk">Minden közönséges eladása</button></div>`; }
     else if (k === 'kovacs') {
       h += '<div class="small">A táskádban jobb klikk: szétszedés kapuszilánkká. Erősítés: válassz egy viselt tárgyat.</div>';
-      for (const sl in S.eq) { const it = S.eq[sl]; if (!it) continue; const c = upgradeCost(it); h += `<div class="row"><span style="color:${RARITY[it.rar].c}" data-tt="item" data-src="eq" data-i="${sl}">${esc(it.nev)} ${it.upg ? '+' + it.upg : ''}</span><span>${it.upg >= 10 ? 'max.' : `<button class="sm" data-a="upg" data-s="${sl}" ${S.gold >= c.arany && (S.mats.szilank || 0) >= c.szilank ? '' : 'disabled'}>+1 (${c.arany} a, ${c.szilank} sz, ${Math.round(c.esely * 100)}%)</button>`}</span></div>`; }
+      for (const sl in S.eq) { const it = S.eq[sl]; if (!it) continue; const c = upgradeCost(it); h += `<div class="row"><span style="color:${RARITY[it.rar].c}" data-tt="item" data-src="eq" data-i="${sl}">${esc(it.nev)} ${it.upg ? '+' + it.upg : ''}</span><span>${it.upg >= 10 ? 'max.' : `<button class="sm" data-a="upg" data-s="${sl}" ${S.gold >= c.arany && (S.mats.szilank || 0) >= c.szilank ? '' : 'disabled'}>+1 (${c.arany} a, ${c.szilank} sz, ${Math.round(c.esely * 100)}%)</button>`} ${canReforge(it) ? (rc => `<button class="sm" data-a="reforge" data-s="${sl}" ${S.gold >= rc.arany && (S.mats.szilank || 0) >= rc.szilank ? '' : 'disabled'} data-tt="txt" data-t="Átkovácsolás: a leggyengébb tulajdonság helyett új. Készített tárgyon korlátlanul, dobotton egyszer.">⟳ (${rc.arany} a, ${rc.szilank} sz)</button>`)(reforgeCost(it)) : ''}</span></div>`; }
       h += `<div class="small" style="margin-top:6px">Kapuszilánk: ${S.mats.szilank || 0}</div><div style="margin-top:6px"><button data-a="salvageJunk">Minden közönséges és kiváló szétszedése</button></div>`;
     }
     else if (k === 'craft') {
@@ -3385,6 +3941,7 @@ const UI = {
       h += '<div class="tabs">' + tiers.map((R, i) => `<button class="sm ${ti === i ? 'on' : ''}" data-a="craftTier" data-t="${i}" data-tt="txt" data-t2="">${R.nev} (${R.lvl + 4}. szint)</button>`).join('') + '</div>';
       const bases = Object.keys(RECIPE).filter(b => { const sl = BASES[b].slot; return cat === 'fegyver' ? sl === 'fegyver' : cat === 'pancel' ? ['fej', 'test', 'kez', 'lab'].includes(sl) : cat === 'ekszer' ? ['nyak', 'gyuru'].includes(sl) : sl === 'artefakt'; });
       const tierIdx = REGIONS.indexOf(tiers[ti]);
+      h += `<div class="small" style="margin:4px 0">Mesterjegy (garantált, erős tulajdonság – a zsákmány ezt nem tudja): ` + ['', ...CRAFT_FOCUS].map(f => `<button class="sm ${(this.craftFocus || '') === f ? 'pri' : ''}" data-a="craftFocus" data-f="${f}">${f ? AFFIX.find(a => a.id === f).nev('X').replace(/[+−]?X%?\s?/, '') : 'nincs'}</button>`).join(' ') + '</div>';
       for (const b of bases) { const c = craftCost(b, tierIdx); const ok = canCraft(b, tierIdx), ok2 = canCraft(b, tierIdx, true); h += `<div class="row"><span>${BASES[b].ikon} ${BASES[b].nev}<br><span class="small">${Object.keys(c.mats).map(m => `<span style="color:${(S.mats[m] || 0) >= c.mats[m] ? '#9fe07a' : '#ff7a7a'}">${MATS[m].nev} ${S.mats[m] || 0}/${c.mats[m]}</span>`).join(', ')} · ${c.gold} arany</span></span><span><button class="sm" data-a="craft" data-b="${b}" data-t="${tierIdx}" ${ok ? '' : 'disabled'}>Készít</button> <button class="sm pri" data-a="craftX" data-b="${b}" data-t="${tierIdx}" ${ok2 ? '' : 'disabled'} data-tt="txt" data-t2="+6 kapuszilánk: garantáltan ritka, 12% esély legendásra">+6 sz.</button></span></div>`; }
       h += `<div class="small" style="margin-top:6px">A készített tárgy legalább kiváló. Az alapanyag a kazamatákban: ércér, fakupac, gyógyfű, kristálytelér, vászonbála (E), bőr az állatszerű lényekből.</div>`;
     }
@@ -3431,7 +3988,7 @@ const UI = {
     const S = G.S; this.closeAll(); this.open = 'pDlg'; G.paused = true; $('#pDlg').style.display = 'block';
     let h = this.hd('A Kapu', 'válaszd ki, hová lépsz') + '<div class="bd">';
     if (G.retPortal) h += `<button class="pri" style="width:100%;margin-bottom:8px" data-a="retP">↩ Vissza: ${G.retPortal.label}</button>`;
-    h += `<div class="tabs">${DIFFS.map((d, i) => `<button class="sm ${S.prog.diff === i ? 'on' : ''}" data-a="diff" data-d="${i}" ${i > S.prog.diffMax ? 'disabled' : ''}>${d}${i ? ` (+${[0, 30, 55][i]} szint)` : ''}</button>`).join('')}</div>`;
+    h += `<div class="tabs">${Array.from({ length: Math.max(3, S.prog.diffMax + 2) }, (_, i) => `<button class="sm ${S.prog.diff === i ? 'on' : ''}" data-a="diff" data-d="${i}" ${i > S.prog.diffMax ? 'disabled' : ''}>${diffName(i)}${i ? ` (+${diffLevel(i)} szint)` : ''}</button>`).join('')}</div>`;
     for (const R of REGIONS) {
       const un = S.prog.unlocked.includes(R.id); const wp = S.prog.wp[R.id] || 1; const done = S.prog.bosses[R.boss];
       h += `<div class="row"><span>${un ? '🌀' : '🔒'} <b class="h" style="font-size:14px">${R.nev}</b> <span class="small">${R.lvl + G.diffLvl()}–${R.lvl + R.floors - 1 + G.diffLvl()}. szint · ${R.vilag}${done ? ' · ✔' : ''}</span></span><span>${un ? Array.from({ length: wp }, (_, i) => `<button class="sm" data-a="go" data-r="${R.id}" data-f="${i + 1}">${i + 1 === R.floors ? '👑' : i + 1}</button>`).join(' ') : ''}</span></div>`;
@@ -3442,7 +3999,7 @@ const UI = {
     h += `<div class="small" style="margin-top:8px">A ❗-os lakók küldetést adnak. A Kezelőnél és a Pilótánál a többi világ kapui.</div></div>`;
     $('#pDlg').innerHTML = h;
   },
-  tabla() { Bounty.ensure(); const S = G.S; this.closeAll(); this.open = 'pDlg'; G.paused = true; $('#pDlg').style.display = 'block'; $('#pDlg').innerHTML = this.hd('Hirdetőtábla', 'napi megbízások – éjfélkor frissül') + '<div class="bd">' + S.bounties.map((b, i) => `<div class="row"><span>${b.nev}<br><span class="small">Jutalom: ${fmt(b.rw.xp)} TP, ${b.rw.gold} arany, ${b.rw.szilank} kapuszilánk</span></span><span>${b.done ? '✔' : b.p >= b.n ? `<button class="sm pri" data-a="claim" data-i="${i}">Jutalom</button>` : `${b.p}/${b.n}`}</span></div>`).join('') + '</div>'; },
+  tabla() { Bounty.ensure(); const S = G.S; this.closeAll(); this.open = 'pDlg'; G.paused = true; $('#pDlg').style.display = 'block'; $('#pDlg').innerHTML = this.hd('Hirdetőtábla', 'napi megbízások – éjfélkor frissül') + '<div class="bd">' + S.bounties.map((b, i) => `<div class="row"><span>${b.nev}<br><span class="small">Jutalom: ${fmt(b.rw.xp)} TP, ${b.rw.gold} arany, ${b.rw.szilank} kapuszilánk</span></span><span>${b.done ? '✔' : b.p >= b.n ? `<button class="sm pri" data-a="claim" data-i="${i}">Jutalom</button>` : `${b.p}/${b.n}`}</span></div>`).join('') + Ladder.html() + '</div>'; },
   stash() { this.openShop('raktar', '976. tárhely'); },
   sleepInn() { this.openShop('kocsma', 'Kurta törzshelye – a kocsma'); },
   sleepFade() { this.sleepT = 1.6; },
@@ -3461,14 +4018,14 @@ const UI = {
   },
   deathScreen(by, lost) {
     const o = $('#over'); o.style.display = 'flex';
-    o.innerHTML = `<div class="h" style="font-size:42px;color:#e04848">Elestél</div><p>Ellenfél: ${esc(by)} · elveszett ${lost} arany</p><p class="small">„Ne add fel. Megéri.”</p><button class="pri" data-a="respawn">Feltámadás Kapuvárosban</button>`;
+    o.innerHTML = `<div class="h" style="font-size:42px;color:#e04848">Elestél</div><p>Ellenfél: ${esc(by)} · elveszett ${lost} arany${G.S.exp && G.S.exp.lost ? ` · az útinapló (${fmt(G.S.exp.lost)} TP) a mélyben maradt` : ''}</p><p class="small">„Ne add fel. Megéri.”</p><button class="pri" data-a="respawn">Feltámadás Kapuvárosban</button>`;
   },
   ending() {
-    const S = G.S; S.prog.diffMax = Math.max(S.prog.diffMax, 1); if (S.prog.diff >= 1) S.prog.diffMax = 2;
+    const S = G.S; S.prog.diffMax = Math.max(S.prog.diffMax, S.prog.diff + 1);
     Univ.set('kp:vege'); if (S.prog.diff === 1) Univ.set('kp:remalom'); if (S.prog.diff === 2) Univ.set('kp:pokol');
-    Univ.say(`legyőzte a Szingularitást (${DIFFS[S.prog.diff]}, ${CLASSES[S.cls].nev})`);
+    Univ.say(`legyőzte a Szingularitást (${diffName(S.prog.diff)}, ${CLASSES[S.cls].nev})`);
     const o = $('#over'); o.style.display = 'flex'; G.paused = true;
-    o.innerHTML = `<div style="max-width:660px;padding:20px"><div class="h" style="font-size:34px">Novikov</div><p style="font-size:15px;line-height:1.7">A Szingularitás elhallgat. A tesszeraktban hátulról látod önmagad – és most már tudod, mit kell tenned. Felveszed a jelet, és visszaküldöd a múltba:</p><div class="morse">–·  ·  ·–  –··  –··  ··–·  ·  ·–··  ––  ·  ––·  ·  ·–·  ··</div><p style="font-size:15px">NE ADD FEL MEGÉRI.<br><span class="small">— te magad</span></p><p class="small">Az üzenet sosem a jövőből jött, és sosem a múltba ment: mindig is itt volt, egy hurokban, amely minden világon átfut. Aki elküldi, az kapja meg.</p><p>Megnyílt: <b>${DIFFS[S.prog.diffMax]}</b> nehézség, a <b>Végtelen Hasadék</b> és a <b>Heti Hasadék</b>.</p><button class="pri" data-a="closeOver">Tovább</button></div>`;
+    o.innerHTML = `<div style="max-width:660px;padding:20px"><div class="h" style="font-size:34px">Novikov</div><p style="font-size:15px;line-height:1.7">A Szingularitás elhallgat. A tesszeraktban hátulról látod önmagad – és most már tudod, mit kell tenned. Felveszed a jelet, és visszaküldöd a múltba:</p><div class="morse">–·  ·  ·–  –··  –··  ··–·  ·  ·–··  ––  ·  ––·  ·  ·–·  ··</div><p style="font-size:15px">NE ADD FEL MEGÉRI.<br><span class="small">— te magad</span></p><p class="small">Az üzenet sosem a jövőből jött, és sosem a múltba ment: mindig is itt volt, egy hurokban, amely minden világon átfut. Aki elküldi, az kapja meg.</p><p>Megnyílt: <b>${diffName(S.prog.diffMax)}</b> nehézség, a <b>Végtelen Hasadék</b> és a <b>Heti Hasadék</b>.</p><p class="small">Ez nem a vége. Egy hurokban nincs vége, csak következő kör. A Kapu mögött a világok újra felizzanak, erősebben, és az Ősök még mindig ott kóborolnak. A hirdetőtáblán a Kihívás-létra mindig mutatja a következő lépcsőt.</p><button class="pri" data-a="closeOver">Tovább – a következő körbe</button></div>`;
     G.autosave();
   },
 };
@@ -3500,8 +4057,10 @@ Object.assign(UI.acts, {
   upg(d) { const S = G.S, it = S.eq[d.s]; const c = upgradeCost(it); if (S.gold < c.arany || (S.mats.szilank || 0) < c.szilank) return; S.gold -= c.arany; S.mats.szilank -= c.szilank; if (RNG() < c.esely) { it.upg = (it.upg || 0) + 1; Audio2.play('legend'); this.toast(`Sikerült! ${it.nev} +${it.upg}`, '#ffd34d'); } else { Audio2.play('hurt'); this.toast('A kovácsolás nem sikerült. Az anyag elveszett.', '#ff7a7a'); } recalc(G.P); this.renderShop(); },
   craftCat(d) { this.craftCat = d.c; this.renderShop(); },
   craftTier(d) { this.craftTier = +d.t; this.renderShop(); },
-  craft(d) { const it = craftItem(d.b, +d.t, false); if (it) { G.S.inv.length < INV_MAX ? G.S.inv.push(it) : G.S.stash.push(it); Audio2.play(it.rar >= 3 ? 'legend' : 'level'); this.toast(`Elkészült: ${it.nev}`, RARITY[it.rar].c, 3); } this.renderShop(); this.renderInv(); },
-  craftX(d) { const it = craftItem(d.b, +d.t, true); if (it) { G.S.inv.length < INV_MAX ? G.S.inv.push(it) : G.S.stash.push(it); Audio2.play('legend'); this.toast(`Elkészült: ${it.nev}`, RARITY[it.rar].c, 3); } this.renderShop(); this.renderInv(); },
+  craftFocus(d) { this.craftFocus = d.f; this.renderShop(); },
+  reforge(d) { const S = G.S, it = S.eq[d.s]; if (!it || !canReforge(it)) return; const c = reforgeCost(it); if (S.gold < c.arany || (S.mats.szilank || 0) < c.szilank) return; S.gold -= c.arany; S.mats.szilank -= c.szilank; const r = reforge(it); if (r) { const A0 = AFFIX.find(a => a.id === r[0].id), A1 = AFFIX.find(a => a.id === r[1].id); this.toast(`⟳ ${A0.nev(r[0].v)} → ${A1.nev(r[1].v)}`, '#b28cff', 4); Audio2.play('legend'); } recalc(G.P); this.renderShop(); },
+  craft(d) { const it = craftItem(d.b, +d.t, false, this.craftFocus); if (it) { G.S.inv.length < INV_MAX ? G.S.inv.push(it) : G.S.stash.push(it); Audio2.play(it.rar >= 3 ? 'legend' : 'level'); this.toast(`Elkészült: ${it.nev}`, RARITY[it.rar].c, 3); } this.renderShop(); this.renderInv(); },
+  craftX(d) { const it = craftItem(d.b, +d.t, true, this.craftFocus); if (it) { G.S.inv.length < INV_MAX ? G.S.inv.push(it) : G.S.stash.push(it); Audio2.play('legend'); this.toast(`Elkészült: ${it.nev}`, RARITY[it.rar].c, 3); } this.renderShop(); this.renderInv(); },
   refill() { const S = G.S, c = this.refillCost(); if (S.gold < c) { this.toast('Nincs elég aranyad.', '#ff7a7a'); return; } S.gold -= c; S.potions = G.potMax(); Audio2.play('potion'); this.renderShop(); },
   brew(d) { const S = G.S, E = ELIX[d.id]; for (const m in E.recept) S.mats[m] -= E.recept[m]; S.gold -= E.ar; S.elix[d.id] = (S.elix[d.id] || 0) + 1; Audio2.play('potion'); this.toast(`Elkészült: ${E.nev}`, E.c); this.renderShop(); },
   buyFood(d) { const S = G.S, F = FOODS[d.id]; if (S.gold < F.ar) { this.toast('Nincs elég aranyad.', '#ff7a7a'); return; } S.gold -= F.ar; S.food[d.id] = (S.food[d.id] || 0) + 1; Audio2.play('gold'); this.renderShop(); },
@@ -3518,6 +4077,7 @@ Object.assign(UI.acts, {
   hasadekX() { this.closeAll(); G.enterHasadek(Math.floor(G.S.prog.hasadek / 5) * 5, false); },
   weekly() { this.closeAll(); G.weeklyStart = performance.now(); Univ.connect(); G.enterHasadek(1, true); },
   claim(d) { Bounty.claim(+d.i); this.tabla(); },
+  ladder(d) { Ladder.claim(d.k); this.tabla(); },
   morseAns(d) { const { o, ex } = this.morseCtx; if (d.ok === '1') { ex.locked = null; o.inter = null; o.label = 'Megfejtve'; this.toast(`Helyes: ${o.word}. A zár kioldott.`, '#4dffb0'); Audio2.play('legend'); this.closeAll(); } else { this.toast('Rossz megfejtés. Az adó zajt sugároz – közelednek!', '#ff7a7a'); this.closeAll(); for (let i = 0; i < 4; i++) { const e = G.spawnEnemy('zajleny', o.x + RNG.range(-80, 80), o.y + RNG.range(-80, 80), G.map.lvl, {}); e.state = 'chase'; } } },
   morsePlay(d) { let t = 0; const U = 0.09; for (const c of d.w) { for (const s of MORSE[c] || '') { Audio2.tone(700, s === '·' ? U : U * 3, 'sine', 0.08, 0, t); t += (s === '·' ? U : U * 3) + U; } t += U * 2; } },
 });
@@ -3611,7 +4171,11 @@ const BUILD = {
 };
 const BUILD_KAT = { fal: 'Falak és ajtók', padlo: 'Padlók', butor: 'Bútorok', kert: 'Kert', bont: 'Bontás' };
 const HOME_RECIPES = {
-  gulyas: { nev: 'Házi gulyás', ikon: '🍲', mats: { bor: 1, gyogyfu: 1 }, food: { kaja: 75, ital: 25 }, buff: { t: 600, mods: { hpp: 10 } }, desc: 'Laktató, 10 percre +10% életerő.' },
+  gulyas: { nev: 'Házi gulyás', ikon: '🍲', mats: { bor: 1, gyogyfu: 1 }, food: { kaja: 75, ital: 25 }, buff: { t: 1200, mods: { hpp: 12, dmgp: 5 } }, desc: 'Laktató: 20 percre +12% életerő, +5% sebzés.' },
+  mezeslepeny: { nev: 'Mézes lepény', ikon: '🥧', mats: { mez: 2, gyogyfu: 1, fa: 1 }, food: { kaja: 50 }, buff: { t: 1200, mods: { aspd: 10, resgen: 20 } }, desc: '20 percre +10% támadási sebesség, +20% erőforrás-töltődés.' },
+  felhoporkolt: { nev: 'Felhőpörkölt', ikon: '🍛', mats: { felho: 2, bor: 1 }, food: { kaja: 60, ital: 20 }, buff: { t: 1200, mods: { msp: 10, sta: 40 } }, desc: 'Könnyű, mint a felhő: 20 percre +10% mozgás, +40 állóképesség.' },
+  magmagulyas: { nev: 'Magmás gulyás', ikon: '🌶', mats: { magma: 2, bor: 1, gyogyfu: 1 }, food: { kaja: 70, ital: -10 }, buff: { t: 1200, mods: { dmgp: 12, res_tuz: 20 } }, desc: 'Csíp. Nagyon. 20 percre +12% sebzés, +20% tűzállóság.' },
+  urleves: { nev: 'Horizont-leves', ikon: '🥣', mats: { egzotikus: 1, jel: 1, gyogyfu: 2 }, food: { kaja: 60, ital: 40 }, buff: { t: 1200, mods: { cdr: 12, res_ter: 20, xpb: 10 } }, desc: 'Lassan kanalazd, az idő is lassabb benne. 20 percre −12% újratöltés, +20% téridő-állóság, +10% TP.' },
   langosh: { nev: 'Házi lángos', ikon: '🫓', mats: { gyogyfu: 1 }, gold: 10, give: 'langos', desc: 'Nagyi receptje.' },
   pogacsah: { nev: 'Tepertős pogácsa (3 db)', ikon: '🥐', mats: { bor: 1 }, give: 'pogacsa', n: 3, desc: 'Nagyi szerint csak egyet.' },
   mezestea: { nev: 'Mézes tea', ikon: '🍵', mats: { mez: 1, gyogyfu: 1 }, food: { ital: 50, alvas: 25 }, desc: 'Ébren tart és szomjat olt.' },
@@ -3822,7 +4386,7 @@ Object.assign(UI.acts, {
   hmBuildOff() { Home.build = false; $('#pShop').style.display = 'none'; UI.open = null; },
   hmKat(d) { Home.kat = d.k; const first = Object.keys(BUILD).find(k => BUILD[k].kat === d.k); if (first) Home.sel = first; Home.palette(); },
   hmSel(d) { Home.sel = d.id; Home.palette(); },
-  hmCook(d) { const S = G.S, R0 = HOME_RECIPES[d.id]; if (!Object.keys(R0.mats).every(m => (S.mats[m] || 0) >= R0.mats[m]) || S.gold < (R0.gold || 0)) return; for (const m in R0.mats) S.mats[m] -= R0.mats[m]; S.gold -= R0.gold || 0; if (R0.give) S.food[R0.give] = (S.food[R0.give] || 0) + (R0.n || 1); if (R0.food) { const sv = S.surv; if (R0.food.kaja) sv.kaja = Math.min(100, sv.kaja + R0.food.kaja); if (R0.food.ital) sv.ital = Math.min(100, sv.ital + R0.food.ital); if (R0.food.alvas) sv.ebren = Math.min(100, sv.ebren + R0.food.alvas); } if (R0.buff) G.buff(G.P, 'gulyas', R0.buff.t, R0.buff.mods); recalc(G.P); Audio2.play('potion'); UI.toast(`${R0.ikon} ${R0.nev} elkészült.`, '#e8d7b0'); this.renderShop(); },
+  hmCook(d) { const S = G.S, R0 = HOME_RECIPES[d.id]; if (!Object.keys(R0.mats).every(m => (S.mats[m] || 0) >= R0.mats[m]) || S.gold < (R0.gold || 0)) return; for (const m in R0.mats) S.mats[m] -= R0.mats[m]; S.gold -= R0.gold || 0; if (R0.give) S.food[R0.give] = (S.food[R0.give] || 0) + (R0.n || 1); if (R0.food) { const sv = S.surv; if (R0.food.kaja) sv.kaja = Math.min(100, sv.kaja + R0.food.kaja); if (R0.food.ital) sv.ital = Math.min(100, sv.ital + R0.food.ital); if (R0.food.alvas) sv.ebren = Math.min(100, sv.ebren + R0.food.alvas); } if (R0.buff) { G.buff(G.P, 'hazikoszt', R0.buff.t, R0.buff.mods); UI.toast('🏡 Házi koszt: egyszerre egy él – a bolti étel ezt nem tudja.', '#9fe07a', 3); } if (R0.food && R0.food.ital < 0) S.surv.ital = Math.max(0, S.surv.ital + R0.food.ital); recalc(G.P); Audio2.play('potion'); UI.toast(`${R0.ikon} ${R0.nev} elkészült.`, '#e8d7b0'); this.renderShop(); },
 });
 Home.starter = function () {
   // kis kezdőház: 6×5 gerendafal, parketta, ajtó, ágy
