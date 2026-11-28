@@ -38,6 +38,7 @@ const UI = {
   setRegion(n, s) { $('#rname').textContent = n; $('#rsub').textContent = s; },
   bossBar(e) { const b = $('#boss'); this.bossE = e; if (!e) { b.style.display = 'none'; return; } b.style.display = 'block'; b.querySelector('.nm').textContent = e.nameTxt; b.querySelector('.ct').textContent = (e.bossDef && e.bossDef.cim) || ''; },
   // ---------- HUD frissítés ----------
+  badges() { const S = G.S; const canSpend = Object.keys(SKILLS).some(k => SKILLS[k].cls === S.cls && S.lvl >= SKILLS[k].req && (S.skills[k] || 0) < SKILLS[k].max && Skills2.canLearn(S, k)); return { skill: canSpend ? S.skillPts || 0 : 0, attr: S.attrPts || 0, quest: Quests.active().filter(q => S.quests[q.id].st === 'kesz').length }; },
   hud() {
     const P = G.P, S = G.S; if (!P) return; const C = CLASSES[S.cls], RS = RESOURCES[S.cls];
     const hp = $('#ohp'); hp.querySelector('.f').style.height = (P.hp / P.mhp * 100) + '%'; hp.querySelector('.t').innerHTML = `${Math.ceil(P.hp)}<small>/ ${P.mhp}${P.shieldV > 1 ? ` +${Math.round(P.shieldV)}` : ''}</small>`;
@@ -45,6 +46,10 @@ const UI = {
     $('#xp div').style.width = (S.lvl >= MAX_LVL ? 100 : S.xp / xpNeed(S.lvl) * 100) + '%';
     { const sb = $('#stab div'), seg = DODGE_COST / P.msta * 100; sb.style.width = (P.sta / P.msta * 100) + '%'; const px = ($('#stab').offsetWidth || 420) * seg / 100, col = P.sta < DODGE_COST ? '#c8743a' : P.staDelay > 0 ? '#7fb060' : '#9fe07a'; sb.style.background = `repeating-linear-gradient(90deg, ${col} 0 ${px - 2}px, rgba(0,0,0,.85) ${px - 2}px ${px}px)`; }
     $('#gold').textContent = `${fmt(S.gold)} arany · ${S.lvl}. szint`;
+    // jelvények: elköltetlen képesség- és tulajdonságpont, leadható küldetés
+    { const B = this.badges(); const k = JSON.stringify(B); if (this._pts !== k) { this._pts = k;
+      $('#pts').innerHTML = (B.skill ? `<div class="pt" data-a="openSkills">✨ ${B.skill} képességpont <b>K</b></div>` : '') + (B.attr ? `<div class="pt" data-a="openChar">👤 ${B.attr} tulajdonságpont <b>C</b></div>` : '') + (B.quest ? `<div class="pt" data-a="openQuest" style="border-color:#9fe07a">📜 ${B.quest} leadható küldetés <b>J</b></div>` : '');
+      if (typeof Touch !== 'undefined' && Touch.on && Touch.root) for (const [key, n, ok] of [['k', B.skill], ['c', B.attr], ['j', B.quest, 1], ['Escape', 0]]) { const el = Touch.root.querySelector(`#ttop [data-k="${key}"]`); if (!el) continue; let bd = el.querySelector('.badge'); if (!n) { if (bd) bd.remove(); continue; } if (!bd) { bd = document.createElement('span'); bd.className = 'badge' + (ok ? ' ok' : ''); el.appendChild(bd); } bd.textContent = n; } } }
     // képességsor
     const keys = ['JG', '1', '2', '3', '4'];
     let h = '';
@@ -188,6 +193,8 @@ const UI = {
     switch (a) {
       case 'close': this.closeAll(); break;
       case 'openSkills': this.toggle('pSkill', this.renderSkills); break;
+      case 'openChar': this.toggle('pChar', this.renderChar); break;
+      case 'openQuest': this.toggle('pQuest', this.renderQuest); break;
       case 'itemL': this.itemClick(d.src, d.i, false); break;
       case 'itemR': this.itemClick(d.src, d.i, true); break;
       case 'eat': eatFood(d.id); this.renderInv(); break;
