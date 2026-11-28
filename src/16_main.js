@@ -17,7 +17,7 @@ const Menu = {
   newChar(i) {
     this.slot = i; const m = $('#menu');
     let h = `<div class="box"><h2 class="h" style="font-size:30px">Új karakter</h2><div class="clsg">`;
-    for (const k in CLASSES) { const C = CLASSES[k], R = RESOURCES[k]; h += `<div class="cls ${this.sel === k ? 'on' : ''}" data-a="pickCls" data-c="${k}"><div class="i" style="color:${C.szin}">${C.ikon}</div><div class="h" style="font-size:15px">${C.nev}</div><div style="margin:4px 0">${C.leiras}</div><div class="small" style="color:${R.c}">${R.ikon} ${R.nev}: ${R.desc}</div></div>`; }
+    for (const k in CLASSES) { const C = CLASSES[k], R = RESOURCES[k]; h += `<div class="cls ${this.sel === k ? 'on' : ''}" data-a="pickCls" data-c="${k}"><div class="i" style="color:${C.szin}">${C.ikon}</div><div class="h" style="font-size:15px">${C.nev}</div><div style="margin:4px 0">${C.leiras}</div><div class="small" style="color:${R.c}">${R.ikon} ${R.nev}${this.sel === k ? ': ' + R.desc : ''}</div></div>`; }
     h += `</div><div style="margin:10px 0"><input id="cname" maxlength="20" placeholder="A hősöd neve" value="${esc(localStorage.getItem('multiverzum-nev') || '')}"> <button class="pri" data-a="create">Indulás</button> <button data-a="back">Vissza</button></div></div>`;
     m.innerHTML = h;
   },
