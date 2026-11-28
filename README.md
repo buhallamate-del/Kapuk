@@ -43,6 +43,9 @@ Tesztek: `node tools/smoke.js` (füstteszt), `node tools/bot.js <címke>` (átla
 
 ## Irányítás
 
+**Telefonon és tableten:** bal hüvelykujj: mozgás (teljesen kitolva sprint); jobb hüvelykujj: célzás és folyamatos támadás (rövid koppintás: egy támadás a legközelebbi ellenfélre). Jobbra lent a képességek, a Kapukő, a gyógyital és a kitérés; ha nem célzol, a képességek automatikusan a legközelebbi ellenfélre mennek. Az „E” gomb csak akkor jelenik meg, ha van mivel interakcióba lépni. Felül a menü és a panelek, a „⋯” alatt evés, ivás, sátor, kapu haza, artefaktum, elixírek, építés és W-eltolás. A táskában koppintás = megnézés, újabb koppintás = felvétel, hosszú nyomás = jobb klikk (eladás, szétszedés, eldobás). Fektetve a legkényelmesebb.
+
+**Billentyűzettel:** 
 WASD mozgás · egér célzás · bal gomb támadás · jobb gomb és 1–4 képességek · V Kapukő · Space kitérés · Shift sprint · E interakció · Q gyógyital · 6–9 elixírek · B artefaktum · H/G evés/ivás · N sátor · T kapu haza · U építés (otthon) · I/C/K/J/M panelek · Z/X W-eltolás az Eseményhorizontban · F1 súgó
 
 ## Fejlesztés

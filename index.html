@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Kapuk – Multiverzum RPG</title>
 <style>
 :root{--bg:#0c0b0a;--pan:rgba(16,14,12,.94);--bd:#6b5a3a;--bd2:#3a3226;--gold:#e6c47a;--tx:#e8dcc0;--dim:#a09478;--red:#e04848;--ok:#9fe07a}
@@ -52,6 +52,44 @@ input{font:inherit;background:#15120e;color:var(--tx);border:1px solid var(--bd)
 #scene .sc-bar{position:absolute;left:0;right:0;top:0;height:9vh;background:#000}#scene .sc-bar.b{top:auto;bottom:0}
 #scene .sc-t{position:absolute;left:50%;top:24vh;transform:translateX(-50%);width:min(680px,90vw);text-align:center;text-shadow:0 2px 6px #000;background:radial-gradient(ellipse at center,rgba(0,0,0,.55),rgba(0,0,0,0) 70%);padding:14px 24px}
 #scene .sc-x{font-size:15px;line-height:1.6;margin-top:6px;font-style:italic;color:#e8dcc0}
+/* ---------- érintőképernyő ---------- */
+body.touch canvas#c{touch-action:none}
+#touch{position:fixed;inset:0;z-index:5;pointer-events:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#touch .tz{position:absolute;top:0;bottom:0;pointer-events:auto;touch-action:none}#tzL{left:0;width:50%}#tzR{right:0;width:50%}
+#touch .stick{position:absolute;width:110px;height:110px;border-radius:50%;border:2px solid rgba(230,196,122,.45);background:rgba(0,0,0,.18);display:none;pointer-events:none}
+#touch .stick .knob{position:absolute;left:33px;top:33px;width:44px;height:44px;border-radius:50%;background:rgba(230,196,122,.55)}
+#touch .tb{pointer-events:auto;touch-action:none;position:relative;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(20,16,12,.72);border:1px solid rgba(230,196,122,.55);color:#f0e4c8;font-size:22px;overflow:hidden}
+#touch .tb .cd{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);pointer-events:none}
+#tbtns{position:absolute;right:calc(10px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));width:214px;height:200px;pointer-events:none}
+#tbtns .tb{position:absolute;width:52px;height:52px}
+#tbtns .tb.dodge{width:72px;height:72px;right:0;bottom:0;font-size:30px;background:rgba(60,90,40,.7);border-color:#9fe07a}
+#tbtns .tb.pot{width:46px;height:46px;right:84px;bottom:0;color:#ff7a8a;font-size:18px}#tbtns .tb.pot .n{position:absolute;right:6px;bottom:2px;font-size:11px;color:#fff}
+#tbtns [data-i="0"]{right:4px;bottom:86px;width:60px;height:60px;border-color:#e6c47a}#tbtns [data-i="1"]{right:70px;bottom:62px}#tbtns [data-i="2"]{right:132px;bottom:30px}
+#tbtns [data-i="3"]{right:70px;bottom:126px}#tbtns [data-i="4"]{right:134px;bottom:96px}#tbtns .gate{right:150px;bottom:-4px;width:46px;height:46px;border-color:#d27bff}
+#touch .use{position:absolute;right:calc(234px + env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom));width:auto;min-width:60px;height:52px;border-radius:26px;padding:0 14px;flex-direction:column;font-weight:700;display:none;background:rgba(60,48,20,.85)}
+#touch .use small{font-size:10px;font-weight:400;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ttop{position:absolute;left:50%;transform:translateX(-50%);top:calc(6px + env(safe-area-inset-top));display:flex;gap:6px;pointer-events:none}
+#touch .tb.sm{width:38px;height:38px;font-size:17px;border-radius:8px}
+#tmore{position:absolute;left:50%;transform:translateX(-50%);top:calc(50px + env(safe-area-inset-top));display:none;flex-wrap:wrap;gap:6px;justify-content:center;max-width:90vw;pointer-events:none}#tmore.on{display:flex}
+body.touch #skillbar,body.touch #quick,body.touch #keys{display:none}
+body.touch #bars{bottom:auto;top:calc(48px + env(safe-area-inset-top));left:10px;transform:scale(.5);transform-origin:top left;gap:6px}
+body.touch #stab,body.touch #xp{width:220px}
+body.touch #surv{bottom:auto;top:calc(102px + env(safe-area-inset-top));left:10px;transform:scale(.8);transform-origin:top left}
+body.touch #mm{width:110px;height:110px;top:calc(6px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right))}
+body.touch #gold{top:calc(120px + env(safe-area-inset-top));font-size:11px}
+body.touch #track{top:calc(138px + env(safe-area-inset-top));width:180px;font-size:10px;opacity:.85}
+body.touch #topl{top:calc(6px + env(safe-area-inset-top));left:10px;transform:scale(.75);transform-origin:top left}
+body.touch #buffs{top:calc(190px + env(safe-area-inset-top));width:200px}
+body.touch #toasts{width:min(560px,70vw);top:calc(52px + env(safe-area-inset-top));left:56%}body.touch .toast{font-size:12px}
+body.touch #boss{width:70vw;top:calc(48px + env(safe-area-inset-top))}
+body.touch #chan,body.touch #wind{bottom:auto;top:40%}
+/* panelek kis kijelzőn: teljes szélesség, görgethető */
+body.touch .panel{left:6px!important;right:6px!important;top:calc(6px + env(safe-area-inset-top))!important;width:auto!important;transform:none!important;max-height:calc(100vh - 12px)}
+body.touch .panel .bd{max-height:calc(100vh - 64px);-webkit-overflow-scrolling:touch}
+body.touch .grid{grid-template-columns:repeat(auto-fill,46px)}body.touch .cell{width:46px;height:46px;font-size:20px}
+body.touch .sktree{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+body.touch #tt{max-width:min(320px,calc(100vw - 16px));z-index:60}
+body.touch button{min-height:34px}
 /* panelek */
 .panel{position:fixed;background:var(--pan);border:1px solid var(--bd);border-radius:6px;box-shadow:0 10px 40px #000c;display:none;z-index:10}
 .panel .hd{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd2)}
@@ -2458,11 +2496,12 @@ Object.assign(G, {
     let mx = 0, my = 0;
     if (Input.keys.has('w') || Input.keys.has('ArrowUp')) my -= 1; if (Input.keys.has('s') || Input.keys.has('ArrowDown')) my += 1;
     if (Input.keys.has('a') || Input.keys.has('ArrowLeft')) mx -= 1; if (Input.keys.has('d') || Input.keys.has('ArrowRight')) mx += 1;
+    let tMag = 1; if (Touch.on && (Touch.mv.x || Touch.mv.y)) { mx = Touch.mv.x; my = Touch.mv.y; tMag = clamp(Math.hypot(mx, my), 0.35, 1); }
     const ml = Math.hypot(mx, my); if (ml) { mx /= ml; my /= ml; }
     P.sprinting = Input.keys.has('Shift') && ml && P.sta > 1 && !this.inTown();
     if (P.sprinting && !st.staInf) { P.sta = Math.max(0, P.sta - 28 * dt); P.staDelay = 0.5; }
     let spd = 185 * st.msp * (P.sprinting || (this.inTown() && Input.keys.has('Shift')) ? 1.5 : 1);
-    if (P.chill > 0) { spd *= 0.6; P.chill -= dt; }
+    spd *= tMag; if (P.chill > 0) { spd *= 0.6; P.chill -= dt; }
     const ti = tileAt(m, Math.floor(P.x / TILE), Math.floor(P.y / TILE));
     let haz = ti === T_HAZ ? (REGION[m.region] ? REGION[m.region].haz.fx : null) : null;
     if (haz === 'slow') spd *= 0.55;
@@ -3331,7 +3370,8 @@ const R = {
   },
   resize() {
     const dpr = Math.min(2, devicePixelRatio || 1); this.c.width = Math.floor(innerWidth * dpr); this.c.height = Math.floor(innerHeight * dpr);
-    G.zoom = Math.max(this.c.width / 1400, this.c.height / 820); G.W = this.c.width / G.zoom; G.H = this.c.height / G.zoom;
+    // érintőképernyőn a rövidebb oldalra legalább ~620 képpontnyi világ jut (álló és fekvő módban is)
+    G.zoom = Touch.on ? Math.min(this.c.width, this.c.height) / 620 : Math.max(this.c.width / 1400, this.c.height / 820); G.W = this.c.width / G.zoom; G.H = this.c.height / G.zoom;
     this.light.width = Math.ceil(this.c.width / 2); this.light.height = Math.ceil(this.c.height / 2);
   },
   frame() {
@@ -3696,8 +3736,8 @@ const UI = {
     });
     document.addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b) { Audio2.unlock(); Audio2.play('ui'); this.act(b.dataset.a, b.dataset, e); } });
     document.addEventListener('contextmenu', e => { const b = e.target.closest('[data-r]'); if (b) { e.preventDefault(); this.act(b.dataset.r, b.dataset, e); } });
-    document.addEventListener('mouseover', e => { const b = e.target.closest('[data-tt]'); if (b) this.showTT(b.dataset.tt, b.dataset); });
-    document.addEventListener('mouseout', e => { const b = e.target.closest('[data-tt]'); if (b) $('#tt').style.display = 'none'; });
+    document.addEventListener('mouseover', e => { if (typeof Touch !== 'undefined' && Touch.on) return; const b = e.target.closest('[data-tt]'); if (b) this.showTT(b.dataset.tt, b.dataset); });
+    document.addEventListener('mouseout', e => { if (typeof Touch !== 'undefined' && Touch.on) return; const b = e.target.closest('[data-tt]'); if (b) $('#tt').style.display = 'none'; });
     this.mm = $('#mm').getContext('2d');
   },
   // ---------- tooltip ----------
@@ -3707,6 +3747,7 @@ const UI = {
     if (kind === 'item') { const it = this.findItem(d.src, d.i); if (!it) return; const cmp = d.src !== 'eq' ? G.S.eq[BASES[it.base].slot] : null; h = itemTooltip(it, cmp); if (d.src === 'shop') h += `<div class="tt-v">Ár: ${fmt(itemValue(it) * 4)} arany</div>`; if (d.src === 'inv') h += `<div class="small">Bal klikk: felvesz · Jobb klikk: ${this.shop === 'bolt' ? 'elad' : this.shop === 'kovacs' ? 'szétszed' : this.shop === 'raktar' ? 'tárhelybe' : 'eldob'}</div>`; }
     else if (kind === 'skill') { const sk = G.skillById(d.id) || GATESKILLS[d.id]; if (!sk) return; const r = Math.max(1, skillRank(G.P, d.id)); h = `<div class="tt-n">${sk.ikon} ${sk.nev}</div><div class="tt-s">${sk.tipus === 'passziv' ? 'Passzív' : FORBIDDEN[d.id] ? 'TILTOTT' : GATESKILLS[d.id] ? 'Kapukő-képesség' : 'Aktív'}${sk.req ? ` · ${sk.req}. szinttől` : ''}</div><div>${typeof sk.desc === 'function' ? sk.desc(r) : sk.desc}</div>`; if (sk.cost != null && sk.tipus !== 'passziv') h += `<div class="tt-g">Költség: ${typeof sk.cost === 'function' ? sk.cost(r) : sk.cost} ${resName(G.S.cls).toLowerCase()}${sk.cd ? ` · újratöltés ${(typeof sk.cd === 'function' ? sk.cd(r) : sk.cd).toFixed(1)} mp` : ''}</div>`; }
     else if (kind === 'txt') h = d.t;
+    if (typeof Touch !== 'undefined' && Touch.on) h = h.replace(/Bal klikk/g, 'Koppints újra').replace(/Jobb klikk/g, 'Tartsd nyomva').replace(/[Jj]obb klikk/g, 'tartsd nyomva');
     tt.innerHTML = h; tt.style.display = 'block';
   },
   // ---------- értesítés ----------
@@ -3728,7 +3769,7 @@ const UI = {
     const hp = $('#ohp'); hp.querySelector('.f').style.height = (P.hp / P.mhp * 100) + '%'; hp.querySelector('.t').innerHTML = `${Math.ceil(P.hp)}<small>/ ${P.mhp}${P.shieldV > 1 ? ` +${Math.round(P.shieldV)}` : ''}</small>`;
     const mp = $('#omp'); mp.querySelector('.f').style.height = (P.mp / P.mmp * 100) + '%'; mp.querySelector('.f').style.background = `linear-gradient(${RS.c},#111)`; mp.querySelector('.t').innerHTML = `${Math.floor(P.mp)}${P.over > 1 ? `<span style="color:#cfe4ff">+${Math.floor(P.over)}</span>` : ''}<small>${RS.nev}${P.rageTier === 2 ? ' · TOMBOLÓ' : P.rageTier === 1 ? ' · felbőszült' : P.focus ? ` · Fókusz ${P.focus}` : ''}</small>`; mp.style.boxShadow = P.over > 1 ? '0 0 16px #9fc8ff' : P.rageTier === 2 ? '0 0 18px #ff4433' : P.rageTier === 1 ? '0 0 10px #a03020' : '';
     $('#xp div').style.width = (S.lvl >= MAX_LVL ? 100 : S.xp / xpNeed(S.lvl) * 100) + '%';
-    { const sb = $('#stab div'), seg = DODGE_COST / P.msta * 100; sb.style.width = (P.sta / P.msta * 100) + '%'; const px = 420 * seg / 100, col = P.sta < DODGE_COST ? '#c8743a' : P.staDelay > 0 ? '#7fb060' : '#9fe07a'; sb.style.background = `repeating-linear-gradient(90deg, ${col} 0 ${px - 2}px, rgba(0,0,0,.85) ${px - 2}px ${px}px)`; }
+    { const sb = $('#stab div'), seg = DODGE_COST / P.msta * 100; sb.style.width = (P.sta / P.msta * 100) + '%'; const px = ($('#stab').offsetWidth || 420) * seg / 100, col = P.sta < DODGE_COST ? '#c8743a' : P.staDelay > 0 ? '#7fb060' : '#9fe07a'; sb.style.background = `repeating-linear-gradient(90deg, ${col} 0 ${px - 2}px, rgba(0,0,0,.85) ${px - 2}px ${px}px)`; }
     $('#gold').textContent = `${fmt(S.gold)} arany · ${S.lvl}. szint`;
     // képességsor
     const keys = ['JG', '1', '2', '3', '4'];
@@ -4407,6 +4448,129 @@ Home.starter = function () {
 };
 
 // ============================================================
+//  ÉRINTŐKÉPERNYŐ: két virtuális joystick, képességgombok, helyzetfüggő „E”
+//  Bal fél: mozgás (teljesen kitolva sprint). Jobb fél: célzás + folyamatos támadás.
+//  Ha nem célzol, a képességek a legközelebbi ellenfélre mennek (automatikus célzás).
+// ============================================================
+const Touch = {
+  on: false, mv: { x: 0, y: 0 }, aimA: null, aimOn: false, sticks: {}, lastAim: 0, tapItem: null,
+  detect() { return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && matchMedia('(pointer: coarse)').matches; },
+  init() {
+    if (!this.detect()) return;
+    this.on = true; document.body.classList.add('touch');
+    const root = document.createElement('div'); root.id = 'touch'; document.body.appendChild(root); this.root = root;
+    root.innerHTML = `
+      <div class="tz" id="tzL"></div><div class="tz" id="tzR"></div>
+      <div class="stick" id="stL"><div class="knob"></div></div><div class="stick" id="stR"><div class="knob"></div></div>
+      <div id="tbtns">
+        ${[0, 1, 2, 3, 4].map(i => `<div class="tb sk" data-t="slot" data-i="${i}"><span class="ic"></span><div class="cd"></div></div>`).join('')}
+        <div class="tb sk gate" data-t="gate"><span class="ic"></span><div class="cd"></div></div>
+        <div class="tb pot" data-t="pot">❤<span class="n"></span></div>
+        <div class="tb dodge" data-t="dodge">⤴</div>
+      </div>
+      <div class="tb use" id="tUse" data-t="use">E</div>
+      <div id="ttop">
+        <div class="tb sm" data-t="key" data-k="Escape">☰</div><div class="tb sm" data-t="key" data-k="i">🎒</div><div class="tb sm" data-t="key" data-k="k">✨</div>
+        <div class="tb sm" data-t="key" data-k="c">👤</div><div class="tb sm" data-t="key" data-k="j">📜</div><div class="tb sm" data-t="key" data-k="m">🗺</div><div class="tb sm" data-t="more">⋯</div>
+      </div>
+      <div id="tmore">
+        <div class="tb sm" data-t="key" data-k="h" title="Evés">🍖</div><div class="tb sm" data-t="key" data-k="g" title="Ivás">💧</div><div class="tb sm" data-t="key" data-k="n" title="Sátor">⛺</div>
+        <div class="tb sm" data-t="key" data-k="t" title="Kapu haza">🌀</div><div class="tb sm" data-t="key" data-k="b" title="Artefaktum">◇</div>
+        ${Object.keys(ELIX).map(k => `<div class="tb sm" data-t="key" data-k="${ELIX[k].key}" style="color:${ELIX[k].c}">⚗</div>`).join('')}
+        <div class="tb sm" data-t="key" data-k="u" title="Építés (otthon)">🔨</div><div class="tb sm" data-t="wz" data-d="-1">W−</div><div class="tb sm" data-t="wz" data-d="1">W+</div>
+      </div>`;
+    // gombok
+    root.querySelectorAll('.tb').forEach(b => b.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); Audio2.unlock(); this.press(b); }, { passive: false }));
+    // joystickok
+    for (const side of ['L', 'R']) {
+      const z = root.querySelector('#tz' + side);
+      z.addEventListener('touchstart', e => { e.preventDefault(); Audio2.unlock(); const t = e.changedTouches[0]; this.stickStart(side, t); }, { passive: false });
+    }
+    addEventListener('touchmove', e => { for (const t of e.changedTouches) this.stickMove(t); }, { passive: true });
+    const end = e => { for (const t of e.changedTouches) this.stickEnd(t); };
+    addEventListener('touchend', end); addEventListener('touchcancel', end);
+    // tárgyak és panelek: koppintás = megnézés, második koppintás = művelet, hosszú nyomás = jobb klikk
+    document.addEventListener('touchstart', e => { const el = e.target.closest('[data-r]'); if (!el) return; clearTimeout(this.lpT); this.lpEl = el; this.lpT = setTimeout(() => { this.lpDone = true; UI.act(el.dataset.r, el.dataset, e); if (navigator.vibrate) navigator.vibrate(20); }, 520); }, { passive: true });
+    document.addEventListener('touchend', () => clearTimeout(this.lpT), { passive: true });
+    document.addEventListener('click', e => {
+      if (this.lpDone) { this.lpDone = false; e.stopPropagation(); e.preventDefault(); return; }
+      const el = e.target.closest('[data-tt="item"]'); if (!el || !el.dataset.a) return;
+      const key = el.dataset.src + ':' + el.dataset.i;
+      if (this.tapItem !== key) { this.tapItem = key; e.stopPropagation(); e.preventDefault(); UI.showTT('item', el.dataset); const tt = $('#tt'); tt.style.left = '8px'; tt.style.top = '8px'; return; }
+      this.tapItem = null; $('#tt').style.display = 'none';
+    }, true);
+    if (innerHeight > innerWidth) setTimeout(() => UI.toast && UI.toast('Tipp: fektetve kényelmesebb. Bal hüvelyk: mozgás, jobb: célzás és támadás.', '#e6c47a', 6), 1500);
+  },
+  stickStart(side, t) {
+    if (Home.build && G.map && G.map.region === 'otthon') { this.buildTap(t); return; }
+    const s = this.sticks[side] = { id: t.identifier, x0: t.clientX, y0: t.clientY, dx: 0, dy: 0, t0: performance.now() };
+    const el = this.root.querySelector('#st' + side); el.style.display = 'block'; el.style.left = (s.x0 - 55) + 'px'; el.style.top = (s.y0 - 55) + 'px'; el.firstElementChild.style.transform = '';
+  },
+  stickMove(t) {
+    for (const side in this.sticks) {
+      const s = this.sticks[side]; if (!s || s.id !== t.identifier) continue;
+      let dx = t.clientX - s.x0, dy = t.clientY - s.y0; const d = Math.hypot(dx, dy), M = 50; if (d > M) { dx *= M / d; dy *= M / d; }
+      s.dx = dx / M; s.dy = dy / M; this.root.querySelector('#st' + side).firstElementChild.style.transform = `translate(${dx}px,${dy}px)`;
+    }
+  },
+  stickEnd(t) {
+    for (const side in this.sticks) {
+      const s = this.sticks[side]; if (!s || s.id !== t.identifier) continue;
+      // jobb oldali rövid koppintás: egy támadás a legközelebbi ellenfélre
+      if (side === 'R' && performance.now() - s.t0 < 220 && Math.hypot(s.dx, s.dy) < 0.3) this.tapAttack = 2;
+      this.sticks[side] = null; this.root.querySelector('#st' + side).style.display = 'none';
+    }
+  },
+  buildTap(t) { const c = $('#c'), r = c.getBoundingClientRect(); Input.mx = (t.clientX - r.left) * (c.width / r.width); Input.my = (t.clientY - r.top) * (c.height / r.height); Input.mclick[0] = true; },
+  // a legközelebbi látható ellenfél (automatikus célzás)
+  autoTarget() { const P = G.P; if (!P || !G.map) return null; return G.nearestEnemy(P.x, P.y, 520, true); },
+  setAimWorld(wx, wy) { Input.wx = wx; Input.wy = wy; Input.mx = (wx - G.cam.x + G.W / 2) * G.zoom; Input.my = (wy - G.cam.y + G.H / 2) * G.zoom; },
+  aimForCast() { const P = G.P; const e = !this.aimOn && this.autoTarget(); if (e) this.setAimWorld(e.x, e.y); else { const a = this.aimA != null ? this.aimA : P.aim; this.setAimWorld(P.x + Math.cos(a) * 220, P.y + Math.sin(a) * 220); } },
+  press(b) {
+    const t = b.dataset.t; if (!G.P || G.scene !== 'play') return;
+    if (t === 'key') { const k = b.dataset.k; Input.pressed.add(k); if (k === 'Escape' || 'ikcjmu'.includes(k)) $('#tmore').classList.remove('on'); return; }
+    if (t === 'more') { $('#tmore').classList.toggle('on'); return; }
+    if (UI.open && UI.open !== 'build') return;
+    if (t === 'slot') { this.aimForCast(); G.useSlot(+b.dataset.i); }
+    else if (t === 'gate') { this.aimForCast(); G.useGate(); }
+    else if (t === 'pot') G.drinkPotion();
+    else if (t === 'dodge') Input.pressed.add(' ');
+    else if (t === 'use') Input.pressed.add('e');
+    else if (t === 'wz') { const P = G.P; if (G.map.mech === 'eh' && P.wCd <= 0) { Input.pressed.add(+b.dataset.d < 0 ? 'z' : 'x'); } }
+  },
+  // minden képkocka elején: a joystickokból billentyű- és egérállapot
+  frame() {
+    if (!this.on || G.scene !== 'play' || !G.P) return;
+    const L = this.sticks.L, R = this.sticks.R, P = G.P; UI.overUI = false; // az érintés emulált egéreseményei ne tiltsák a támadást
+    this.mv.x = L ? L.dx : 0; this.mv.y = L ? L.dy : 0;
+    if (L && Math.hypot(L.dx, L.dy) > 0.95) Input.keys.add('Shift'); else Input.keys.delete('Shift');
+    this.aimOn = !!(R && Math.hypot(R.dx, R.dy) > 0.3);
+    if (this.aimOn) { this.aimA = Math.atan2(R.dy, R.dx); this.setAimWorld(P.x + Math.cos(this.aimA) * 220, P.y + Math.sin(this.aimA) * 220); Input.mdown[0] = true; }
+    else {
+      const e = this.autoTarget(); if (e) this.setAimWorld(e.x, e.y); else if (this.mv.x || this.mv.y) this.setAimWorld(P.x + this.mv.x * 200, P.y + this.mv.y * 200);
+      Input.mdown[0] = this.tapAttack > 0; if (this.tapAttack > 0) this.tapAttack--;
+    }
+  },
+  // gombok: ikon, töltődés, elérhetőség, az „E” csak akkor látszik, ha van mivel
+  hud() {
+    if (!this.on || !G.P || G.scene !== 'play') return; const P = G.P, S = G.S;
+    this.root.style.display = UI.open && UI.open !== 'build' ? 'none' : '';
+    const sk = this.root.querySelectorAll('.tb.sk');
+    sk.forEach(b => {
+      let id, cd = 0, mx = 1, ic = '·';
+      if (b.dataset.t === 'slot') { id = S.slots[+b.dataset.i]; const s = id && G.skillById(id); if (s) { ic = s.ikon; cd = Math.max(0, P.cds[id] || 0); mx = (P.cdMax && P.cdMax[id]) || 1; } }
+      else { id = S.gate; const g = id && GATESKILLS[id]; if (g) { ic = g.ikon; cd = Math.max(0, P.cds['g_' + id] || 0); mx = (P.cdMax && P.cdMax['g_' + id]) || 1; } }
+      const k = ic + '|' + Math.ceil(cd * 4); if (b._k === k) return; b._k = k;
+      b.querySelector('.ic').textContent = ic; b.style.opacity = id ? 1 : 0.35; b.querySelector('.cd').style.height = (cd > 0 ? cd / mx * 100 : 0) + '%';
+    });
+    this.root.querySelector('.pot .n').textContent = S.potions;
+    const ni = G.nearInteract(), it = G.pickups.find(p => p.kind === 'item' && dist(p, P) < 50), use = $('#tUse');
+    const lbl = it ? it.it.nev : ni ? (ni.label || '') : ''; use.style.display = lbl ? 'flex' : 'none'; if (use._l !== lbl) { use._l = lbl; use.innerHTML = `E<small>${esc(lbl).slice(0, 22)}</small>`; }
+    const sb = this.root.querySelector('.dodge'); sb.style.opacity = P.sta >= DODGE_COST ? 1 : 0.4;
+  },
+};
+
+// ============================================================
 //  FŐMENÜ, KARAKTERKÉSZÍTÉS, FŐCIKLUS
 // ============================================================
 const Menu = {
@@ -4494,11 +4658,11 @@ function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   try {
     if (G.scene === 'play' && G.map) {
-      handleKeys();
+      Touch.frame(); handleKeys();
       if (!G.paused && $('#over').style.display !== 'flex') G.update(dt);
       else if (UI.sleepT > 0) { }
       if (UI.sleepT > 0) UI.sleepT -= dt;
-      R.frame(); UI.hud();
+      R.frame(); UI.hud(); Touch.hud();
     }
   } catch (e) { console.error(e); if (!loop.err) { loop.err = 1; UI.toast('Hiba: ' + e.message, '#ff5555', 8); } }
   Input.endFrame();
@@ -4507,7 +4671,7 @@ function loop(now) {
 
 // ---------- indulás ----------
 function boot() {
-  const c = $('#c'); Input.init(c); R.init(c); UI.init();
+  const c = $('#c'); Touch.init(); Input.init(c); R.init(c); UI.init();
   Menu.show();
   requestAnimationFrame(loop);
   addEventListener('beforeunload', () => G.autosave());

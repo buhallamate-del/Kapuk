@@ -10,8 +10,8 @@ const UI = {
     });
     document.addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b) { Audio2.unlock(); Audio2.play('ui'); this.act(b.dataset.a, b.dataset, e); } });
     document.addEventListener('contextmenu', e => { const b = e.target.closest('[data-r]'); if (b) { e.preventDefault(); this.act(b.dataset.r, b.dataset, e); } });
-    document.addEventListener('mouseover', e => { const b = e.target.closest('[data-tt]'); if (b) this.showTT(b.dataset.tt, b.dataset); });
-    document.addEventListener('mouseout', e => { const b = e.target.closest('[data-tt]'); if (b) $('#tt').style.display = 'none'; });
+    document.addEventListener('mouseover', e => { if (typeof Touch !== 'undefined' && Touch.on) return; const b = e.target.closest('[data-tt]'); if (b) this.showTT(b.dataset.tt, b.dataset); });
+    document.addEventListener('mouseout', e => { if (typeof Touch !== 'undefined' && Touch.on) return; const b = e.target.closest('[data-tt]'); if (b) $('#tt').style.display = 'none'; });
     this.mm = $('#mm').getContext('2d');
   },
   // ---------- tooltip ----------
@@ -21,6 +21,7 @@ const UI = {
     if (kind === 'item') { const it = this.findItem(d.src, d.i); if (!it) return; const cmp = d.src !== 'eq' ? G.S.eq[BASES[it.base].slot] : null; h = itemTooltip(it, cmp); if (d.src === 'shop') h += `<div class="tt-v">Ár: ${fmt(itemValue(it) * 4)} arany</div>`; if (d.src === 'inv') h += `<div class="small">Bal klikk: felvesz · Jobb klikk: ${this.shop === 'bolt' ? 'elad' : this.shop === 'kovacs' ? 'szétszed' : this.shop === 'raktar' ? 'tárhelybe' : 'eldob'}</div>`; }
     else if (kind === 'skill') { const sk = G.skillById(d.id) || GATESKILLS[d.id]; if (!sk) return; const r = Math.max(1, skillRank(G.P, d.id)); h = `<div class="tt-n">${sk.ikon} ${sk.nev}</div><div class="tt-s">${sk.tipus === 'passziv' ? 'Passzív' : FORBIDDEN[d.id] ? 'TILTOTT' : GATESKILLS[d.id] ? 'Kapukő-képesség' : 'Aktív'}${sk.req ? ` · ${sk.req}. szinttől` : ''}</div><div>${typeof sk.desc === 'function' ? sk.desc(r) : sk.desc}</div>`; if (sk.cost != null && sk.tipus !== 'passziv') h += `<div class="tt-g">Költség: ${typeof sk.cost === 'function' ? sk.cost(r) : sk.cost} ${resName(G.S.cls).toLowerCase()}${sk.cd ? ` · újratöltés ${(typeof sk.cd === 'function' ? sk.cd(r) : sk.cd).toFixed(1)} mp` : ''}</div>`; }
     else if (kind === 'txt') h = d.t;
+    if (typeof Touch !== 'undefined' && Touch.on) h = h.replace(/Bal klikk/g, 'Koppints újra').replace(/Jobb klikk/g, 'Tartsd nyomva').replace(/[Jj]obb klikk/g, 'tartsd nyomva');
     tt.innerHTML = h; tt.style.display = 'block';
   },
   // ---------- értesítés ----------
@@ -42,7 +43,7 @@ const UI = {
     const hp = $('#ohp'); hp.querySelector('.f').style.height = (P.hp / P.mhp * 100) + '%'; hp.querySelector('.t').innerHTML = `${Math.ceil(P.hp)}<small>/ ${P.mhp}${P.shieldV > 1 ? ` +${Math.round(P.shieldV)}` : ''}</small>`;
     const mp = $('#omp'); mp.querySelector('.f').style.height = (P.mp / P.mmp * 100) + '%'; mp.querySelector('.f').style.background = `linear-gradient(${RS.c},#111)`; mp.querySelector('.t').innerHTML = `${Math.floor(P.mp)}${P.over > 1 ? `<span style="color:#cfe4ff">+${Math.floor(P.over)}</span>` : ''}<small>${RS.nev}${P.rageTier === 2 ? ' · TOMBOLÓ' : P.rageTier === 1 ? ' · felbőszült' : P.focus ? ` · Fókusz ${P.focus}` : ''}</small>`; mp.style.boxShadow = P.over > 1 ? '0 0 16px #9fc8ff' : P.rageTier === 2 ? '0 0 18px #ff4433' : P.rageTier === 1 ? '0 0 10px #a03020' : '';
     $('#xp div').style.width = (S.lvl >= MAX_LVL ? 100 : S.xp / xpNeed(S.lvl) * 100) + '%';
-    { const sb = $('#stab div'), seg = DODGE_COST / P.msta * 100; sb.style.width = (P.sta / P.msta * 100) + '%'; const px = 420 * seg / 100, col = P.sta < DODGE_COST ? '#c8743a' : P.staDelay > 0 ? '#7fb060' : '#9fe07a'; sb.style.background = `repeating-linear-gradient(90deg, ${col} 0 ${px - 2}px, rgba(0,0,0,.85) ${px - 2}px ${px}px)`; }
+    { const sb = $('#stab div'), seg = DODGE_COST / P.msta * 100; sb.style.width = (P.sta / P.msta * 100) + '%'; const px = ($('#stab').offsetWidth || 420) * seg / 100, col = P.sta < DODGE_COST ? '#c8743a' : P.staDelay > 0 ? '#7fb060' : '#9fe07a'; sb.style.background = `repeating-linear-gradient(90deg, ${col} 0 ${px - 2}px, rgba(0,0,0,.85) ${px - 2}px ${px}px)`; }
     $('#gold').textContent = `${fmt(S.gold)} arany · ${S.lvl}. szint`;
     // képességsor
     const keys = ['JG', '1', '2', '3', '4'];

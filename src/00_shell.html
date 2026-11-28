@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Kapuk – Multiverzum RPG</title>
 <style>
 :root{--bg:#0c0b0a;--pan:rgba(16,14,12,.94);--bd:#6b5a3a;--bd2:#3a3226;--gold:#e6c47a;--tx:#e8dcc0;--dim:#a09478;--red:#e04848;--ok:#9fe07a}
@@ -52,6 +52,44 @@ input{font:inherit;background:#15120e;color:var(--tx);border:1px solid var(--bd)
 #scene .sc-bar{position:absolute;left:0;right:0;top:0;height:9vh;background:#000}#scene .sc-bar.b{top:auto;bottom:0}
 #scene .sc-t{position:absolute;left:50%;top:24vh;transform:translateX(-50%);width:min(680px,90vw);text-align:center;text-shadow:0 2px 6px #000;background:radial-gradient(ellipse at center,rgba(0,0,0,.55),rgba(0,0,0,0) 70%);padding:14px 24px}
 #scene .sc-x{font-size:15px;line-height:1.6;margin-top:6px;font-style:italic;color:#e8dcc0}
+/* ---------- érintőképernyő ---------- */
+body.touch canvas#c{touch-action:none}
+#touch{position:fixed;inset:0;z-index:5;pointer-events:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#touch .tz{position:absolute;top:0;bottom:0;pointer-events:auto;touch-action:none}#tzL{left:0;width:50%}#tzR{right:0;width:50%}
+#touch .stick{position:absolute;width:110px;height:110px;border-radius:50%;border:2px solid rgba(230,196,122,.45);background:rgba(0,0,0,.18);display:none;pointer-events:none}
+#touch .stick .knob{position:absolute;left:33px;top:33px;width:44px;height:44px;border-radius:50%;background:rgba(230,196,122,.55)}
+#touch .tb{pointer-events:auto;touch-action:none;position:relative;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(20,16,12,.72);border:1px solid rgba(230,196,122,.55);color:#f0e4c8;font-size:22px;overflow:hidden}
+#touch .tb .cd{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);pointer-events:none}
+#tbtns{position:absolute;right:calc(10px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));width:214px;height:200px;pointer-events:none}
+#tbtns .tb{position:absolute;width:52px;height:52px}
+#tbtns .tb.dodge{width:72px;height:72px;right:0;bottom:0;font-size:30px;background:rgba(60,90,40,.7);border-color:#9fe07a}
+#tbtns .tb.pot{width:46px;height:46px;right:84px;bottom:0;color:#ff7a8a;font-size:18px}#tbtns .tb.pot .n{position:absolute;right:6px;bottom:2px;font-size:11px;color:#fff}
+#tbtns [data-i="0"]{right:4px;bottom:86px;width:60px;height:60px;border-color:#e6c47a}#tbtns [data-i="1"]{right:70px;bottom:62px}#tbtns [data-i="2"]{right:132px;bottom:30px}
+#tbtns [data-i="3"]{right:70px;bottom:126px}#tbtns [data-i="4"]{right:134px;bottom:96px}#tbtns .gate{right:150px;bottom:-4px;width:46px;height:46px;border-color:#d27bff}
+#touch .use{position:absolute;right:calc(234px + env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom));width:auto;min-width:60px;height:52px;border-radius:26px;padding:0 14px;flex-direction:column;font-weight:700;display:none;background:rgba(60,48,20,.85)}
+#touch .use small{font-size:10px;font-weight:400;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ttop{position:absolute;left:50%;transform:translateX(-50%);top:calc(6px + env(safe-area-inset-top));display:flex;gap:6px;pointer-events:none}
+#touch .tb.sm{width:38px;height:38px;font-size:17px;border-radius:8px}
+#tmore{position:absolute;left:50%;transform:translateX(-50%);top:calc(50px + env(safe-area-inset-top));display:none;flex-wrap:wrap;gap:6px;justify-content:center;max-width:90vw;pointer-events:none}#tmore.on{display:flex}
+body.touch #skillbar,body.touch #quick,body.touch #keys{display:none}
+body.touch #bars{bottom:auto;top:calc(48px + env(safe-area-inset-top));left:10px;transform:scale(.5);transform-origin:top left;gap:6px}
+body.touch #stab,body.touch #xp{width:220px}
+body.touch #surv{bottom:auto;top:calc(102px + env(safe-area-inset-top));left:10px;transform:scale(.8);transform-origin:top left}
+body.touch #mm{width:110px;height:110px;top:calc(6px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right))}
+body.touch #gold{top:calc(120px + env(safe-area-inset-top));font-size:11px}
+body.touch #track{top:calc(138px + env(safe-area-inset-top));width:180px;font-size:10px;opacity:.85}
+body.touch #topl{top:calc(6px + env(safe-area-inset-top));left:10px;transform:scale(.75);transform-origin:top left}
+body.touch #buffs{top:calc(190px + env(safe-area-inset-top));width:200px}
+body.touch #toasts{width:min(560px,70vw);top:calc(52px + env(safe-area-inset-top));left:56%}body.touch .toast{font-size:12px}
+body.touch #boss{width:70vw;top:calc(48px + env(safe-area-inset-top))}
+body.touch #chan,body.touch #wind{bottom:auto;top:40%}
+/* panelek kis kijelzőn: teljes szélesség, görgethető */
+body.touch .panel{left:6px!important;right:6px!important;top:calc(6px + env(safe-area-inset-top))!important;width:auto!important;transform:none!important;max-height:calc(100vh - 12px)}
+body.touch .panel .bd{max-height:calc(100vh - 64px);-webkit-overflow-scrolling:touch}
+body.touch .grid{grid-template-columns:repeat(auto-fill,46px)}body.touch .cell{width:46px;height:46px;font-size:20px}
+body.touch .sktree{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+body.touch #tt{max-width:min(320px,calc(100vw - 16px));z-index:60}
+body.touch button{min-height:34px}
 /* panelek */
 .panel{position:fixed;background:var(--pan);border:1px solid var(--bd);border-radius:6px;box-shadow:0 10px 40px #000c;display:none;z-index:10}
 .panel .hd{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd2)}

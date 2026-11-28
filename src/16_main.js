@@ -86,11 +86,11 @@ function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   try {
     if (G.scene === 'play' && G.map) {
-      handleKeys();
+      Touch.frame(); handleKeys();
       if (!G.paused && $('#over').style.display !== 'flex') G.update(dt);
       else if (UI.sleepT > 0) { }
       if (UI.sleepT > 0) UI.sleepT -= dt;
-      R.frame(); UI.hud();
+      R.frame(); UI.hud(); Touch.hud();
     }
   } catch (e) { console.error(e); if (!loop.err) { loop.err = 1; UI.toast('Hiba: ' + e.message, '#ff5555', 8); } }
   Input.endFrame();
@@ -99,7 +99,7 @@ function loop(now) {
 
 // ---------- indulás ----------
 function boot() {
-  const c = $('#c'); Input.init(c); R.init(c); UI.init();
+  const c = $('#c'); Touch.init(); Input.init(c); R.init(c); UI.init();
   Menu.show();
   requestAnimationFrame(loop);
   addEventListener('beforeunload', () => G.autosave());
