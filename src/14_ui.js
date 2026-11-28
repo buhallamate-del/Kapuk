@@ -294,7 +294,7 @@ const UI = {
     else if (k === 'kapuk') {
       const n = Univ.get();
       h += '<div class="small">A Kapu túloldalán a többi világ. Ahol már jártál, oda innen is átléphetsz (ugyanazon a webcímen közös a napló).</div>';
-      for (const [code, nev, url, desc] of Univ.WORLDS) { const been = n[code + ':jart']; h += `<div class="row"><span>${been ? '🌀' : '·'} <b>${nev}</b><br><span class="small">${desc}${been ? '' : ' – még nem jártál ott'}</span></span>${been ? `<a href="${url}"><button class="sm">Átlépés</button></a>` : `<a href="${url}"><button class="sm">Felfedezés</button></a>`}</div>`; }
+      for (const [code, nev, url, desc] of Univ.WORLDS) { const been = n[code + ':jart']; h += `<div class="row"><span>${been ? '🌀' : '·'} <b>${nev}</b><br><span class="small">${desc}${been ? '' : ' – még nem jártál ott'}</span></span>${code === 'eh' && Univ.embedded() ? `<button class="sm pri" data-a="univVissza">Vissza a fekete lyukba</button>` : been ? `<a href="${url}"><button class="sm">Átlépés</button></a>` : `<a href="${url}"><button class="sm">Felfedezés</button></a>`}</div>`; }
       const keys = Object.keys(n).filter(k => !k.startsWith('kp:')); h += `<div class="small" style="margin-top:8px">A közös naplóban ${keys.length} esemény a többi világból. Ajándékot kaptál: ${Object.keys(S.gifts).length}.</div>`;
     }
     else if (k === 'tanito') { const cost = 100 + S.lvl * 40; h += `<div>Bodor elfelejteti veled a képességeidet és a tulajdonságpontjaidat. Mindent visszakapsz, újra eloszthatod.</div><div style="margin-top:8px"><button data-a="respec" ${S.gold >= cost ? '' : 'disabled'}>Felejtés (${cost} arany)</button></div>`; }
@@ -393,6 +393,7 @@ Object.assign(UI.acts, {
   setName() { const v = $('#vnev').value.trim().slice(0, 24); if (v) { localStorage.setItem('multiverzum-nev', v); this.toast('Név mentve.', '#9fe07a'); } },
   connect() { Univ.connect(); setTimeout(() => this.renderShop(), 1500); },
   retP() { this.closeAll(); G.useReturnPortal(); },
+  univVissza() { Univ.back(); },
   diff(d) { G.S.prog.diff = +d.d; recalc(G.P); this.kapu(); },
   go(d) { this.closeAll(); G.enterDungeon(d.r, +d.f); },
   hasadek() { this.closeAll(); G.enterHasadek(1, false); },

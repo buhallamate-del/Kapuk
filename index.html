@@ -2211,7 +2211,7 @@ Object.assign(G, {
 Object.assign(G, {
   start(S, slot) {
     this.S = S; this.slot = slot; this.P = makePlayer(S); this.scene = 'play';
-    Univ.set('kp:jart'); Univ.checkGifts();
+    Univ.set('kp:jart'); if (Univ.from === 'eh') { Univ.set('kp:erkezes:eh'); setTimeout(() => UI.toast('🕳 A fekete lyuk mögül érkeztél: Kapuváros egy buborék az Eseményhorizontban. A Pilótánál a kapu visszavisz.', '#c48cff', 7), 800); } Univ.checkGifts();
     if (!S.flags.intro) { S.flags.intro = 1; this.enterTown(); UI.intro(); } else this.enterTown();
     Quests.ensureStart();
   },
@@ -2797,6 +2797,11 @@ const Univ = {
   get() { try { return JSON.parse(localStorage.getItem(UNIV_KEY)) || {}; } catch (_) { return {}; } },
   has(k) { return !!this.get()[k]; },
   set(k) { const n = this.get(); if (n[k]) return false; n[k] = Date.now(); try { localStorage.setItem(UNIV_KEY, JSON.stringify(n)); } catch (_) { } return true; },
+  // ha az Eseményhorizont buborékjában futunk (iframe, közös webcím), a kapu nem tölt be újra, hanem visszaszól
+  embedded() { try { return window.parent !== window && window.parent.location.origin === location.origin; } catch (_) { return false; } },
+  back() { G.autosave(); try { window.parent.postMessage({ type: 'univ-vissza' }, location.origin); } catch (_) { } },
+  // érkezés másik világból (?from=eh): egyszer köszöntjük, és naplózzuk
+  from: (() => { try { const f = new URLSearchParams(location.search).get('from'); if (f === 'eh') { history.replaceState(null, '', location.pathname); return f; } } catch (_) { } return null; })(),
   week(d = new Date()) { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())), n = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - n); const e = t.getUTCFullYear(); return e + '-W' + String(Math.ceil(((t - Date.UTC(e, 0, 1)) / 864e5 + 1) / 7)).padStart(2, '0'); },
   WORLDS: [
     ['eh', 'Eseményhorizont', '../Esemenyhorizont/?from=kapuk', 'Relativisztikus pilótagyakorlat egy fekete lyuk körül'],
@@ -2813,6 +2818,7 @@ const Univ = {
     'eh:jart': ['Eseményhorizont', '+60 arany a pilótától', S => { S.gold += 60; }],
     'eh:horizont': ['Eseményhorizont', 'Átléptél egyszer a horizonton: +6 kapuszilánk', S => { S.mats.szilank = (S.mats.szilank || 0) + 6; }],
     'eh:novikov': ['Eseményhorizont', 'Bezártad az időhurkot: +1 képességpont', S => { S.skillPts++; }],
+    'eh:egg:kapuk': ['Eseményhorizont', 'Megtaláltad Kapuvárost a fekete lyuk mögött: +8 kapuszilánk, +1 egzotikus anyag', S => { S.mats.szilank = (S.mats.szilank || 0) + 8; S.mats.egzotikus = (S.mats.egzotikus || 0) + 1; }],
     'lo:esc': ['Kísérleti Lőtér', 'A szonda jele: +3 rakéta-üzemanyag, +120 arany', S => { S.mats.uzemanyag = (S.mats.uzemanyag || 0) + 3; S.gold += 120; }],
     'lo:moon': ['Kísérleti Lőtér', 'Holdra szálltál: +5 tulajdonságpont', S => { S.attrPts += 5; }],
     'r3:jart': ['Raktár 3D', 'A raktári automata kávéi: +4 kávé', S => { S.food.kave = (S.food.kave || 0) + 4; }],
@@ -3268,7 +3274,7 @@ const NPCS = {
     nev: 'A Pilóta', cim: 'az Eseményhorizontról', pos: [40, 38.5], look: { c: '#c48cff', c2: '#e8e8f0', hat: 'helmet2' }, menu: ['kapuk'],
     lines: ['A hajóórám szerint három napja vagyok itt. A Földön közben eltelt néhány év.', 'A fekete lyuk nem porszívó. Csak nagyon türelmes.', 'Ha a horizonton túl jársz: a négydimenziós térben a W a negyedik irány. Z és X – ezzel tolod el magad.', 'Interstellar? Láttam. A korong túlsó oldala tényleg a lyuk fölé hajlik. Ezt nem a film találta ki.'],
     tips: ['Az Eseményhorizontban, a lyuk belsejében a W=0-ról indulsz, a 1100-as pontból.', 'A tesszerakt 1700 egységre van a középponttól, W-ben csak ±72 és ±288 között. 430-as sugáron belül hátulról látod magad.', 'A fehér lyuk – a kijárat – 1800 és 2500 között van, W-ben ±380 és ±700 között. 170-en belül kidob.', 'A bébi-univerzum 2500-ra van, 340-es sugárral. Ott a fény csak 35%-os sebességgel jár.', 'A nyolc titkos buborék 3200–3700 egységre van. A Lőtéré W=+420…620, a Kurtáé W=−910…−1110. Messzire kell menni a W-tengelyen.', 'A Kerr-gyűrű 220 sugarú. Ne érintsd – de a közepén átjutsz az antivilágba, ahol a hajóóra visszafelé jár.', 'A féreglyuk torka egy 7 másodperces ciklus első 40%-ában nyitva van. Zárva visszalök.', 'Ha 150-nél közelebb mész a szingularitáshoz, vége. 520-nál még csak figyelmeztet.', 'Az Üzenet a múltba küldetésben három jel az égtáj, egy a W előjele: hosszú = +W, rövid = −W.', 'A tér 4200-nál visszahajlik önmagába. Onnan tudjuk a holografikus elvet.'],
-    react: { 'eh:novikov': 'Te már bezártad egyszer a hurkot. Akkor tudod: aki elküldi, az kapja meg.', 'eh:horizont': 'Átléptél a horizonton. A horizont emlékszik rád. Mindenre emlékszik.' },
+    react: { 'eh:egg:kapuk': 'Szóval a buborékon át jöttél. Akkor te is láttad kívülről a várost: egy fénylő pont a W-tengelyen. Kicsi, ugye? Innen nagyobbnak tűnik.', 'eh:novikov': 'Te már bezártad egyszer a hurkot. Akkor tudod: aki elküldi, az kapja meg.', 'eh:horizont': 'Átléptél a horizonton. A horizont emlékszik rád. Mindenre emlékszik.' },
   },
   kurta: {
     nev: 'Kurta', cim: 'a kocsma örök vendége', pos: [10.5, 36.5], look: { c: '#ff8ac8', c2: '#1a1a1a', hat: 'beard' }, menu: ['kocsma'],
@@ -3972,7 +3978,7 @@ const UI = {
     else if (k === 'kapuk') {
       const n = Univ.get();
       h += '<div class="small">A Kapu túloldalán a többi világ. Ahol már jártál, oda innen is átléphetsz (ugyanazon a webcímen közös a napló).</div>';
-      for (const [code, nev, url, desc] of Univ.WORLDS) { const been = n[code + ':jart']; h += `<div class="row"><span>${been ? '🌀' : '·'} <b>${nev}</b><br><span class="small">${desc}${been ? '' : ' – még nem jártál ott'}</span></span>${been ? `<a href="${url}"><button class="sm">Átlépés</button></a>` : `<a href="${url}"><button class="sm">Felfedezés</button></a>`}</div>`; }
+      for (const [code, nev, url, desc] of Univ.WORLDS) { const been = n[code + ':jart']; h += `<div class="row"><span>${been ? '🌀' : '·'} <b>${nev}</b><br><span class="small">${desc}${been ? '' : ' – még nem jártál ott'}</span></span>${code === 'eh' && Univ.embedded() ? `<button class="sm pri" data-a="univVissza">Vissza a fekete lyukba</button>` : been ? `<a href="${url}"><button class="sm">Átlépés</button></a>` : `<a href="${url}"><button class="sm">Felfedezés</button></a>`}</div>`; }
       const keys = Object.keys(n).filter(k => !k.startsWith('kp:')); h += `<div class="small" style="margin-top:8px">A közös naplóban ${keys.length} esemény a többi világból. Ajándékot kaptál: ${Object.keys(S.gifts).length}.</div>`;
     }
     else if (k === 'tanito') { const cost = 100 + S.lvl * 40; h += `<div>Bodor elfelejteti veled a képességeidet és a tulajdonságpontjaidat. Mindent visszakapsz, újra eloszthatod.</div><div style="margin-top:8px"><button data-a="respec" ${S.gold >= cost ? '' : 'disabled'}>Felejtés (${cost} arany)</button></div>`; }
@@ -4071,6 +4077,7 @@ Object.assign(UI.acts, {
   setName() { const v = $('#vnev').value.trim().slice(0, 24); if (v) { localStorage.setItem('multiverzum-nev', v); this.toast('Név mentve.', '#9fe07a'); } },
   connect() { Univ.connect(); setTimeout(() => this.renderShop(), 1500); },
   retP() { this.closeAll(); G.useReturnPortal(); },
+  univVissza() { Univ.back(); },
   diff(d) { G.S.prog.diff = +d.d; recalc(G.P); this.kapu(); },
   go(d) { this.closeAll(); G.enterDungeon(d.r, +d.f); },
   hasadek() { this.closeAll(); G.enterHasadek(1, false); },
