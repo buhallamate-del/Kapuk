@@ -8,7 +8,8 @@ const R = {
   },
   resize() {
     const dpr = Math.min(2, devicePixelRatio || 1); this.c.width = Math.floor(innerWidth * dpr); this.c.height = Math.floor(innerHeight * dpr);
-    G.zoom = Math.max(this.c.width / 1400, this.c.height / 820); G.W = this.c.width / G.zoom; G.H = this.c.height / G.zoom;
+    // érintőképernyőn a rövidebb oldalra legalább ~620 képpontnyi világ jut (álló és fekvő módban is)
+    G.zoom = Touch.on ? Math.min(this.c.width, this.c.height) / 620 : Math.max(this.c.width / 1400, this.c.height / 820); G.W = this.c.width / G.zoom; G.H = this.c.height / G.zoom;
     this.light.width = Math.ceil(this.c.width / 2); this.light.height = Math.ceil(this.c.height / 2);
   },
   frame() {

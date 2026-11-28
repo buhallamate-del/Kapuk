@@ -249,11 +249,12 @@ Object.assign(G, {
     let mx = 0, my = 0;
     if (Input.keys.has('w') || Input.keys.has('ArrowUp')) my -= 1; if (Input.keys.has('s') || Input.keys.has('ArrowDown')) my += 1;
     if (Input.keys.has('a') || Input.keys.has('ArrowLeft')) mx -= 1; if (Input.keys.has('d') || Input.keys.has('ArrowRight')) mx += 1;
+    let tMag = 1; if (Touch.on && (Touch.mv.x || Touch.mv.y)) { mx = Touch.mv.x; my = Touch.mv.y; tMag = clamp(Math.hypot(mx, my), 0.35, 1); }
     const ml = Math.hypot(mx, my); if (ml) { mx /= ml; my /= ml; }
     P.sprinting = Input.keys.has('Shift') && ml && P.sta > 1 && !this.inTown();
     if (P.sprinting && !st.staInf) { P.sta = Math.max(0, P.sta - 28 * dt); P.staDelay = 0.5; }
     let spd = 185 * st.msp * (P.sprinting || (this.inTown() && Input.keys.has('Shift')) ? 1.5 : 1);
-    if (P.chill > 0) { spd *= 0.6; P.chill -= dt; }
+    spd *= tMag; if (P.chill > 0) { spd *= 0.6; P.chill -= dt; }
     const ti = tileAt(m, Math.floor(P.x / TILE), Math.floor(P.y / TILE));
     let haz = ti === T_HAZ ? (REGION[m.region] ? REGION[m.region].haz.fx : null) : null;
     if (haz === 'slow') spd *= 0.55;
